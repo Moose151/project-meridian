@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Edit User</h1>
+
+        <p class="text-muted-small">
+            Editing <strong>{{ user.display_name }}</strong>.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.users') }}">
+        Back to Users
+    </a>
+</div>
+
+
+<!-- =========================================================
+     EDIT USER FORM
+     ========================================================= -->
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-body">
+
+                <form method="post">
+
+                    <!-- CSRF/security hidden fields from Flask-WTF -->
+                    {{ form.hidden_tag() }}
+
+                    <!-- Username field -->
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control") }}
+
+                        <div class="form-text">
+                            Changing this changes the username used at login.
+                        </div>
+                    </div>
+
+                    <!-- Display name field -->
+                    <div class="mb-3">
+                        {{ form.display_name.label(class="form-label") }}
+                        {{ form.display_name(class="form-control") }}
+
+                        <div class="form-text">
+                            This is the name displayed throughout Project Meridian.
+                        </div>
+                    </div>
+                                        <!-- Avatar field -->
+                    <div class="mb-3">
+                        {{ form.avatar_emoji.label(class="form-label") }}
+                        {{ form.avatar_emoji(class="form-control") }}
+
+                        <div class="form-text">
+                            This emoji appears on the login screen.
+                        </div>
+                    </div>
+
+                    <!-- Role field -->
+                    <div class="mb-4">
+                        {{ form.role.label(class="form-label") }}
+                        {{ form.role(class="form-control") }}
+
+                        <div class="form-text">
+                            Be careful when changing roles. Admin users can manage the whole app.
+                        </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+
+                        <a class="btn btn-secondary" href="{{ url_for('main.users') }}">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2>Current Status</h2>
+
+                <p class="text-muted-small mb-1">
+                    Account status
+                </p>
+
+                {% if user.is_active_account %}
+                    <span class="badge bg-success">
+                        Active
+                    </span>
+                {% else %}
+                    <span class="badge bg-secondary">
+                        Disabled
+                    </span>
+                {% endif %}
+
+                <p class="text-muted-small mt-3 mb-1">
+                    Current {{ household_settings.points_label }}
+                </p>
+
+                <p class="display-6 mb-0">
+                    {{ user.point_balance() }}
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h2>Password Changes</h2>
+
+                <p class="text-muted-small">
+                    Passwords and PINs are changed on a separate page.
+                </p>
+
+                <a
+                    class="btn btn-outline-primary w-100"
+                    href="{{ url_for('main.change_user_password', user_id=user.id) }}"
+                >
+                    Change Password/PIN
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

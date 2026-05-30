@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Edit Wishlist Item</h1>
+
+        <p class="text-muted-small">
+            Update the item owner, name, description, or point cost.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.wishlist') }}">
+        Back to Wishlist
+    </a>
+</div>
+
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-body">
+
+                <form method="post">
+
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.user_id.label(class="form-label") }}
+                        {{ form.user_id(class="form-control") }}
+
+                        <div class="form-text">
+                            Avoid changing the owner after {{ household_settings.points_label }} have already been contributed.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4") }}
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form.point_cost.label(class="form-label") }}
+                        {{ form.point_cost(class="form-control") }}
+
+                        <div class="form-text">
+                            If saved {{ household_settings.points_label }} already meet the new cost, the item will be marked as funded.
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+
+                        <a class="btn btn-secondary" href="{{ url_for('main.wishlist') }}">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2>Current Progress</h2>
+
+                <p class="text-muted-small mb-1">
+                    Saved
+                </p>
+
+                <p class="display-6 mb-0">
+                    {{ item.total_saved() }} / {{ item.point_cost }}
+                </p>
+
+                <p class="text-muted-small mb-0">
+                    {{ item.progress_percentage() }}% funded.
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h2>Status</h2>
+
+                <p class="text-muted-small mb-1">
+                    Current status
+                </p>
+
+                <p class="mb-0">
+                    {{ item.status }}
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

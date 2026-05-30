@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Edit Task</h1>
+
+        <p class="text-muted-small">
+            Editing <strong>{{ task.title }}</strong>.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.manage_tasks') }}">
+        Back to Manage Tasks
+    </a>
+</div>
+
+
+<!-- =========================================================
+     EDIT TASK FORM
+     ========================================================= -->
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-body">
+
+                <form method="post">
+
+                    <!-- CSRF/security hidden fields from Flask-WTF -->
+                    {{ form.hidden_tag() }}
+
+                    <!-- Task title field -->
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control") }}
+                    </div>
+
+                    <!-- Task description field -->
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4") }}
+                    </div>
+
+                    <div class="row">
+
+                        <!-- Point value field -->
+                        <div class="col-md-6 mb-3">
+                            {{ form.point_value.label(class="form-label") }}
+                            {{ form.point_value(class="form-control") }}
+
+                            <div class="form-text">
+                                Changing this only affects future approvals. Existing point history is not changed.
+                            </div>
+                        </div>
+
+                        <!-- Category field -->
+                        <div class="col-md-6 mb-3">
+                            {{ form.category.label(class="form-label") }}
+                            {{ form.category(class="form-control") }}
+                        </div>
+
+                    </div>
+
+                    <!-- Completion behaviour field -->
+                    <div class="mb-4">
+                        {{ form.completion_behavior.label(class="form-label") }}
+                        {{ form.completion_behavior(class="form-control") }}
+
+                        <div class="form-text">
+                            Stay active is best for repeatable jobs. Hide after approval is best for one-off tasks.
+                        </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+
+                        <a class="btn btn-secondary" href="{{ url_for('main.manage_tasks') }}">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2>Current Status</h2>
+
+                <p class="text-muted-small mb-1">
+                    Visibility
+                </p>
+
+                {% if task.is_active %}
+                    <span class="badge bg-success">
+                        Active
+                    </span>
+                {% else %}
+                    <span class="badge bg-secondary">
+                        Hidden
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h2>History Safety</h2>
+
+                <p class="text-muted-small mb-0">
+                    Editing a task does not alter old point transactions. Point History remains the accurate record of what was awarded.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

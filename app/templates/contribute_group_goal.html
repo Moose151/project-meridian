@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Contribute {{ household_settings.points_label|capitalize }}</h1>
+
+        <p class="text-muted-small">
+            Add your {{ household_settings.points_label }} to this group goal.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.group_goals') }}">
+        Back to Group Goals
+    </a>
+</div>
+
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-body">
+
+                <h2>{{ goal.title }}</h2>
+
+                {% if goal.description %}
+                    <p class="text-muted-small">
+                        {{ goal.description }}
+                    </p>
+                {% endif %}
+
+<div class="progress mb-3">
+    <div
+        class="progress-bar group-goal-progress"
+        role="progressbar"
+        data-progress="{{ goal.progress_percentage() }}"
+    >
+        {{ goal.progress_percentage() }}%
+    </div>
+</div>
+
+                <p>
+                    <strong>{{ goal.total_contributed() }}</strong>
+                    /
+                    {{ goal.target_points }}
+                    {{ household_settings.points_label }} contributed.
+                </p>
+
+                <p class="text-muted-small">
+                    This goal needs {{ goal.remaining_points() }} more {{ household_settings.points_label }}.
+                </p>
+
+                <form method="post">
+
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-4">
+                        {{ form.amount.label(class="form-label") }}
+                        {{ form.amount(class="form-control", placeholder="Example: 10") }}
+
+                        <div class="form-text">
+                            Your current balance is {{ current_user.point_balance() }} {{ household_settings.points_label }}.
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+
+                        <a class="btn btn-secondary" href="{{ url_for('main.group_goals') }}">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card">
+            <div class="card-body">
+                <h2>{{ household_settings.points_label|capitalize }} Reservation</h2>
+
+                <p class="text-muted-small">
+                    Contributed {{ household_settings.points_label }} are removed from your balance immediately.
+                </p>
+
+                <p class="text-muted-small mb-0">
+                    If the group goal is cancelled, your contribution is refunded.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Set group goal progress bar widths after the page loads.
+    // This avoids putting Jinja expressions directly inside inline CSS.
+    document.querySelectorAll(".group-goal-progress").forEach((bar) => {
+        const progress = bar.dataset.progress;
+        bar.style.width = `${progress}%`;
+    });
+</script>
+
+{% endblock %}

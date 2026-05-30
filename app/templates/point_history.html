@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>{{ household_settings.points_label|capitalize }} History</h1>
+
+        <p class="text-muted-small">
+            View {{ household_settings.points_label }} changes, rewards, refunds, wishlist contributions, group goal contributions, and manual adjustments.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.dashboard') }}">
+        Back to Dashboard
+    </a>
+</div>
+
+
+<!-- =========================================================
+     TRANSACTION LABELS
+     ========================================================= -->
+
+{% set transaction_labels = {
+    "task_approved": "Task approved",
+    "reward_requested": "Reward requested",
+    "reward_approved": "Reward approved",
+    "reward_refunded": "Reward rejected refund",
+    "reward_cancelled_refund": "Reward cancelled refund",
+    "group_goal_contribution": "Group goal contribution",
+    "group_goal_refund": "Group goal refund",
+    "wishlist_contribution": "Wishlist contribution",
+    "wishlist_refund": "Wishlist refund",
+    "manual_adjustment": "Manual adjustment"
+} %}
+
+
+<!-- =========================================================
+     POINT HISTORY
+     ========================================================= -->
+
+{% if transactions %}
+
+    <div class="card">
+        <div class="card-body">
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Type</th>
+                            <th>Reason</th>
+                            <th class="text-end">{{ household_settings.points_label|capitalize }}</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for transaction in transactions %}
+
+                            <tr>
+                                <td>
+                                    {{ transaction.created_at }}
+                                </td>
+
+                                <td>
+                                    {% if transaction.user %}
+                                        {{ transaction.user.avatar_emoji }} {{ transaction.user.display_name }}
+                                    {% else %}
+                                        Unknown user
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {{ transaction_labels.get(transaction.transaction_type, transaction.transaction_type) }}
+                                </td>
+
+                                <td>
+                                    {{ transaction.reason }}
+
+                                    {% if transaction.created_by %}
+                                        <div class="text-muted-small">
+                                            Created by {{ transaction.created_by.display_name }}
+                                        </div>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-end">
+                                    {% if transaction.amount > 0 %}
+                                        <span class="badge bg-success">
+                                            +{{ transaction.amount }}
+                                        </span>
+                                    {% elif transaction.amount < 0 %}
+                                        <span class="badge bg-danger">
+                                            {{ transaction.amount }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            {{ transaction.amount }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+{% else %}
+
+    <div class="card">
+        <div class="card-body">
+            <h2>No {{ household_settings.points_label }} history yet</h2>
+
+            <p class="text-muted-small mb-0">
+                {{ household_settings.points_label|capitalize }} transactions will appear here once tasks are approved, rewards are requested, wishlist items receive contributions, group goals receive contributions, or manual adjustments are made.
+            </p>
+        </div>
+    </div>
+
+{% endif %}
+
+{% endblock %}

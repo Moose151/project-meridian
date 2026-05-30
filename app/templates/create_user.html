@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Create User</h1>
+
+        <p class="text-muted-small">
+            Add a new standard user or admin account.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.users') }}">
+        Back to Users
+    </a>
+</div>
+
+
+<!-- =========================================================
+     CREATE USER FORM
+     ========================================================= -->
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-body">
+
+                <form method="post">
+
+                    <!-- CSRF/security hidden fields from Flask-WTF -->
+                    {{ form.hidden_tag() }}
+
+                    <!-- Username field -->
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control", placeholder="Example: child1") }}
+
+                        <div class="form-text">
+                            This is the name used to log in. It must be unique.
+                        </div>
+                    </div>
+
+                    <!-- Display name field -->
+                    <div class="mb-3">
+                        {{ form.display_name.label(class="form-label") }}
+                        {{ form.display_name(class="form-control", placeholder="Example: Alex") }}
+
+                        <div class="form-text">
+                            This is the friendly name shown throughout the app.
+                        </div>
+                    </div>
+                                        <!-- Avatar field -->
+                    <div class="mb-3">
+                        {{ form.avatar_emoji.label(class="form-label") }}
+                        {{ form.avatar_emoji(class="form-control") }}
+
+                        <div class="form-text">
+                            This emoji appears on the login screen.
+                        </div>
+                    </div>
+
+                    <!-- Password/PIN field -->
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control", placeholder="Example: 1234") }}
+
+                        <div class="form-text">
+                            This can be a password or simple PIN for local household use.
+                        </div>
+                    </div>
+
+                    <!-- Role field -->
+                    <div class="mb-4">
+                        {{ form.role.label(class="form-label") }}
+                        {{ form.role(class="form-control") }}
+
+                        <div class="form-text">
+                            Standard users can complete tasks and request rewards. Admins can manage the system.
+                        </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+
+                        <a class="btn btn-secondary" href="{{ url_for('main.users') }}">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card">
+            <div class="card-body">
+                <h2>User Roles</h2>
+
+                <p class="text-muted-small">
+                    <strong>Standard User</strong> accounts are for people who complete tasks, earn {{ household_settings.points_label }}, and request rewards.
+                </p>
+
+                <p class="text-muted-small mb-0">
+                    <strong>Admin</strong> accounts can create users, manage tasks, approve rewards, adjust {{ household_settings.points_label }}, and download backups.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

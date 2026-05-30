@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Request Archive</h1>
+
+        <p class="text-muted-small">
+            View old task submissions, reward requests, and wishlist requests.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.dashboard') }}">
+        Back to Dashboard
+    </a>
+</div>
+
+
+<!-- =========================================================
+     TASK REQUEST ARCHIVE
+     ========================================================= -->
+
+<h2>Task Requests</h2>
+
+{% if archived_task_requests %}
+
+    <div class="row mb-4">
+
+        {% for completion in archived_task_requests %}
+
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+
+                        <!-- Task title, user, description, and status -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h2>{{ completion.task.title }}</h2>
+
+                                {% if current_user.is_admin() %}
+                                    <p class="text-muted-small mb-1">
+                                        User: {{ completion.user.avatar_emoji }} {{ completion.user.display_name }}
+                                    </p>
+                                {% endif %}
+
+                                {% if completion.task.description %}
+                                    <p class="text-muted-small mb-0">
+                                        {{ completion.task.description }}
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            {% if completion.status == "approved" %}
+                                <span class="badge bg-success">
+                                    Approved
+                                </span>
+                            {% elif completion.status == "rejected" %}
+                                <span class="badge bg-danger">
+                                    Rejected
+                                </span>
+                            {% elif completion.status == "cancelled" %}
+                                <span class="badge bg-secondary">
+                                    Cancelled
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ completion.status }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Task request details -->
+                        <div class="mb-3">
+                            <p class="text-muted-small mb-1">
+                                Submitted: {{ completion.submitted_at }}
+                            </p>
+
+                            {% if completion.reviewed_at %}
+                                <p class="text-muted-small mb-1">
+                                    Reviewed: {{ completion.reviewed_at }}
+                                </p>
+                            {% endif %}
+
+                            <p class="text-muted-small mb-1">
+                                {{ household_settings.points_label|capitalize }}: {{ completion.task.point_value }}
+                            </p>
+
+                            {% if completion.task.category %}
+                                <p class="text-muted-small mb-1">
+                                    Category: {{ completion.task.category }}
+                                </p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Rejection reason -->
+                        {% if completion.rejection_reason %}
+                            <div class="alert alert-light border mt-2 mb-3">
+                                <strong>Reason:</strong>
+                                {{ completion.rejection_reason }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Admin duplicate action -->
+                        {% if current_user.is_admin() %}
+                            <div class="mt-auto">
+                                <a
+                                    class="btn btn-outline-primary w-100"
+                                    href="{{ url_for('main.create_task', import_task_id=completion.task.id) }}"
+                                >
+                                    Duplicate Task
+                                </a>
+                            </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <p class="text-muted-small mb-0">
+                No archived task requests.
+            </p>
+        </div>
+    </div>
+
+{% endif %}
+
+
+<!-- =========================================================
+     REWARD REQUEST ARCHIVE
+     ========================================================= -->
+
+<h2>Reward Requests</h2>
+
+{% if archived_reward_requests %}
+
+    <div class="row mb-4">
+
+        {% for purchase in archived_reward_requests %}
+
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+
+                        <!-- Reward title, user, description, and status -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h2>{{ purchase.reward.name }}</h2>
+
+                                {% if current_user.is_admin() %}
+                                    <p class="text-muted-small mb-1">
+                                        User: {{ purchase.user.avatar_emoji }} {{ purchase.user.display_name }}
+                                    </p>
+                                {% endif %}
+
+                                {% if purchase.reward.description %}
+                                    <p class="text-muted-small mb-0">
+                                        {{ purchase.reward.description }}
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            {% if purchase.status == "approved" %}
+                                <span class="badge bg-success">
+                                    Approved
+                                </span>
+                            {% elif purchase.status == "rejected" %}
+                                <span class="badge bg-danger">
+                                    Rejected
+                                </span>
+                            {% elif purchase.status == "cancelled" %}
+                                <span class="badge bg-secondary">
+                                    Cancelled
+                                </span>
+                            {% elif purchase.status == "fulfilled" %}
+                                <span class="badge bg-primary">
+                                    Fulfilled
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ purchase.status }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Reward request details -->
+                        <div class="mb-3">
+                            <p class="text-muted-small mb-1">
+                                Requested: {{ purchase.requested_at }}
+                            </p>
+
+                            {% if purchase.reviewed_at %}
+                                <p class="text-muted-small mb-1">
+                                    Reviewed: {{ purchase.reviewed_at }}
+                                </p>
+                            {% endif %}
+
+                            <p class="text-muted-small mb-1">
+                                Cost: {{ purchase.reward.point_cost }} {{ household_settings.points_label }}
+                            </p>
+
+                            {% if purchase.reward.category %}
+                                <p class="text-muted-small mb-1">
+                                    Category: {{ purchase.reward.category }}
+                                </p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Rejection reason -->
+                        {% if purchase.rejection_reason %}
+                            <div class="alert alert-light border mt-2 mb-3">
+                                <strong>Reason:</strong>
+                                {{ purchase.rejection_reason }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Admin duplicate action -->
+                        {% if current_user.is_admin() %}
+                            <div class="mt-auto">
+                                <a
+                                    class="btn btn-outline-primary w-100"
+                                    href="{{ url_for('main.create_reward', import_reward_id=purchase.reward.id) }}"
+                                >
+                                    Duplicate Reward
+                                </a>
+                            </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <p class="text-muted-small mb-0">
+                No archived reward requests.
+            </p>
+        </div>
+    </div>
+
+{% endif %}
+
+
+<!-- =========================================================
+     WISHLIST REQUEST ARCHIVE
+     ========================================================= -->
+
+<h2>Wishlist Requests</h2>
+
+{% if archived_wishlist_requests %}
+
+    <div class="row">
+
+        {% for wishlist_request in archived_wishlist_requests %}
+
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+
+                        <!-- Wishlist request title, user, description, and status -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h2>{{ wishlist_request.requested_name }}</h2>
+
+                                {% if current_user.is_admin() %}
+                                    <p class="text-muted-small mb-1">
+                                        User: {{ wishlist_request.user.avatar_emoji }} {{ wishlist_request.user.display_name }}
+                                    </p>
+                                {% endif %}
+
+                                {% if wishlist_request.requested_description %}
+                                    <p class="text-muted-small mb-0">
+                                        {{ wishlist_request.requested_description }}
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            {% if wishlist_request.status == "approved" %}
+                                <span class="badge bg-success">
+                                    Approved
+                                </span>
+                            {% elif wishlist_request.status == "rejected" %}
+                                <span class="badge bg-danger">
+                                    Rejected
+                                </span>
+                            {% elif wishlist_request.status == "cancelled" %}
+                                <span class="badge bg-secondary">
+                                    Cancelled
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ wishlist_request.status }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Wishlist request details -->
+                        <div class="mb-3">
+                            <p class="text-muted-small mb-1">
+                                Requested: {{ wishlist_request.created_at }}
+                            </p>
+
+                            {% if wishlist_request.reviewed_at %}
+                                <p class="text-muted-small mb-1">
+                                    Reviewed: {{ wishlist_request.reviewed_at }}
+                                </p>
+                            {% endif %}
+
+                            {% if wishlist_request.reviewed_by %}
+                                <p class="text-muted-small mb-1">
+                                    Reviewed by: {{ wishlist_request.reviewed_by.display_name }}
+                                </p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Rejection reason -->
+                        {% if wishlist_request.rejection_reason %}
+                            <div class="alert alert-light border mt-2 mb-0">
+                                <strong>Reason:</strong>
+                                {{ wishlist_request.rejection_reason }}
+                            </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+
+    <div class="card">
+        <div class="card-body">
+            <p class="text-muted-small mb-0">
+                No archived wishlist requests.
+            </p>
+        </div>
+    </div>
+
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Complete Task for User</h1>
+
+        <p class="text-muted-small">
+            Mark a task complete on behalf of a user and award {{ household_settings.points_label }} immediately.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.admin_home') }}">
+        Back to Admin Centre
+    </a>
+</div>
+
+
+<!-- =========================================================
+     ADMIN COMPLETE TASK FORM
+     ========================================================= -->
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-body">
+
+                {% if not active_users %}
+
+                    <div class="alert alert-warning">
+                        No active standard users exist. Create a user before completing tasks.
+                    </div>
+
+                {% elif not active_tasks %}
+
+                    <div class="alert alert-warning">
+                        No active tasks exist. Create or restore a task before completing tasks.
+                    </div>
+
+                {% else %}
+
+                    <form method="post">
+
+                        <!-- CSRF/security hidden fields from Flask-WTF -->
+                        {{ form.hidden_tag() }}
+
+                        <!-- User dropdown -->
+                        <div class="mb-3">
+                            {{ form.user_id.label(class="form-label") }}
+                            {{ form.user_id(class="form-control") }}
+
+                            <div class="form-text">
+                                Select the user who completed the task.
+                            </div>
+                        </div>
+
+                        <!-- Task dropdown -->
+                        <div class="mb-4">
+                            {{ form.task_id.label(class="form-label") }}
+                            {{ form.task_id(class="form-control") }}
+
+                            <div class="form-text">
+                                The selected task's {{ household_settings.points_label }} will be awarded immediately.
+                            </div>
+                        </div>
+
+                        <!-- Action buttons -->
+                        <div class="d-flex gap-2">
+                            {{ form.submit(class="btn btn-primary") }}
+
+                            <a class="btn btn-secondary" href="{{ url_for('main.admin_home') }}">
+                                Cancel
+                            </a>
+                        </div>
+
+                    </form>
+
+                {% endif %}
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2>What this does</h2>
+
+                <p class="text-muted-small">
+                    This creates an approved task completion immediately.
+                </p>
+
+                <p class="text-muted-small mb-0">
+                    The user does not need to submit the task first.
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h2>Point History</h2>
+
+                <p class="text-muted-small mb-0">
+                    The awarded {{ household_settings.points_label }} will appear in {{ household_settings.points_label|capitalize }} History as a task approval.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

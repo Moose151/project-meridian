@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Add {{ household_settings.points_label|capitalize }} to Wishlist Item</h1>
+
+        <p class="text-muted-small">
+            Save {{ household_settings.points_label }} toward this approved wishlist item.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.wishlist') }}">
+        Back to Wishlist
+    </a>
+</div>
+
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-body">
+
+                <h2>{{ item.name }}</h2>
+
+                {% if item.description %}
+                    <p class="text-muted-small">
+                        {{ item.description }}
+                    </p>
+                {% endif %}
+
+                <div class="progress mb-3">
+                    <div
+                        class="progress-bar wishlist-progress"
+                        role="progressbar"
+                        data-progress="{{ item.progress_percentage() }}"
+                    >
+                        {{ item.progress_percentage() }}%
+                    </div>
+                </div>
+
+                <p>
+                    <strong>{{ item.total_saved() }}</strong>
+                    /
+                    {{ item.point_cost }}
+                    {{ household_settings.points_label }} saved.
+                </p>
+
+                <p class="text-muted-small">
+                    This item needs {{ item.remaining_points() }} more {{ household_settings.points_label }}.
+                </p>
+
+                <form method="post">
+
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-4">
+                        {{ form.amount.label(class="form-label") }}
+                        {{ form.amount(class="form-control", placeholder="Example: 10") }}
+
+                        <div class="form-text">
+                            Your current available balance is {{ current_user.point_balance() }} {{ household_settings.points_label }}.
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+
+                        <a class="btn btn-secondary" href="{{ url_for('main.wishlist') }}">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card">
+            <div class="card-body">
+                <h2>Saved {{ household_settings.points_label|capitalize }}</h2>
+
+                <p class="text-muted-small">
+                    {{ household_settings.points_label|capitalize }} added here are deducted from your available balance immediately.
+                </p>
+
+                <p class="text-muted-small mb-0">
+                    If an admin removes the wishlist item, saved {{ household_settings.points_label }} are refunded
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<script>
+    document.querySelectorAll(".wishlist-progress").forEach((bar) => {
+        const progress = bar.dataset.progress;
+        bar.style.width = `${progress}%`;
+    });
+</script>
+
+{% endblock %}

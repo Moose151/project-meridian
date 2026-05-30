@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Leaderboard</h1>
+
+        <p class="text-muted-small">
+            Compare current {{ household_settings.points_label }}, total {{ household_settings.points_label }} earned, and approved tasks completed.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.dashboard') }}">
+        Back to Dashboard
+    </a>
+</div>
+
+
+<!-- =========================================================
+     LEADERBOARD SUMMARY
+     ========================================================= -->
+
+<div class="row mb-4">
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2>Current {{ household_settings.points_label|capitalize }}</h2>
+
+                <p class="text-muted-small mb-0">
+                    Shows each user's current available {{ household_settings.points_label }} balance.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2>Total Earned</h2>
+
+                <p class="text-muted-small mb-0">
+                    Counts {{ household_settings.points_label }} earned from approved tasks only. Spending {{ household_settings.points_label }} does not reduce this score.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2>Tasks Completed</h2>
+
+                <p class="text-muted-small mb-0">
+                    Counts approved task completions for each user.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     LEADERBOARD TABLES
+     ========================================================= -->
+
+<div class="row">
+
+    <!-- Current Points -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h2>Current {{ household_settings.points_label|capitalize }}</h2>
+
+                    <span class="badge bg-primary">
+                        Balance
+                    </span>
+                </div>
+
+                {% if current_points_leaderboard %}
+
+                    {% for entry in current_points_leaderboard %}
+
+                        <div class="leaderboard-row">
+                            <div class="leaderboard-rank">
+                                {{ loop.index }}
+                            </div>
+
+                            <div class="leaderboard-user">
+                                <div class="leaderboard-avatar">
+                                    {{ entry.user.avatar_emoji }}
+                                </div>
+
+                                <div>
+                                    <strong>{{ entry.user.display_name }}</strong>
+                                    <div class="text-muted-small">
+                                        Current balance
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="leaderboard-score">
+                                {{ entry.score }}
+                            </div>
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <p class="text-muted-small mb-0">
+                        No active users found.
+                    </p>
+
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Total Earned -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h2>Total Earned</h2>
+
+                    <span class="badge bg-success">
+                        Earned
+                    </span>
+                </div>
+
+                {% if total_earned_leaderboard %}
+
+                    {% for entry in total_earned_leaderboard %}
+
+                        <div class="leaderboard-row">
+                            <div class="leaderboard-rank">
+                                {{ loop.index }}
+                            </div>
+
+                            <div class="leaderboard-user">
+                                <div class="leaderboard-avatar">
+                                    {{ entry.user.avatar_emoji }}
+                                </div>
+
+                                <div>
+                                    <strong>{{ entry.user.display_name }}</strong>
+                                    <div class="text-muted-small">
+                                        From approved tasks
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="leaderboard-score">
+                                {{ entry.score }}
+                            </div>
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <p class="text-muted-small mb-0">
+                        No active users found.
+                    </p>
+
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Tasks Completed -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h2>Tasks Completed</h2>
+
+                    <span class="badge bg-warning text-dark">
+                        Tasks
+                    </span>
+                </div>
+
+                {% if tasks_completed_leaderboard %}
+
+                    {% for entry in tasks_completed_leaderboard %}
+
+                        <div class="leaderboard-row">
+                            <div class="leaderboard-rank">
+                                {{ loop.index }}
+                            </div>
+
+                            <div class="leaderboard-user">
+                                <div class="leaderboard-avatar">
+                                    {{ entry.user.avatar_emoji }}
+                                </div>
+
+                                <div>
+                                    <strong>{{ entry.user.display_name }}</strong>
+                                    <div class="text-muted-small">
+                                        Approved completions
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="leaderboard-score">
+                                {{ entry.score }}
+                            </div>
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <p class="text-muted-small mb-0">
+                        No active users found.
+                    </p>
+
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

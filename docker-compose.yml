@@ -1,0 +1,11 @@
+services:
+  project-meridian:
+    build: .
+    container_name: project-meridian
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./instance:/app/instance:Z

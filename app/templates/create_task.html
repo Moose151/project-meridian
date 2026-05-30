@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Create Task</h1>
+
+        <p class="text-muted-small">
+            Add a new task, set its point value, and choose what happens after approval.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.manage_tasks') }}">
+        Manage Tasks
+    </a>
+</div>
+
+
+<!-- =========================================================
+     CREATE TASK FORM
+     ========================================================= -->
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-body">
+
+                <form method="post">
+
+                    <!-- CSRF/security hidden fields from Flask-WTF -->
+                    {{ form.hidden_tag() }}
+                    <!-- =========================================================
+     IMPORT PREVIOUS TASK
+     ========================================================= -->
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h2>Import from Previous Task</h2>
+
+        <p class="text-muted-small">
+            Select a previous task to pre-fill this form. You can edit the details before saving.
+        </p>
+
+        <div class="row align-items-end">
+
+            <div class="col-md-8 mb-3 mb-md-0">
+                {{ form.import_task_id.label(class="form-label") }}
+                {{ form.import_task_id(class="form-control") }}
+            </div>
+
+            <div class="col-md-4">
+<button
+    class="btn btn-outline-primary w-100"
+    type="submit"
+    name="import_action"
+    value="1"
+    formnovalidate
+>
+    Import Task
+</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+                    <!-- Task title field -->
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control", placeholder="Example: Tidy bedroom") }}
+
+                        <div class="form-text">
+                            Use a short, clear task name.
+                        </div>
+                    </div>
+
+                    <!-- Task description field -->
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4", placeholder="Describe what needs to be done.") }}
+
+                        <div class="form-text">
+                            Optional, but useful if the task needs extra explanation.
+                        </div>
+                    </div>
+
+                    <div class="row">
+
+                        <!-- Point value field -->
+                        <div class="col-md-6 mb-3">
+                            {{ form.point_value.label(class="form-label") }}
+                            {{ form.point_value(class="form-control", placeholder="Example: 10") }}
+
+                            <div class="form-text">
+                                {{ household_settings.points_label|capitalize }} awarded after admin approval.
+                            </div>
+                        </div>
+
+                        <!-- Category field -->
+                        <div class="col-md-6 mb-3">
+                            {{ form.category.label(class="form-label") }}
+                            {{ form.category(class="form-control", placeholder="Example: Bedroom") }}
+
+                            <div class="form-text">
+                                Optional grouping, such as Bedroom, Kitchen, Pets, or School.
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Completion behaviour field -->
+                    <div class="mb-4">
+                        {{ form.completion_behavior.label(class="form-label") }}
+                        {{ form.completion_behavior(class="form-control") }}
+
+                        <div class="form-text">
+                            Use “stay active” for repeatable tasks. Use “hide after approval” for one-off tasks.
+                        </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+
+                        <a class="btn btn-secondary" href="{{ url_for('main.manage_tasks') }}">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card">
+            <div class="card-body">
+                <h2>Task Behaviour</h2>
+
+                <p class="text-muted-small">
+                    <strong>Stay active after approval</strong> is best for repeatable jobs like feeding pets, tidying rooms, or unloading the dishwasher.
+                </p>
+
+                <p class="text-muted-small mb-0">
+                    <strong>Hide after approval</strong> is best for one-off jobs like cleaning the garage or helping move boxes.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

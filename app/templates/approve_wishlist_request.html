@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Approve Wishlist Request</h1>
+
+        <p class="text-muted-small">
+            Review the request, adjust details if needed, and set the final point cost.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.wishlist') }}">
+        Back to Wishlist
+    </a>
+</div>
+
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-body">
+
+                <form method="post">
+
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4") }}
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form.point_cost.label(class="form-label") }}
+                        {{ form.point_cost(class="form-control", placeholder="Example: 300") }}
+
+                        <div class="form-text">
+                            The user cannot set this value. The admin decides the final point cost.
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-success") }}
+
+                        <a class="btn btn-secondary" href="{{ url_for('main.wishlist') }}">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card">
+            <div class="card-body">
+                <h2>Request Details</h2>
+
+                <p class="text-muted-small mb-1">
+                    Requested by
+                </p>
+
+                <p>
+                    {{ wishlist_request.user.avatar_emoji }} {{ wishlist_request.user.display_name }}
+                </p>
+
+                <p class="text-muted-small mb-1">
+                    Original request
+                </p>
+
+                <p>
+                    <strong>{{ wishlist_request.requested_name }}</strong>
+                </p>
+
+                {% if wishlist_request.requested_description %}
+                    <p class="text-muted-small mb-1">
+                        Notes
+                    </p>
+
+                    <p>
+                        {{ wishlist_request.requested_description }}
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

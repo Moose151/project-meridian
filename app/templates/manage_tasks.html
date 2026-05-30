@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Manage Tasks</h1>
+
+        <p class="text-muted-small">
+            Edit, hide, restore, or delete unused tasks. Hidden tasks keep their history but no longer appear on the task board.
+        </p>
+    </div>
+
+    <a class="btn btn-primary" href="{{ url_for('main.create_task') }}">
+        Create New Task
+    </a>
+</div>
+
+
+<!-- =========================================================
+     TASK MANAGEMENT CARDS
+     ========================================================= -->
+
+{% if tasks %}
+
+    <div class="row">
+
+        {% for task in tasks %}
+
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+
+                        <!-- Task title and status badges -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">
+                                    {{ task.title }}
+                                </h5>
+
+                                {% if task.category %}
+                                    <p class="text-muted-small mb-0">
+                                        {{ task.category }}
+                                    </p>
+                                {% else %}
+                                    <p class="text-muted-small mb-0">
+                                        No category
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="text-end">
+                                {% if task.is_active %}
+                                    <span class="badge bg-success">
+                                        Active
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        Hidden
+                                    </span>
+                                {% endif %}
+
+                                {% if task.completion_behavior == "hide_after_approval" %}
+                                    <span class="badge bg-dark">
+                                        One-off
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-primary">
+                                        Repeatable
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Task description -->
+                        {% if task.description %}
+                            <p>
+                                {{ task.description }}
+                            </p>
+                        {% else %}
+                            <p class="text-muted-small">
+                                No description provided.
+                            </p>
+                        {% endif %}
+
+                        <!-- Task details -->
+                        <div class="row mb-3">
+                            <div class="col">
+                                <p class="text-muted-small mb-1">
+                                    {{ household_settings.points_label|capitalize }}
+                                </p>
+
+                                <p class="display-6 mb-0">
+                                    {{ task.point_value }}
+                                </p>
+                            </div>
+
+                            <div class="col">
+                                <p class="text-muted-small mb-1">
+                                    Submissions
+                                </p>
+
+                                <p class="display-6 mb-0">
+                                    {{ task.completions|length }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Behaviour note -->
+                        <p class="status-note">
+                            {% if task.completion_behavior == "hide_after_approval" %}
+                                This task will hide after an approved completion.
+                            {% else %}
+                                This task stays active after approved completions.
+                            {% endif %}
+                        </p>
+
+                        <!-- Action buttons -->
+                        <div class="mt-auto d-flex flex-wrap gap-2">
+
+                            <!-- Edit task -->
+                            <a
+                                class="btn btn-sm btn-primary"
+                                href="{{ url_for('main.edit_task', task_id=task.id) }}"
+                            >
+                                Edit
+                            </a>
+
+                            {% if task.is_active %}
+
+                                <!-- Hide task -->
+                                <form
+                                    method="post"
+                                    action="{{ url_for('main.hide_task', task_id=task.id) }}"
+                                    style="display:inline;"
+                                >
+                                    <button class="btn btn-sm btn-warning" type="submit">
+                                        Hide
+                                    </button>
+                                </form>
+
+                            {% else %}
+
+                                <!-- Restore task -->
+                                <form
+                                    method="post"
+                                    action="{{ url_for('main.restore_task', task_id=task.id) }}"
+                                    style="display:inline;"
+                                >
+                                    <button class="btn btn-sm btn-success" type="submit">
+                                        Restore
+                                    </button>
+                                </form>
+
+                            {% endif %}
+
+                            <!-- Delete task.
+                                 The route only deletes if the task has no history.
+                                 Otherwise, the task is hidden instead. -->
+                            <form
+                                method="post"
+                                action="{{ url_for('main.delete_task', task_id=task.id) }}"
+                                style="display:inline;"
+                                onsubmit="return confirm('Delete this task? If it has history, it will be hidden instead.');"
+                            >
+                                <button class="btn btn-sm btn-danger" type="submit">
+                                    Delete
+                                </button>
+                            </form>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+
+    <div class="card">
+        <div class="card-body">
+            <h2>No tasks found</h2>
+
+            <p class="text-muted-small">
+                No tasks have been created yet.
+            </p>
+
+            <a class="btn btn-primary" href="{{ url_for('main.create_task') }}">
+                Create Task
+            </a>
+        </div>
+    </div>
+
+{% endif %}
+
+{% endblock %}

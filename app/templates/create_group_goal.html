@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Create Group Goal</h1>
+
+        <p class="text-muted-small">
+            Create a shared goal that users can contribute {{ household_settings.points_label }} toward.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.group_goals') }}">
+        Back to Group Goals
+    </a>
+</div>
+
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-body">
+
+                <form method="post">
+
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control", placeholder="Example: Pizza Night") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4", placeholder="Describe the group reward.") }}
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form.target_points.label(class="form-label") }}
+                        {{ form.target_points(class="form-control", placeholder="Example: 100") }}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+
+                        <a class="btn btn-secondary" href="{{ url_for('main.group_goals') }}">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card">
+            <div class="card-body">
+                <h2>How it works</h2>
+
+                <p class="text-muted-small">
+                    Users contribute their own {{ household_settings.points_label }} toward the shared target.
+                </p>
+
+                <p class="text-muted-small mb-0">
+                    If the goal is cancelled, contributions are refunded.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

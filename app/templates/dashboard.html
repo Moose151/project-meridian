@@ -1,0 +1,700 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% set dashboard_transaction_labels = {
+    "task_approved": "Task approved",
+    "reward_requested": "Reward requested",
+    "reward_approved": "Reward approved",
+    "reward_refunded": "Reward refund",
+    "reward_cancelled_refund": "Reward cancelled refund",
+    "group_goal_contribution": "Group goal contribution",
+    "group_goal_refund": "Group goal refund",
+    "wishlist_contribution": "Wishlist contribution",
+    "wishlist_refund": "Wishlist refund",
+    "manual_adjustment": "Manual adjustment"
+} %}
+
+<!-- =========================================================
+     DASHBOARD USER HEADER
+     ========================================================= -->
+
+<div class="card mb-4">
+    <div class="card-body d-flex align-items-center justify-content-between">
+
+        <div class="d-flex align-items-center gap-3">
+
+            <div class="dashboard-avatar">
+                {{ current_user.avatar_emoji }}
+            </div>
+
+            <div>
+                <h1 class="mb-1">
+                    {{ current_user.display_name }}
+                </h1>
+
+                {% if current_user.is_admin() %}
+                    <p class="text-muted-small mb-0">
+                        Admin dashboard
+                    </p>
+                {% else %}
+                    <p class="text-muted-small mb-0">
+                        Current balance: {{ current_user.point_balance() }} {{ household_settings.points_label }}
+                    </p>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <a class="btn btn-outline-primary" href="{{ url_for('main.my_profile') }}">
+            View Profile
+        </a>
+
+    </div>
+</div>
+
+
+{% if current_user.is_admin() %}
+
+    <!-- =========================================================
+         ADMIN DASHBOARD
+         ========================================================= -->
+
+    <!-- =========================================================
+         ADMIN NOTIFICATIONS
+         ========================================================= -->
+
+    {% if notifications %}
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2>Notifications</h2>
+
+                <p class="text-muted-small">
+                    Recent system updates requiring admin action or review.
+                </p>
+
+                {% for notification in notifications %}
+
+                    <div class="alert alert-{{ notification.notification_type }} d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ notification.title }}</strong>
+
+                            <p class="mb-0">
+                                {{ notification.message }}
+                            </p>
+
+                            <p class="text-muted-small mb-0">
+                                {{ notification.created_at }}
+                            </p>
+                        </div>
+
+                        <div class="d-flex gap-2">
+
+                            {% if notification.action_url and notification.action_label %}
+                                <a
+                                    class="btn btn-sm btn-primary"
+                                    href="{{ notification.action_url }}"
+                                >
+                                    {{ notification.action_label }}
+                                </a>
+                            {% endif %}
+
+                            <form
+                                method="post"
+                                action="{{ url_for('main.mark_notification_read', notification_id=notification.id) }}"
+                            >
+                                <button class="btn btn-sm btn-outline-secondary" type="submit">
+                                    Dismiss
+                                </button>
+                            </form>
+
+                        </div>
+                    </div>
+
+                {% endfor %}
+
+            </div>
+        </div>
+
+    {% endif %}
+
+
+    <!-- =========================================================
+         ADMIN SUMMARY CARDS
+         ========================================================= -->
+
+    <div class="row mb-4">
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h2>Task Approvals</h2>
+
+                        <span class="badge bg-warning text-dark">
+                            Pending
+                        </span>
+                    </div>
+
+                    <p class="text-muted-small">
+                        Submitted tasks waiting for review.
+                    </p>
+
+                    <p class="display-5 mb-0">
+                        {{ pending_tasks|length }}
+                    </p>
+
+                    <a class="btn btn-primary mt-3" href="{{ url_for('main.admin_approvals') }}">
+                        Review Tasks
+                    </a>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h2>Reward Requests</h2>
+
+                        <span class="badge bg-warning text-dark">
+                            Pending
+                        </span>
+                    </div>
+
+                    <p class="text-muted-small">
+                        Reward requests waiting for review.
+                    </p>
+
+                    <p class="display-5 mb-0">
+                        {{ pending_purchases|length }}
+                    </p>
+
+                    <a class="btn btn-primary mt-3" href="{{ url_for('main.admin_approvals') }}">
+                        Review Rewards
+                    </a>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h2>Active Users</h2>
+
+                        <span class="badge bg-success">
+                            Active
+                        </span>
+                    </div>
+
+                    <p class="text-muted-small">
+                        Active standard user accounts.
+                    </p>
+
+                    <p class="display-5 mb-0">
+                        {{ active_user_count }}
+                    </p>
+
+                    <a class="btn btn-primary mt-3" href="{{ url_for('main.users') }}">
+                        Manage Users
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+        <!-- =========================================================
+         ADMIN RECENT ACTIVITY
+         ========================================================= -->
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2>Recent Activity</h2>
+
+            <p class="text-muted-small">
+                Latest {{ household_settings.points_label }}-related activity across all users.
+            </p>
+
+            {% if recent_activity %}
+
+                {% for transaction in recent_activity %}
+
+                    <div class="profile-activity-row">
+                        <div>
+                            <strong>
+                                {{ dashboard_transaction_labels.get(transaction.transaction_type, transaction.transaction_type) }}
+                            </strong>
+
+                            <div class="text-muted-small">
+                                {% if transaction.user %}
+                                    {{ transaction.user.avatar_emoji }} {{ transaction.user.display_name }}
+                                {% else %}
+                                    Unknown user
+                                {% endif %}
+                                ·
+                                {{ transaction.created_at }}
+                            </div>
+
+                            <div class="text-muted-small">
+                                {{ transaction.reason }}
+                            </div>
+                        </div>
+
+                        <div>
+                            {% if transaction.amount > 0 %}
+                                <span class="badge bg-success">
+                                    +{{ transaction.amount }}
+                                </span>
+                            {% elif transaction.amount < 0 %}
+                                <span class="badge bg-danger">
+                                    {{ transaction.amount }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ transaction.amount }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                {% endfor %}
+
+            {% else %}
+
+                <p class="text-muted-small mb-0">
+                    No recent {{ household_settings.points_label }} activity yet.
+                </p>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+
+    <!-- =========================================================
+         ADMIN QUICK ACTIONS
+         ========================================================= -->
+
+    <div class="card">
+        <div class="card-body">
+            <h2>Admin Quick Actions</h2>
+
+            <p class="text-muted-small">
+                Common admin tools are grouped here for faster access.
+            </p>
+
+            <div class="row">
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.create_task') }}">
+                        New Task
+                    </a>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.admin_complete_task') }}">
+                        Complete Task
+                    </a>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.create_reward') }}">
+                        New Reward
+                    </a>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.backup_database') }}">
+                        Backup Database
+                    </a>
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.manage_categories') }}">
+                        Categories
+                    </a>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.group_goals') }}">
+                        Group Goals
+                    </a>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.wishlist') }}">
+                        Wishlist
+                    </a>
+                </div>
+                
+
+                <div class="col-md-3 mb-3">
+    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.household_settings') }}">
+        Settings
+    </a>
+</div>
+
+            </div>
+        </div>
+    </div>
+
+
+{% else %}
+
+    <!-- =========================================================
+         STANDARD USER DASHBOARD
+         ========================================================= -->
+
+    <!-- =========================================================
+         USER NOTIFICATIONS
+         ========================================================= -->
+
+    {% if notifications %}
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2>Notifications</h2>
+
+                <p class="text-muted-small">
+                    Recent task, reward, wishlist, and group goal updates.
+                </p>
+
+                {% for notification in notifications %}
+
+                    <div class="alert alert-{{ notification.notification_type }} d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ notification.title }}</strong>
+
+                            <p class="mb-0">
+                                {{ notification.message }}
+                            </p>
+
+                            <p class="text-muted-small mb-0">
+                                {{ notification.created_at }}
+                            </p>
+                        </div>
+
+                        <div class="d-flex gap-2">
+
+                            {% if notification.action_url and notification.action_label %}
+                                <a
+                                    class="btn btn-sm btn-primary"
+                                    href="{{ notification.action_url }}"
+                                >
+                                    {{ notification.action_label }}
+                                </a>
+                            {% endif %}
+
+                            <form
+                                method="post"
+                                action="{{ url_for('main.mark_notification_read', notification_id=notification.id) }}"
+                            >
+                                <button class="btn btn-sm btn-outline-secondary" type="submit">
+                                    Dismiss
+                                </button>
+                            </form>
+
+                        </div>
+                    </div>
+
+                {% endfor %}
+
+            </div>
+        </div>
+
+    {% endif %}
+
+
+    <!-- =========================================================
+         USER SUMMARY CARDS
+         ========================================================= -->
+
+    <div class="row mb-4">
+
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h2>Your {{ household_settings.points_label|capitalize }}</h2>
+
+                        <span class="badge bg-primary">
+                            Balance
+                        </span>
+                    </div>
+
+                    <p class="text-muted-small">
+                        Current available balance.
+                    </p>
+
+                    <p class="display-5 mb-0">
+                        {{ current_balance }}
+                    </p>
+
+                    <a class="btn btn-primary mt-3" href="{{ url_for('main.point_history') }}">
+                        Point History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h2>Pending Tasks</h2>
+
+                        <span class="badge bg-warning text-dark">
+                            Pending
+                        </span>
+                    </div>
+
+                    <p class="text-muted-small">
+                        Submitted tasks waiting for approval.
+                    </p>
+
+                    <p class="display-5 mb-0">
+                        {{ pending_user_tasks|length }}
+                    </p>
+
+                    <a class="btn btn-primary mt-3" href="{{ url_for('main.task_history') }}">
+                        Task History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h2>Pending Rewards</h2>
+
+                        <span class="badge bg-warning text-dark">
+                            Pending
+                        </span>
+                    </div>
+
+                    <p class="text-muted-small">
+                        Reward requests waiting for approval.
+                    </p>
+
+                    <p class="display-5 mb-0">
+                        {{ pending_user_purchases|length }}
+                    </p>
+
+                    <a class="btn btn-primary mt-3" href="{{ url_for('main.reward_history') }}">
+                        Reward History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h2>Wishlist</h2>
+
+                        {% if funded_wishlist_count > 0 %}
+                            <span class="badge bg-success">
+                                Funded
+                            </span>
+                        {% else %}
+                            <span class="badge bg-primary">
+                                Active
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <p class="text-muted-small">
+                        Active wishlist items and saved {{ household_settings.points_label }}.
+                    </p>
+
+                    <p class="display-5 mb-0">
+                        {{ wishlist_item_count }}
+                    </p>
+
+                    <p class="text-muted-small mb-0">
+                        {{ wishlist_points_saved }} {{ household_settings.points_label }} saved.
+                    </p>
+
+                    {% if funded_wishlist_count > 0 %}
+                        <p class="status-note mb-0">
+                            {{ funded_wishlist_count }} item(s) fully funded.
+                        </p>
+                    {% endif %}
+
+                    <a class="btn btn-primary mt-3" href="{{ url_for('main.wishlist') }}">
+                        View Wishlist
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         SECONDARY ACTION CARDS
+         ========================================================= -->
+
+    <div class="row mb-4">
+
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2>Available Tasks</h2>
+
+                    <p class="text-muted-small">
+                        Active tasks currently available on the task board.
+                    </p>
+
+                    <p class="display-5 mb-0">
+                        {{ available_task_count }}
+                    </p>
+
+                    <a class="btn btn-primary mt-3" href="{{ url_for('main.tasks') }}">
+                        Go to Tasks
+                    </a>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2>Rewards You Can Afford</h2>
+
+                    <p class="text-muted-small">
+                        Rewards currently affordable with your available {{ household_settings.points_label }}.
+                    </p>
+
+                    <p class="display-5 mb-0">
+                        {{ affordable_reward_count }}
+                    </p>
+
+                    <a class="btn btn-primary mt-3" href="{{ url_for('main.shop') }}">
+                        Go to Shop
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- =========================================================
+         USER RECENT ACTIVITY
+         ========================================================= -->
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2>Recent Activity</h2>
+
+            <p class="text-muted-small">
+                Your latest {{ household_settings.points_label }}-related activity.
+            </p>
+
+            {% if recent_activity %}
+
+                {% for transaction in recent_activity %}
+
+                    <div class="profile-activity-row">
+                        <div>
+                            <strong>
+                                {{ dashboard_transaction_labels.get(transaction.transaction_type, transaction.transaction_type) }}
+                            </strong>
+
+                            <div class="text-muted-small">
+                                {{ transaction.created_at }}
+                            </div>
+
+                            <div class="text-muted-small">
+                                {{ transaction.reason }}
+                            </div>
+                        </div>
+
+                        <div>
+                            {% if transaction.amount > 0 %}
+                                <span class="badge bg-success">
+                                    +{{ transaction.amount }}
+                                </span>
+                            {% elif transaction.amount < 0 %}
+                                <span class="badge bg-danger">
+                                    {{ transaction.amount }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ transaction.amount }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                {% endfor %}
+
+            {% else %}
+
+                <p class="text-muted-small mb-0">
+                    No recent {{ household_settings.points_label }} activity yet.
+                </p>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- =========================================================
+         QUICK ACTIONS
+         ========================================================= -->
+
+    <div class="card">
+        <div class="card-body">
+            <h2>Quick Actions</h2>
+
+            <p class="text-muted-small">
+                Common actions for tasks, rewards, wishlist items, and profile progress.
+            </p>
+
+            <div class="row">
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.tasks') }}">
+                        Tasks
+                    </a>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.shop') }}">
+                        Shop
+                    </a>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.wishlist') }}">
+                        Wishlist
+                    </a>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.my_profile') }}">
+                        Profile
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+{% endif %}
+
+{% endblock %}

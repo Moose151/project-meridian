@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Approvals</h1>
+
+        <p class="text-muted-small">
+            Review submitted tasks and requested rewards waiting for admin action.
+        </p>
+    </div>
+
+    <a class="btn btn-primary" href="{{ url_for('main.admin_home') }}">
+        Admin Centre
+    </a>
+</div>
+
+
+<!-- =========================================================
+     SUMMARY CARDS
+     ========================================================= -->
+
+<div class="row mb-4">
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Task Submissions</h2>
+
+                    <p class="text-muted-small mb-0">
+                        Submitted tasks waiting for approval or rejection.
+                    </p>
+                </div>
+
+                <p class="display-5 mb-0">
+                    {{ pending_tasks|length }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Reward Requests</h2>
+
+                    <p class="text-muted-small mb-0">
+                        Reward requests waiting for approval or rejection.
+                    </p>
+                </div>
+
+                <p class="display-5 mb-0">
+                    {{ pending_purchases|length }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     TASK APPROVAL CARDS
+     ========================================================= -->
+
+<h2>Task Completion Requests</h2>
+
+{% if pending_tasks %}
+
+    <div class="row mb-4">
+
+        {% for completion in pending_tasks %}
+
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+
+                        <!-- Task title and status -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">
+                                    {{ completion.task.title }}
+                                </h5>
+
+                                <p class="text-muted-small mb-0">
+                                    Submitted by {{ completion.user.avatar_emoji }} {{ completion.user.display_name }}
+                                </p>
+                            </div>
+
+                            <span class="badge bg-warning text-dark">
+                                Submitted
+                            </span>
+                        </div>
+
+                        <!-- Task details -->
+                        {% if completion.task.description %}
+                            <p>
+                                {{ completion.task.description }}
+                            </p>
+                        {% else %}
+                            <p class="text-muted-small">
+                                No task description provided.
+                            </p>
+                        {% endif %}
+
+                        {% if completion.task.category %}
+                            <p class="text-muted-small">
+                                Category: {{ completion.task.category }}
+                            </p>
+                        {% endif %}
+
+                        <div class="row mb-3">
+                            <div class="col">
+                                <p class="text-muted-small mb-1">
+                                    {{ household_settings.points_label|capitalize }}
+                                </p>
+
+                                <p class="display-6 mb-0">
+                                    {{ completion.task.point_value }}
+                                </p>
+                            </div>
+
+                            <div class="col">
+                                <p class="text-muted-small mb-1">
+                                    Submitted
+                                </p>
+
+                                <p class="mb-0">
+                                    {{ completion.submitted_at }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Approval buttons -->
+                        <div class="mt-auto d-flex gap-2">
+
+                            <!-- Approve remains an immediate POST action -->
+                            <form
+                                method="post"
+                                action="{{ url_for('main.approve_task_completion', completion_id=completion.id) }}"
+                                style="display:inline; flex: 1;"
+                            >
+                                <button class="btn btn-success w-100" type="submit">
+                                    Approve
+                                </button>
+                            </form>
+
+                            <!-- Reject now opens a reason form page -->
+                            <a
+                                class="btn btn-danger w-100"
+                                style="flex: 1;"
+                                href="{{ url_for('main.reject_task_completion', completion_id=completion.id) }}"
+                            >
+                                Reject
+                            </a>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2>No task approvals waiting</h2>
+
+            <p class="text-muted-small mb-0">
+                Submitted tasks will appear here when users mark tasks as complete.
+            </p>
+        </div>
+    </div>
+
+{% endif %}
+
+
+<!-- =========================================================
+     REWARD APPROVAL CARDS
+     ========================================================= -->
+
+<h2>Reward Purchase Requests</h2>
+
+{% if pending_purchases %}
+
+    <div class="row">
+
+        {% for purchase in pending_purchases %}
+
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+
+                        <!-- Reward title and status -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">
+                                    {{ purchase.reward.name }}
+                                </h5>
+
+                                <p class="text-muted-small mb-0">
+                                    Requested by {{ purchase.user.avatar_emoji }} {{ purchase.user.display_name }}
+                                </p>
+                            </div>
+
+                            <span class="badge bg-warning text-dark">
+                                Requested
+                            </span>
+                        </div>
+
+                        <!-- Reward details -->
+                        {% if purchase.reward.description %}
+                            <p>
+                                {{ purchase.reward.description }}
+                            </p>
+                        {% else %}
+                            <p class="text-muted-small">
+                                No reward description provided.
+                            </p>
+                        {% endif %}
+
+                        {% if purchase.reward.category %}
+                            <p class="text-muted-small">
+                                Category: {{ purchase.reward.category }}
+                            </p>
+                        {% endif %}
+
+                        <div class="row mb-3">
+                            <div class="col">
+                                <p class="text-muted-small mb-1">
+                                    Cost
+                                </p>
+
+                                <p class="display-6 mb-0">
+                                    {{ purchase.reward.point_cost }}
+                                </p>
+                            </div>
+
+                            <div class="col">
+                                <p class="text-muted-small mb-1">
+                                    User Balance
+                                </p>
+
+                                <p class="display-6 mb-0">
+                                    {{ purchase.user.point_balance() }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <p class="status-note">
+                            {{ household_settings.points_label|capitalize }} were reserved when this reward was requested. Rejection will refund the reserved {{ household_settings.points_label }}.
+                        </p>
+
+                        <!-- Approval buttons -->
+                        <div class="mt-auto d-flex gap-2">
+
+                            <!-- Approve remains an immediate POST action -->
+                            <form
+                                method="post"
+                                action="{{ url_for('main.approve_reward_purchase', purchase_id=purchase.id) }}"
+                                style="display:inline; flex: 1;"
+                            >
+                                <button class="btn btn-success w-100" type="submit">
+                                    Approve
+                                </button>
+                            </form>
+
+                            <!-- Reject now opens a reason form page -->
+                            <a
+                                class="btn btn-danger w-100"
+                                style="flex: 1;"
+                                href="{{ url_for('main.reject_reward_purchase', purchase_id=purchase.id) }}"
+                            >
+                                Reject
+                            </a>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+
+    <div class="card">
+        <div class="card-body">
+            <h2>No reward requests waiting</h2>
+
+            <p class="text-muted-small mb-0">
+                Reward requests will appear here when users request items from the shop.
+            </p>
+        </div>
+    </div>
+
+{% endif %}
+
+{% endblock %}

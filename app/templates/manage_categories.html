@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Categories</h1>
+
+        <p class="text-muted-small">
+            Manage dropdown categories for tasks and rewards.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.admin_home') }}">
+        Back to Admin Centre
+    </a>
+</div>
+
+
+<div class="row">
+
+    <!-- Task Categories -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+
+                <h2>Task Categories</h2>
+
+                <p class="text-muted-small">
+                    These appear when creating/editing tasks and filtering the task board.
+                </p>
+
+                <form method="post" action="{{ url_for('main.add_task_category') }}" class="mb-4">
+                    {{ task_form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ task_form.name.label(class="form-label") }}
+                        {{ task_form.name(class="form-control", placeholder="Example: Kitchen") }}
+                    </div>
+
+                    {{ task_form.submit(class="btn btn-primary") }}
+                </form>
+
+                {% if task_categories %}
+
+                    {% for category in task_categories %}
+
+                        <div class="leaderboard-row">
+                            <div class="leaderboard-user">
+                                <div>
+                                    <strong>{{ category.name }}</strong>
+
+                                    <div class="text-muted-small">
+                                        {% if category.is_active %}
+                                            Active
+                                        {% else %}
+                                            Removed
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                {% if category.is_active %}
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('main.remove_task_category', category_id=category.id) }}"
+                                    >
+                                        <button class="btn btn-sm btn-warning" type="submit">
+                                            Remove
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('main.restore_task_category', category_id=category.id) }}"
+                                    >
+                                        <button class="btn btn-sm btn-success" type="submit">
+                                            Restore
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <p class="text-muted-small mb-0">
+                        No task categories created yet.
+                    </p>
+
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Reward Categories -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+
+                <h2>Reward Categories</h2>
+
+                <p class="text-muted-small">
+                    These appear when creating/editing rewards and filtering the shop.
+                </p>
+
+                <form method="post" action="{{ url_for('main.add_reward_category') }}" class="mb-4">
+                    {{ reward_form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ reward_form.name.label(class="form-label") }}
+                        {{ reward_form.name(class="form-control", placeholder="Example: Screen Time") }}
+                    </div>
+
+                    {{ reward_form.submit(class="btn btn-primary") }}
+                </form>
+
+                {% if reward_categories %}
+
+                    {% for category in reward_categories %}
+
+                        <div class="leaderboard-row">
+                            <div class="leaderboard-user">
+                                <div>
+                                    <strong>{{ category.name }}</strong>
+
+                                    <div class="text-muted-small">
+                                        {% if category.is_active %}
+                                            Active
+                                        {% else %}
+                                            Removed
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                {% if category.is_active %}
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('main.remove_reward_category', category_id=category.id) }}"
+                                    >
+                                        <button class="btn btn-sm btn-warning" type="submit">
+                                            Remove
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('main.restore_reward_category', category_id=category.id) }}"
+                                    >
+                                        <button class="btn btn-sm btn-success" type="submit">
+                                            Restore
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <p class="text-muted-small mb-0">
+                        No reward categories created yet.
+                    </p>
+
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

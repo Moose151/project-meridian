@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Reward Shop</h1>
+
+        <p class="text-muted-small">
+            Browse rewards and request items using your available {{ household_settings.points_label }}.
+        </p>
+    </div>
+
+    {% if current_user.is_admin() %}
+        <a class="btn btn-primary" href="{{ url_for('main.create_reward') }}">
+            New Reward
+        </a>
+    {% endif %}
+</div>
+
+
+<!-- =========================================================
+     USER BALANCE SUMMARY
+     ========================================================= -->
+
+{% if not current_user.is_admin() %}
+
+    <div class="card mb-4">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+                <h2>Your Available {{ household_settings.points_label|capitalize }}</h2>
+
+                <p class="text-muted-small mb-0">
+                    {{ household_settings.points_label|capitalize }} are reserved immediately when you request a reward.
+                    If the request is cancelled or rejected, the {{ household_settings.points_label }} are refunded.
+                </p>
+            </div>
+
+            <p class="display-5 mb-0">
+                {{ current_user.point_balance() }}
+            </p>
+        </div>
+    </div>
+
+{% endif %}
+
+
+<!-- =========================================================
+     SHOP FILTERS
+     ========================================================= -->
+
+<div class="card mb-4">
+    <div class="card-body">
+
+        <form method="get" class="row align-items-end">
+
+            <div class="col-md-8 mb-3 mb-md-0">
+                <label class="form-label" for="category">
+                    Filter by Category
+                </label>
+
+                <select class="form-control" id="category" name="category">
+                    <option value="">All categories</option>
+
+                    {% for category in categories %}
+                        <option
+                            value="{{ category }}"
+                            {% if selected_category == category %}selected{% endif %}
+                        >
+                            {{ category }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <button class="btn btn-primary w-100" type="submit">
+                    Apply Filter
+                </button>
+            </div>
+
+        </form>
+
+        {% if selected_category %}
+            <div class="mt-3">
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('main.shop') }}">
+                    Clear Filter
+                </a>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+
+
+<!-- =========================================================
+     REWARD SHOP
+     ========================================================= -->
+
+{% if rewards %}
+
+    <div class="row">
+
+        <!-- Loop through each active reward passed in from the shop() route -->
+        {% for reward in rewards %}
+
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+
+                    <div class="card-body d-flex flex-column">
+
+                        <!-- Reward title and cost badge -->
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">
+                                {{ reward.name }}
+                            </h5>
+
+                            <span class="badge bg-primary">
+                                {{ reward.point_cost }} {{ household_settings.points_label }}
+                            </span>
+                        </div>
+
+                        <!-- Optional reward category -->
+                        {% if reward.category %}
+                            <p class="text-muted-small mb-2">
+                                {{ reward.category }}
+                            </p>
+                        {% else %}
+                            <p class="text-muted-small mb-2">
+                                No category
+                            </p>
+                        {% endif %}
+
+                        <!-- Reward description -->
+                        {% if reward.description %}
+                            <p>
+                                {{ reward.description }}
+                            </p>
+                        {% else %}
+                            <p class="text-muted-small">
+                                No description provided.
+                            </p>
+                        {% endif %}
+
+                        <div class="mt-auto">
+
+                            {% if current_user.is_admin() %}
+
+                                <!-- Admins can edit rewards from the shop view -->
+                                <a
+                                    class="btn btn-outline-primary w-100"
+                                    href="{{ url_for('main.edit_reward', reward_id=reward.id) }}"
+                                >
+                                    Edit Reward
+                                </a>
+
+                            {% else %}
+
+                                {% if current_user.point_balance() >= reward.point_cost %}
+
+                                    <!-- User can afford this reward -->
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('main.request_reward', reward_id=reward.id) }}"
+                                    >
+                                        <button class="btn btn-primary w-100" type="submit">
+                                            Request Reward
+                                        </button>
+                                    </form>
+
+                                    <p class="status-note mt-2 mb-0">
+                                        {{ reward.point_cost }} {{ household_settings.points_label }} will be reserved immediately.
+                                    </p>
+
+                                {% else %}
+
+                                    <!-- User cannot afford this reward -->
+                                    <button class="btn btn-secondary w-100" disabled>
+                                     Not Enough {{ household_settings.points_label|capitalize }}
+                                    </button>
+
+                                    <p class="status-note mt-2 mb-0">
+                                        You need {{ reward.point_cost - current_user.point_balance() }} more {{ household_settings.points_label }}.
+                                    </p>
+
+                                {% endif %}
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+
+    <!-- Empty state when no active rewards exist or no rewards match the selected filter -->
+    <div class="card">
+        <div class="card-body">
+
+            {% if selected_category %}
+                <h2>No rewards found</h2>
+
+                <p class="text-muted-small">
+                    No active rewards match the selected category.
+                </p>
+
+                <a class="btn btn-primary" href="{{ url_for('main.shop') }}">
+                    Clear Filter
+                </a>
+            {% else %}
+                <h2>No rewards available</h2>
+
+                <p class="text-muted-small">
+                    There are no active rewards in the shop right now.
+                </p>
+
+                {% if current_user.is_admin() %}
+                    <a class="btn btn-primary" href="{{ url_for('main.create_reward') }}">
+                        Create Reward
+                    </a>
+                {% endif %}
+            {% endif %}
+
+        </div>
+    </div>
+
+{% endif %}
+
+{% endblock %}

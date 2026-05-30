@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Users</h1>
+
+        <p class="text-muted-small">
+            Manage user accounts, passwords, account status, and manual point adjustments.
+        </p>
+    </div>
+
+    <a class="btn btn-primary" href="{{ url_for('main.create_user') }}">
+        Create New User
+    </a>
+</div>
+
+
+<!-- =========================================================
+     USER LIST
+     ========================================================= -->
+
+{% if users %}
+
+    <div class="row">
+
+        <!-- Loop through each user passed in from the users() route -->
+        {% for user in users %}
+
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+
+                        <!-- User name, username, and status -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">
+    <span class="me-2">{{ user.avatar_emoji }}</span>
+    {{ user.display_name }}
+</h5>
+
+                                <p class="text-muted-small mb-0">
+                                    Username: {{ user.username }}
+                                </p>
+                            </div>
+
+                            <div class="text-end">
+                                {% if user.role == "admin" %}
+                                    <span class="badge bg-primary">
+                                        Admin
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        Standard User
+                                    </span>
+                                {% endif %}
+
+                                {% if user.is_active_account %}
+                                    <span class="badge bg-success">
+                                        Active
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-dark">
+                                        Disabled
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- User point balance -->
+                        <div class="mb-3">
+                            <p class="text-muted-small mb-1">
+                                Current {{ household_settings.points_label|capitalize }}
+                            </p>
+
+                            <p class="display-6 mb-0">
+                                {{ user.point_balance() }}
+                            </p>
+                        </div>
+
+                        <!-- Action buttons -->
+                        <div class="d-flex flex-wrap gap-2">
+
+                            <!-- Edit username, display name, or role -->
+                            <a
+                                class="btn btn-sm btn-primary"
+                                href="{{ url_for('main.edit_user', user_id=user.id) }}"
+                            >
+                                Edit
+                            </a>
+                            <!-- View user profile -->
+<a
+    class="btn btn-sm btn-outline-primary"
+    href="{{ url_for('main.user_profile', user_id=user.id) }}"
+>
+    Profile
+</a>
+
+                            <!-- Change password/PIN -->
+                            <a
+                                class="btn btn-sm btn-secondary"
+                                href="{{ url_for('main.change_user_password', user_id=user.id) }}"
+                            >
+                                Password
+                            </a>
+
+                            <!-- Manual point adjustment -->
+                            <a
+                                class="btn btn-sm btn-info"
+                                href="{{ url_for('main.adjust_points', user_id=user.id) }}"
+                            >
+                                Adjust {{ household_settings.points_label|capitalize }}
+                            </a>
+
+                            {% if user.id != current_user.id %}
+
+                                {% if user.is_active_account %}
+
+                                    <!-- Disable active user -->
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('main.disable_user', user_id=user.id) }}"
+                                        style="display:inline;"
+                                    >
+                                        <button class="btn btn-sm btn-warning" type="submit">
+                                            Disable
+                                        </button>
+                                    </form>
+
+                                {% else %}
+
+                                    <!-- Restore disabled user -->
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('main.restore_user', user_id=user.id) }}"
+                                        style="display:inline;"
+                                    >
+                                        <button class="btn btn-sm btn-success" type="submit">
+                                            Restore
+                                        </button>
+                                    </form>
+
+                                {% endif %}
+
+                                <!-- Delete user.
+                                     The route only deletes if the user has no history.
+                                     If they have history, it disables the account instead. -->
+                                <form
+                                    method="post"
+                                    action="{{ url_for('main.delete_user', user_id=user.id) }}"
+                                    style="display:inline;"
+                                    onsubmit="return confirm('Delete this user? If they have history, they will be disabled instead.');"
+                                >
+                                    <button class="btn btn-sm btn-danger" type="submit">
+                                        Delete
+                                    </button>
+                                </form>
+
+                            {% else %}
+
+                                <span class="badge bg-light text-dark border">
+                                    Current User
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+
+    <div class="card">
+        <div class="card-body">
+            <h2>No users found</h2>
+
+            <p class="text-muted-small">
+                No user accounts exist yet.
+            </p>
+
+            <a class="btn btn-primary" href="{{ url_for('main.create_user') }}">
+                Create User
+            </a>
+        </div>
+    </div>
+
+{% endif %}
+
+{% endblock %}

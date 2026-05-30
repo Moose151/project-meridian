@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Admin Reports</h1>
+
+        <p class="text-muted-small">
+            Export household activity reports as CSV files.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.admin_home') }}">
+        Back to Admin Centre
+    </a>
+</div>
+
+
+<!-- =========================================================
+     REPORT EXPORTS
+     ========================================================= -->
+
+<div class="row mb-4">
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <h2>Users Report</h2>
+
+                <p class="text-muted-small">
+                    Export users, account status, current balance, total earned, approved tasks, reward requests, and wishlist savings.
+                </p>
+
+                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_users_csv') }}">
+                    Export Users CSV
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <h2>{{ household_settings.points_label|capitalize }} History Report</h2>
+
+                <p class="text-muted-small">
+                    Export the full {{ household_settings.points_label }} transaction ledger.
+                </p>
+
+                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_points_csv') }}">
+                    Export {{ household_settings.points_label|capitalize }} CSV
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <h2>Task Activity Report</h2>
+
+                <p class="text-muted-small">
+                    Export submitted, approved, rejected, and cancelled task completion records.
+                </p>
+
+                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_tasks_csv') }}">
+                    Export Tasks CSV
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <h2>Reward Requests Report</h2>
+
+                <p class="text-muted-small">
+                    Export requested, approved, rejected, cancelled, and fulfilled reward records.
+                </p>
+
+                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_rewards_csv') }}">
+                    Export Rewards CSV
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     NOTES
+     ========================================================= -->
+
+<div class="card">
+    <div class="card-body">
+        <h2>Report Notes</h2>
+
+        <p class="text-muted-small mb-0">
+            CSV files can be opened in LibreOffice Calc, Microsoft Excel, Google Sheets, or any spreadsheet app.
+        </p>
+    </div>
+</div>
+
+{% endblock %}
