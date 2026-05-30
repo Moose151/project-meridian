@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+
+# Environment secrets
+.env
+
+# Database and local data
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Backups
+backups/
+
+# Editor/system files
+.vscode/
+.idea/
+.DS_Store
+
+# Docker/runtime noise
+*.log
