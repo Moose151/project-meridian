@@ -4236,13 +4236,14 @@ def contribute_wishlist_item(item_id):
                 action_url=url_for("main.wishlist"),
                 action_label="Open Wishlist"
             )
-            # Check whether this wishlist contribution earned the user any badges.
-            check_and_award_badges(current_user)
 
-            db.session.commit()
+        # Check whether this wishlist contribution earned the user any badges.
+        check_and_award_badges(current_user)
 
-            flash("Points added to wishlist item.")
+        # Commit every valid contribution, not only fully funded contributions.
+        db.session.commit()
 
+        flash("Points added to wishlist item.")
         return redirect(url_for("main.wishlist"))
 
     return render_template(
@@ -4250,7 +4251,6 @@ def contribute_wishlist_item(item_id):
         form=form,
         item=item
     )
-
 @bp.route("/admin/wishlist/items/<int:item_id>/fulfil", methods=["POST"])
 @login_required
 def fulfil_wishlist_item(item_id):
