@@ -3002,12 +3002,23 @@ def leaderboard():
 
     for user in users:
 
-        # Only count points earned from approved tasks.
-        # This avoids penalising users for spending points in the shop.
+        # Count positive earning transactions.
+        # This includes approved tasks and positive admin adjustments.
+        # Spending, saving, refunds, and negative adjustments do not reduce this score.
         total_earned = 0
 
+        earning_transaction_types = [
+            "task_approved",
+            "manual_adjustment",
+            "admin_adjustment",
+            "point_adjustment"
+        ]
+
         for transaction in user.point_transactions:
-            if transaction.transaction_type == "task_approved" and transaction.amount > 0:
+            if (
+                transaction.transaction_type in earning_transaction_types
+                and transaction.amount > 0
+            ):
                 total_earned += transaction.amount
 
         total_earned_leaderboard.append({
@@ -3361,8 +3372,18 @@ def user_profile(user_id):
     # This means users are not penalised for spending points.
     total_earned = 0
 
+    earning_transaction_types = [
+        "task_approved",
+        "manual_adjustment",
+        "admin_adjustment",
+        "point_adjustment"
+    ]
+
     for transaction in user.point_transactions:
-        if transaction.transaction_type == "task_approved" and transaction.amount > 0:
+        if (
+            transaction.transaction_type in earning_transaction_types
+            and transaction.amount > 0
+        ):
             total_earned += transaction.amount
 
     # Count approved task completions.
@@ -3603,7 +3624,7 @@ def contribute_group_goal(goal_id):
         flash("Admins do not contribute points to group goals.")
         return redirect(url_for("main.group_goals"))
 
-        settings = get_household_settings()
+    settings = get_household_settings()
 
     if not settings.group_goals_enabled:
         flash("Group goal contributions are currently disabled.")
