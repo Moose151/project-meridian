@@ -26,3 +26,8 @@ backups/
 
 # Docker/runtime noise
 *.log
+
+# Local planning documents
+*.docx
+*.xlsx
+.~lock.*#
