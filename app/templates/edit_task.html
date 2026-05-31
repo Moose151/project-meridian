@@ -77,6 +77,41 @@
                             Stay active is best for repeatable jobs. Hide after approval is best for one-off tasks.
                         </div>
                     </div>
+                                        <!-- Hot task fields -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h2>Hot Task</h2>
+
+                            <p class="text-muted-small">
+                                Hot tasks appear first on the task board and notify users when they become hot.
+                            </p>
+
+                            <div class="form-check mb-3">
+                                {{ form.is_hot(class="form-check-input") }}
+                                {{ form.is_hot.label(class="form-check-label") }}
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.hot_bonus_points.label(class="form-label") }}
+                                    {{ form.hot_bonus_points(class="form-control") }}
+
+                                    <div class="form-text">
+                                        Optional bonus {{ household_settings.points_label }} while this task is hot.
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    {{ form.hot_label.label(class="form-label") }}
+                                    {{ form.hot_label(class="form-control") }}
+
+                                    <div class="form-text">
+                                        Optional short label shown on the task card.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Action buttons -->
                     <div class="d-flex gap-2">

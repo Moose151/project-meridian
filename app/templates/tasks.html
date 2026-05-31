@@ -24,6 +24,74 @@
 
 
 <!-- =========================================================
+     FILTERS
+     ========================================================= -->
+
+<div class="card mb-4">
+    <div class="card-body">
+
+        <form method="get" class="row g-3 align-items-end">
+
+            <!-- Task filter -->
+            <div class="col-md-4">
+                <label class="form-label" for="filter">
+                    Task Filter
+                </label>
+
+                <select class="form-control" id="filter" name="filter">
+                    <option value="all" {% if selected_filter == "all" or not selected_filter %}selected{% endif %}>
+                        All Tasks
+                    </option>
+
+                    <option value="hot" {% if selected_filter == "hot" %}selected{% endif %}>
+                        Hot Tasks
+                    </option>
+                </select>
+            </div>
+
+
+            <!-- Category filter -->
+            <div class="col-md-4">
+                <label class="form-label" for="category">
+                    Category
+                </label>
+
+                <select class="form-control" id="category" name="category">
+                    <option value="">
+                        All Categories
+                    </option>
+
+                    {% for category in categories %}
+                        <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>
+                            {{ category }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+
+            <!-- Filter button -->
+            <div class="col-md-4">
+                <button class="btn btn-primary w-100" type="submit">
+                    Apply Filters
+                </button>
+            </div>
+
+        </form>
+
+        {% if selected_filter == "hot" or selected_category %}
+            <div class="mt-3">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.tasks') }}">
+                    Clear Filters
+                </a>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+
+
+<!-- =========================================================
      TASK BOARD
      ========================================================= -->
 
@@ -35,26 +103,35 @@
         {% for task in tasks %}
 
             <div class="col-md-4 mb-4">
-                <div class="card h-100">
+                <div class="card h-100 {% if task.is_hot %}border-danger{% endif %}">
 
                     <div class="card-body d-flex flex-column">
 
-                        <!-- Task title and behaviour badge -->
+                        <!-- Task title and badges -->
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h5 class="card-title mb-0">
-                                {{ task.title }}
-                            </h5>
+                            <div>
+                                <h5 class="card-title mb-1">
+                                    {{ task.title }}
+                                </h5>
 
-                            {% if task.completion_behavior == "hide_after_approval" %}
-                                <span class="badge bg-secondary">
-                                    One-off
-                                </span>
-                            {% else %}
-                                <span class="badge bg-success">
-                                    Repeatable
-                                </span>
-                            {% endif %}
+                                {% if task.is_hot %}
+                                    <span class="badge bg-danger">
+                                        Hot
+                                    </span>
+                                {% endif %}
+
+                                {% if task.completion_behavior == "hide_after_approval" %}
+                                    <span class="badge bg-secondary">
+                                        One-off
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success">
+                                        Repeatable
+                                    </span>
+                                {% endif %}
+                            </div>
                         </div>
+
 
                         <!-- Optional task category -->
                         {% if task.category %}
@@ -62,6 +139,15 @@
                                 {{ task.category }}
                             </p>
                         {% endif %}
+
+
+                        <!-- Optional hot task label -->
+                        {% if task.is_hot and task.hot_label %}
+                            <p class="text-muted-small mb-2">
+                                <strong>{{ task.hot_label }}</strong>
+                            </p>
+                        {% endif %}
+
 
                         <!-- Optional task description -->
                         {% if task.description %}
@@ -74,24 +160,40 @@
                             </p>
                         {% endif %}
 
-                        <!-- Point value -->
+
+                        <!-- Point value and action area -->
                         <div class="mt-auto">
 
                             <div class="mb-3">
-                                <span class="badge bg-primary">
-                                    {{ task.point_value }} {{ household_settings.points_label }}
-                                </span>
 
-                                {% if task.completion_behavior == "hide_after_approval" %}
+                                {% if task.is_hot and task.hot_bonus_points > 0 %}
+                                    <span class="badge bg-primary">
+                                        {{ task.total_point_value() }} {{ household_settings.points_label }}
+                                    </span>
+
                                     <span class="status-note ms-2">
-                                        Hides after approval
+                                        Base {{ task.point_value }} + bonus {{ task.hot_bonus_points }}
                                     </span>
                                 {% else %}
-                                    <span class="status-note ms-2">
-                                        Stays active
+                                    <span class="badge bg-primary">
+                                        {{ task.point_value }} {{ household_settings.points_label }}
                                     </span>
                                 {% endif %}
+
+                                <div class="mt-2">
+                                    {% if task.completion_behavior == "hide_after_approval" %}
+                                        <span class="status-note">
+                                            Hides after approval
+                                        </span>
+                                    {% else %}
+                                        <span class="status-note">
+                                            Stays active
+                                        </span>
+                                    {% endif %}
+                                </div>
+
                             </div>
+
 
                             <!-- Standard users can submit tasks.
                                  Admins can view the task board but do not submit tasks. -->
@@ -129,14 +231,24 @@
 
 {% else %}
 
-    <!-- Empty state when no active tasks exist -->
+    <!-- Empty state when no active tasks match the current filters -->
     <div class="card">
         <div class="card-body">
             <h2>No active tasks</h2>
 
-            <p class="text-muted-small">
-                There are no active tasks available right now.
-            </p>
+            {% if selected_filter == "hot" or selected_category %}
+                <p class="text-muted-small">
+                    No tasks match the selected filters.
+                </p>
+
+                <a class="btn btn-outline-secondary me-2" href="{{ url_for('main.tasks') }}">
+                    Clear Filters
+                </a>
+            {% else %}
+                <p class="text-muted-small">
+                    There are no active tasks available right now.
+                </p>
+            {% endif %}
 
             {% if current_user.is_admin() %}
                 <a class="btn btn-primary" href="{{ url_for('main.create_task') }}">

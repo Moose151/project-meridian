@@ -252,6 +252,27 @@ def notify_admins(
             action_label=action_label
         )
 
+def notify_standard_users(title, message, notification_type="info", action_url=None, action_label=None):
+    """
+    Send a notification to every active standard user.
+    """
+
+    users = User.query.filter_by(
+        role="user",
+        is_active_account=True
+    ).all()
+
+    for user in users:
+        create_notification(
+            user_id=user.id,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            action_url=action_url,
+            action_label=action_label
+        )
+
+
 def task_import_choices():
     """
     Build dropdown choices for importing a previous task.
@@ -1093,12 +1114,14 @@ def tasks():
 
     Shows active tasks only.
 
-    Optional filter:
+    Optional filters:
     - category
+    - hot
     """
 
-    # Get selected category from the URL query string.
+    # Get selected filters from the URL query string.
     selected_category = request.args.get("category", "")
+    selected_filter = request.args.get("filter", "all")
 
     # Start with active tasks only.
     task_query = Task.query.filter_by(
@@ -1111,8 +1134,15 @@ def tasks():
             category=selected_category
         )
 
-    # Get the filtered task list.
+    # Apply hot-task filter.
+    if selected_filter == "hot":
+        task_query = task_query.filter_by(
+            is_hot=True
+        )
+
+    # Hot tasks appear first, then category, then title.
     active_tasks = task_query.order_by(
+        Task.is_hot.desc(),
         Task.category,
         Task.title
     ).all()
@@ -1131,7 +1161,8 @@ def tasks():
         "tasks.html",
         tasks=active_tasks,
         categories=categories,
-        selected_category=selected_category
+        selected_category=selected_category,
+        selected_filter=selected_filter
     )
 
 
@@ -1175,6 +1206,10 @@ def create_task():
                 form.point_value.data = imported_task.point_value
                 form.category.data = imported_task.category
                 form.completion_behavior.data = imported_task.completion_behavior
+                form.is_hot.data = imported_task.is_hot
+                form.hot_bonus_points.data = imported_task.hot_bonus_points
+                form.hot_label.data = imported_task.hot_label
+
 
                 flash("Task imported. Review the details, then save when ready.")
 
@@ -1193,6 +1228,9 @@ def create_task():
         form.point_value.data = imported_task.point_value
         form.category.data = imported_task.category
         form.completion_behavior.data = imported_task.completion_behavior
+        form.is_hot.data = imported_task.is_hot
+        form.hot_bonus_points.data = imported_task.hot_bonus_points
+        form.hot_label.data = imported_task.hot_label
 
         flash("Task imported. Review the details, then save when ready.")
 
@@ -1210,12 +1248,24 @@ def create_task():
             point_value=form.point_value.data,
             category=form.category.data or None,
             completion_behavior=form.completion_behavior.data,
+            is_hot=form.is_hot.data,
+            hot_bonus_points=form.hot_bonus_points.data or 0,
+            hot_label=form.hot_label.data or None,
             is_active=True
         )
 
         db.session.add(task)
-        db.session.commit()
 
+        if task.is_hot:
+            notify_standard_users(
+                title="Hot task available",
+                message=f"'{task.title}' is now a hot task.",
+                notification_type="info",
+                action_url=url_for("main.tasks", filter="hot"),
+                action_label="View Hot Tasks"
+            )
+        db.session.commit()
+    
         flash("Task created.")
         return redirect(url_for("main.tasks"))
 
@@ -1336,10 +1386,13 @@ def approve_task_completion(completion_id):
     completion.reviewed_at = datetime.now(timezone.utc)
     completion.reviewed_by_id = current_user.id
 
-    # Create a point transaction to award points.
+        # Calculate awarded points.
+    # Hot tasks include their bonus while they are marked hot.
+    awarded_points = completion.task.total_point_value()
+
     transaction = PointTransaction(
         user_id=completion.user_id,
-        amount=completion.task.point_value,
+        amount=awarded_points,
         transaction_type="task_approved",
         reason=f"Approved task: {completion.task.title}",
         related_task_completion_id=completion.id,
@@ -1358,7 +1411,7 @@ def approve_task_completion(completion_id):
     create_notification(
         user_id=completion.user_id,
         title="Task approved",
-        message=f"Your task '{completion.task.title}' was approved. You earned {completion.task.point_value} points.",
+        message=f"Your task '{completion.task.title}' was approved. You earned {awarded_points} points.",
         notification_type="success"
     )
 
@@ -2518,14 +2571,29 @@ def edit_task(task_id):
 
     # If the form was submitted and is valid, save the changes.
     if form.validate_on_submit():
-    
 
-                # Update task fields from the form.
+        # Track whether this edit changes the task from normal to hot.
+        was_hot = task.is_hot
+
+        # Update task fields from the form.
         task.title = form.title.data
         task.description = form.description.data
         task.point_value = form.point_value.data
         task.category = form.category.data or None
         task.completion_behavior = form.completion_behavior.data
+        task.is_hot = form.is_hot.data
+        task.hot_bonus_points = form.hot_bonus_points.data or 0
+        task.hot_label = form.hot_label.data or None
+
+        # Notify users only when a task becomes hot.
+        if not was_hot and task.is_hot:
+            notify_standard_users(
+                title="Hot task available",
+                message=f"'{task.title}' is now a hot task.",
+                notification_type="info",
+                action_url=url_for("main.tasks", filter="hot"),
+                action_label="View Hot Tasks"
+            )
 
         # Save changes to the database.
         db.session.commit()
@@ -2869,7 +2937,7 @@ def admin_complete_task():
 
     # Populate the task dropdown.
     form.task_id.choices = [
-        (task.id, f"{task.title} ({task.point_value} points)")
+        (task.id, f"{task.title} ({task.total_point_value()} points)")
         for task in active_tasks
     ]
 
@@ -2908,16 +2976,18 @@ def admin_complete_task():
         db.session.add(completion)
         db.session.flush()
 
-        # Create a point transaction for the selected user.
+        # Calculate awarded points.
+        # Hot tasks include their bonus while they are marked hot.
+        awarded_points = task.total_point_value()
+
         transaction = PointTransaction(
             user_id=user.id,
-            amount=task.point_value,
+            amount=awarded_points,
             transaction_type="task_approved",
             reason=f"Admin completed task for user: {task.title}",
             related_task_completion_id=completion.id,
             created_by_id=current_user.id
         )
-
         db.session.add(transaction)
 
         # If the task is one-off, hide it after completion.
@@ -2928,7 +2998,7 @@ def admin_complete_task():
         create_notification(
             user_id=user.id,
             title="Task completed by admin",
-            message=f"'{task.title}' was marked complete for you. You earned {task.point_value} points.",
+            message=f"'{task.title}' was marked complete for you. You earned {awarded_points} points.",
             notification_type="success"
         )
 

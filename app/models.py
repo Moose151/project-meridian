@@ -178,8 +178,31 @@ class Task(db.Model):
     # Allows admins to hide/archive tasks without deleting history.
     is_active = db.Column(db.Boolean, default=True)
 
+    # Hot tasks are promoted tasks that appear first on the task board.
+    is_hot = db.Column(db.Boolean, default=False)
+
+    # Optional bonus points awarded while the task is hot.
+    hot_bonus_points = db.Column(db.Integer, nullable=False, default=0)
+
+    # Optional short label shown on the task card.
+    hot_label = db.Column(db.String(120))
+
     # When the task was created.
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def total_point_value(self):
+        """
+        Return the total points currently available for this task.
+
+        Hot tasks can optionally add bonus points.
+        """
+
+        total = self.point_value or 0
+
+        if self.is_hot:
+            total += self.hot_bonus_points or 0
+
+        return total
 
     # Relationship: one task can have many completion records.
     completions = db.relationship(

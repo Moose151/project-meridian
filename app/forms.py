@@ -131,6 +131,27 @@ class TaskForm(FlaskForm):
         ]
     )
 
+    is_hot = BooleanField(
+        "Mark as Hot Task"
+    )
+
+    hot_bonus_points = IntegerField(
+        "Hot Task Bonus",
+        validators=[
+            Optional(),
+            NumberRange(min=0)
+        ],
+        default=0
+    )
+
+    hot_label = StringField(
+        "Hot Task Label",
+        validators=[
+            Optional(),
+            Length(max=120)
+        ]
+    )
+
     submit = SubmitField("Save Task")
 
 
