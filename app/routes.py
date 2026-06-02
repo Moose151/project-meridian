@@ -81,6 +81,10 @@ from app.services.notification_service import (
     notify_standard_users,
 )
 
+from app.services.points_service import (
+    calculate_total_earned,
+    format_points,
+)
 
 # Create the main blueprint.
 # All routes in this file are registered under this blueprint.
@@ -158,29 +162,6 @@ def reward_import_choices():
 
     return choices
 
-def get_household_settings():
-    """
-    Return the household settings row.
-
-    If it does not exist, create it with defaults.
-    """
-
-    settings = HouseholdSettings.query.first()
-
-    if not settings:
-
-        settings = HouseholdSettings(
-            household_name="Project Meridian",
-            points_label="points",
-            wishlist_requests_enabled=True,
-            group_goals_enabled=True
-        )
-
-        db.session.add(settings)
-        db.session.commit()
-
-    return settings
-
 def make_csv_response(filename, rows):
     """
     Create a downloadable CSV response.
@@ -203,86 +184,6 @@ def make_csv_response(filename, rows):
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
 
     return response
-
-def create_notification(
-    user_id,
-    title,
-    message,
-    notification_type="info",
-    action_url=None,
-    action_label=None
-):
-    """
-    Create a dashboard notification for a user.
-
-    notification_type controls visual styling:
-    - success
-    - warning
-    - danger
-    - info
-
-    action_url and action_label are optional.
-    If provided, the dashboard shows an action button.
-    """
-
-    notification = Notification(
-        user_id=user_id,
-        title=title,
-        message=message,
-        notification_type=notification_type,
-        action_url=action_url,
-        action_label=action_label,
-        is_read=False
-    )
-
-    db.session.add(notification)
-
-def notify_admins(
-    title,
-    message,
-    notification_type="info",
-    action_url=None,
-    action_label=None
-):
-    """
-    Create a dashboard notification for every active admin user.
-    """
-
-    admins = User.query.filter_by(
-        role="admin",
-        is_active_account=True
-    ).all()
-
-    for admin in admins:
-        create_notification(
-            user_id=admin.id,
-            title=title,
-            message=message,
-            notification_type=notification_type,
-            action_url=action_url,
-            action_label=action_label
-        )
-
-def notify_standard_users(title, message, notification_type="info", action_url=None, action_label=None):
-    """
-    Send a notification to every active standard user.
-    """
-
-    users = User.query.filter_by(
-        role="user",
-        is_active_account=True
-    ).all()
-
-    for user in users:
-        create_notification(
-            user_id=user.id,
-            title=title,
-            message=message,
-            notification_type=notification_type,
-            action_url=action_url,
-            action_label=action_label
-        )
-
 
 def task_import_choices():
     """
