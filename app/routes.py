@@ -83,6 +83,11 @@ from app.services.report_service import (
     build_rewards_report_rows,
 )
 
+from app.services.task_service import (
+    approve_submitted_task_completion,
+    admin_complete_task_for_user,
+)
+
 # Create the main blueprint.
 # All routes in this file are registered under this blueprint.
 bp = Blueprint("main", __name__)
@@ -543,7 +548,6 @@ def export_rewards_csv():
         build_rewards_report_rows()
     )
 
-
 @bp.route("/dashboard")
 @login_required
 def dashboard():
@@ -942,10 +946,14 @@ def admin_approvals():
         return redirect(url_for("main.dashboard"))
 
     # Get task submissions waiting for review.
-    pending_tasks = TaskCompletion.query.filter_by(status="submitted").all()
+    pending_tasks = TaskCompletion.query.filter_by(
+        status="submitted"
+    ).all()
 
     # Get reward purchase requests waiting for review.
-    pending_purchases = RewardPurchase.query.filter_by(status="requested").all()
+    pending_purchases = RewardPurchase.query.filter_by(
+        status="requested"
+    ).all()
 
     return render_template(
         "admin_approvals.html",
@@ -960,9 +968,7 @@ def approve_task_completion(completion_id):
     """
     Approve a submitted task completion.
 
-    When approved:
-    - TaskCompletion status becomes approved.
-    - A positive PointTransaction is created.
+    The task approval business logic is handled by task_service.
     """
 
     # Block non-admin users.
@@ -977,43 +983,11 @@ def approve_task_completion(completion_id):
         flash("Task completion request not found.")
         return redirect(url_for("main.admin_approvals"))
 
-    # Mark as approved.
-    completion.status = "approved"
-    completion.reviewed_at = datetime.now(timezone.utc)
-    completion.reviewed_by_id = current_user.id
+    # Approve the task, create the point transaction, notify the user,
+    # hide one-off tasks if needed, and check badge eligibility.
+    awarded_points = approve_submitted_task_completion(completion)
 
-    # Calculate awarded points.
-    # Hot tasks include their bonus while they are marked hot.
-    awarded_points = completion.task.total_point_value()
-
-    transaction = PointTransaction(
-        user_id=completion.user_id,
-        amount=awarded_points,
-        transaction_type="task_approved",
-        reason=f"Approved task: {completion.task.title}",
-        related_task_completion_id=completion.id,
-        created_by_id=current_user.id
-    )
-
-    # Add the point transaction.
-    db.session.add(transaction)
-
-    # If this task is set to hide after approval,
-    # hide it from the normal task board now.
-    if completion.task.completion_behavior == "hide_after_approval":
-        completion.task.is_active = False
-
-    # Notify the user that the task was approved.
-    create_notification(
-        user_id=completion.user_id,
-        title="Task approved",
-        message=f"Your task '{completion.task.title}' was approved. You earned {format_points(awarded_points)}.",
-        notification_type="success"
-    )
-
-    # Check whether this approval earned the user any badges.
-    check_and_award_badges(completion.user)
-    # Save approval, transaction, and possible task visibility change.
+    # Save approval, transaction, notifications, and badge updates.
     db.session.commit()
 
     flash(f"Task approved and {format_points(awarded_points)} awarded.")
@@ -1055,7 +1029,7 @@ def reject_task_completion(completion_id):
         completion.reviewed_by_id = current_user.id
         completion.rejection_reason = form.reason.data.strip()
 
-    # Notify the user that the task was rejected.
+        # Notify the user that the task was rejected.
         create_notification(
             user_id=completion.user_id,
             title="Task rejected",
@@ -1137,7 +1111,6 @@ def approve_reward_purchase(purchase_id):
     purchase.reviewed_by_id = current_user.id
 
     # Notify the user that the reward was approved.
-    # This must be outside the legacy fallback block so it happens for all approvals.
     create_notification(
         user_id=purchase.user_id,
         title="Reward approved",
@@ -1220,13 +1193,13 @@ def reject_reward_purchase(purchase_id):
         create_notification(
             user_id=purchase.user_id,
             title="Reward rejected",
-            message=f"Your reward request '{purchase.reward.name}' was rejected. Reason: {purchase.rejection_reason}. Reserved points were refunded.",
+            message=f"Your reward request '{purchase.reward.name}' was rejected. Reason: {purchase.rejection_reason}. Reserved {get_points_label()} were refunded.",
             notification_type="danger"
         )
 
         db.session.commit()
 
-        flash("Reward request rejected and reserved points refunded.")
+        flash(f"Reward request rejected and reserved {get_points_label()} refunded.")
         return redirect(url_for("main.admin_approvals"))
 
     # Show rejection reason form.
@@ -1271,7 +1244,6 @@ def point_history():
         "point_history.html",
         transactions=transactions
     )
-
 
 # =========================================================
 # SHOP AND REWARDS
