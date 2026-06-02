@@ -65,21 +65,11 @@ from app.models import (
     WishlistRequest,
     WishlistItem,
     WishlistContribution,
-    Badge,
     UserBadge,
     HouseholdSettings,
 )
 
-from app.services.settings_service import (
-    get_household_settings,
-    get_points_label,
-)
-
-from app.services.notification_service import (
-    create_notification,
-    notify_admins,
-    notify_standard_users,
-)
+from app.services.badge_service import check_and_award_badges
 
 from app.services.points_service import (
     calculate_total_earned,
@@ -89,6 +79,18 @@ from app.services.points_service import (
 # Create the main blueprint.
 # All routes in this file are registered under this blueprint.
 bp = Blueprint("main", __name__)
+
+@bp.app_context_processor
+def inject_household_settings():
+    """
+    Make household settings available to all templates.
+    """
+
+    settings = get_household_settings()
+
+    return {
+        "household_settings": settings
+    }
 
 
 def admin_required():
@@ -162,6 +164,29 @@ def reward_import_choices():
 
     return choices
 
+def get_household_settings():
+    """
+    Return the household settings row.
+
+    If it does not exist, create it with defaults.
+    """
+
+    settings = HouseholdSettings.query.first()
+
+    if not settings:
+
+        settings = HouseholdSettings(
+            household_name="Project Meridian",
+            points_label="points",
+            wishlist_requests_enabled=True,
+            group_goals_enabled=True
+        )
+
+        db.session.add(settings)
+        db.session.commit()
+
+    return settings
+
 def make_csv_response(filename, rows):
     """
     Create a downloadable CSV response.
@@ -184,6 +209,86 @@ def make_csv_response(filename, rows):
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
 
     return response
+
+def create_notification(
+    user_id,
+    title,
+    message,
+    notification_type="info",
+    action_url=None,
+    action_label=None
+):
+    """
+    Create a dashboard notification for a user.
+
+    notification_type controls visual styling:
+    - success
+    - warning
+    - danger
+    - info
+
+    action_url and action_label are optional.
+    If provided, the dashboard shows an action button.
+    """
+
+    notification = Notification(
+        user_id=user_id,
+        title=title,
+        message=message,
+        notification_type=notification_type,
+        action_url=action_url,
+        action_label=action_label,
+        is_read=False
+    )
+
+    db.session.add(notification)
+
+def notify_admins(
+    title,
+    message,
+    notification_type="info",
+    action_url=None,
+    action_label=None
+):
+    """
+    Create a dashboard notification for every active admin user.
+    """
+
+    admins = User.query.filter_by(
+        role="admin",
+        is_active_account=True
+    ).all()
+
+    for admin in admins:
+        create_notification(
+            user_id=admin.id,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            action_url=action_url,
+            action_label=action_label
+        )
+
+def notify_standard_users(title, message, notification_type="info", action_url=None, action_label=None):
+    """
+    Send a notification to every active standard user.
+    """
+
+    users = User.query.filter_by(
+        role="user",
+        is_active_account=True
+    ).all()
+
+    for user in users:
+        create_notification(
+            user_id=user.id,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            action_url=action_url,
+            action_label=action_label
+        )
+
 
 def task_import_choices():
     """
@@ -213,216 +318,6 @@ def task_import_choices():
 
     return choices
 
-@bp.app_context_processor
-def inject_household_settings():
-    """
-    Make household settings available to all templates.
-    """
-
-    settings = get_household_settings()
-
-    return {
-        "household_settings": settings
-    }
-
-def reward_category_choices(include_current=None):
-    """
-    Build dropdown choices for reward categories.
-
-    Active categories appear in the dropdown.
-
-    If a reward already has a category that has since been removed,
-    include it so the edit page does not break.
-    """
-
-    categories = RewardCategory.query.filter_by(
-        is_active=True
-    ).order_by(
-        RewardCategory.name
-    ).all()
-
-    choices = [("", "No category")]
-
-    for category in categories:
-        choices.append((category.name, category.name))
-
-    current_values = [choice[0] for choice in choices]
-
-    if include_current and include_current not in current_values:
-        choices.append((include_current, f"{include_current} (removed category)"))
-
-    return choices
-
-# =========================================================
-# BADGE HELPERS
-# =========================================================
-
-def seed_badges():
-    """
-    Create default badges if they do not already exist.
-    """
-
-    default_badges = [
-        {
-            "code": "first_task",
-            "name": "First Task",
-            "description": "Completed your first approved task.",
-            "icon": "✅"
-        },
-        {
-            "code": "five_tasks",
-            "name": "Task Starter",
-            "description": "Completed 5 approved tasks.",
-            "icon": "⭐"
-        },
-        {
-            "code": "ten_tasks",
-            "name": "Task Champion",
-            "description": "Completed 10 approved tasks.",
-            "icon": "🏆"
-        },
-        {
-            "code": "wishlist_saver",
-            "name": "Wishlist Saver",
-            "description": "Saved points toward a wishlist item.",
-            "icon": "🎁"
-        },
-        {
-            "code": "wishlist_funded",
-            "name": "Goal Reached",
-            "description": "Fully funded a wishlist item.",
-            "icon": "🎯"
-        },
-        {
-            "code": "group_contributor",
-            "name": "Team Player",
-            "description": "Contributed points to a group goal.",
-            "icon": "🤝"
-        },
-        {
-            "code": "hundred_points_earned",
-            "name": "Big Earner",
-            "description": "Earned 100 total points from approved tasks.",
-            "icon": "💰"
-        },
-    ]
-
-    for badge_data in default_badges:
-
-        existing_badge = Badge.query.filter_by(
-            code=badge_data["code"]
-        ).first()
-
-        if not existing_badge:
-
-            badge = Badge(
-                code=badge_data["code"],
-                name=badge_data["name"],
-                description=badge_data["description"],
-                icon=badge_data["icon"]
-            )
-
-            db.session.add(badge)
-
-
-def award_badge(user_id, badge_code):
-    """
-    Award a badge to a user if they do not already have it.
-    """
-
-    badge = Badge.query.filter_by(
-        code=badge_code
-    ).first()
-
-    if not badge:
-        return
-
-    existing_user_badge = UserBadge.query.filter_by(
-        user_id=user_id,
-        badge_id=badge.id
-    ).first()
-
-    if existing_user_badge:
-        return
-
-    user_badge = UserBadge(
-        user_id=user_id,
-        badge_id=badge.id
-    )
-
-    db.session.add(user_badge)
-
-    create_notification(
-        user_id=user_id,
-        title="Badge earned",
-        message=f"You earned the '{badge.name}' badge.",
-        notification_type="success",
-        action_url=url_for("main.my_profile"),
-        action_label="View Profile"
-    )
-
-
-def check_and_award_badges(user):
-    """
-    Check badge rules for a user and award any badges they have earned.
-
-    This function does not commit.
-    The calling route should commit after calling it.
-    """
-
-    seed_badges()
-
-    approved_task_count = TaskCompletion.query.filter_by(
-        user_id=user.id,
-        status="approved"
-    ).count()
-
-    if approved_task_count >= 1:
-        award_badge(user.id, "first_task")
-
-    if approved_task_count >= 5:
-        award_badge(user.id, "five_tasks")
-
-    if approved_task_count >= 10:
-        award_badge(user.id, "ten_tasks")
-
-    wishlist_contribution_count = WishlistContribution.query.filter_by(
-        user_id=user.id,
-        status="active"
-    ).count()
-
-    if wishlist_contribution_count >= 1:
-        award_badge(user.id, "wishlist_saver")
-
-    funded_wishlist_count = WishlistItem.query.filter_by(
-        user_id=user.id,
-        status="funded"
-    ).count()
-
-    fulfilled_wishlist_count = WishlistItem.query.filter_by(
-        user_id=user.id,
-        status="fulfilled"
-    ).count()
-
-    if funded_wishlist_count + fulfilled_wishlist_count >= 1:
-        award_badge(user.id, "wishlist_funded")
-
-    group_contribution_count = GroupGoalContribution.query.filter_by(
-        user_id=user.id,
-        status="active"
-    ).count()
-
-    if group_contribution_count >= 1:
-        award_badge(user.id, "group_contributor")
-
-    total_earned = 0
-
-    for transaction in user.point_transactions:
-        if transaction.transaction_type == "task_approved" and transaction.amount > 0:
-            total_earned += transaction.amount
-
-    if total_earned >= 100:
-        award_badge(user.id, "hundred_points_earned")
 
 # =========================================================
 # BASIC ROUTES: HOME, LOGIN, LOGOUT, DASHBOARD
@@ -612,11 +507,7 @@ def export_users_csv():
 
     for user in users:
 
-        total_earned = 0
-
-        for transaction in user.point_transactions:
-            if transaction.transaction_type == "task_approved" and transaction.amount > 0:
-                total_earned += transaction.amount
+        total_earned = calculate_total_earned(user)
 
         approved_tasks = TaskCompletion.query.filter_by(
             user_id=user.id,
@@ -913,7 +804,7 @@ def dashboard():
             Notification.created_at.desc()
         ).all()
 
-                # Recent system-wide point activity for admin dashboard.
+        # Recent system-wide point activity for admin dashboard.
         recent_activity = PointTransaction.query.order_by(
             PointTransaction.created_at.desc()
         ).limit(8).all()
@@ -952,7 +843,7 @@ def dashboard():
     # Get the user's current point balance.
     current_balance = current_user.point_balance()
 
-        # Count this user's active wishlist items.
+    # Count this user's active wishlist items.
     wishlist_item_count = WishlistItem.query.filter(
         WishlistItem.user_id == current_user.id,
         WishlistItem.status.in_(["active", "funded"]),
@@ -991,7 +882,7 @@ def dashboard():
         Notification.created_at.desc()
     ).all()
 
-        # Recent point activity for this user.
+    # Recent point activity for this user.
     recent_activity = PointTransaction.query.filter_by(
         user_id=current_user.id
     ).order_by(
@@ -1101,7 +992,7 @@ def create_task():
 
     # Populate previous task import dropdown.
     form.import_task_id.choices = task_import_choices()
-        # Allow importing from a URL such as:
+    # Allow importing from a URL such as:
     # /tasks/create?import_task_id=3
     if request.method == "GET":
 
@@ -1298,7 +1189,7 @@ def approve_task_completion(completion_id):
     completion.reviewed_at = datetime.now(timezone.utc)
     completion.reviewed_by_id = current_user.id
 
-        # Calculate awarded points.
+    # Calculate awarded points.
     # Hot tasks include their bonus while they are marked hot.
     awarded_points = completion.task.total_point_value()
 
@@ -1311,7 +1202,7 @@ def approve_task_completion(completion_id):
         created_by_id=current_user.id
     )
 
-        # Add the point transaction.
+    # Add the point transaction.
     db.session.add(transaction)
 
     # If this task is set to hide after approval,
@@ -1323,7 +1214,7 @@ def approve_task_completion(completion_id):
     create_notification(
         user_id=completion.user_id,
         title="Task approved",
-        message=f"Your task '{completion.task.title}' was approved. You earned {awarded_points} points.",
+        message=f"Your task '{completion.task.title}' was approved. You earned {format_points(awarded_points)}.",
         notification_type="success"
     )
 
@@ -1332,7 +1223,7 @@ def approve_task_completion(completion_id):
     # Save approval, transaction, and possible task visibility change.
     db.session.commit()
 
-    flash("Task approved and points awarded.")
+    flash(f"Task approved and {format_points(awarded_points)} awarded.")
     return redirect(url_for("main.admin_approvals"))
 
 
@@ -1433,7 +1324,7 @@ def approve_reward_purchase(purchase_id):
     if not reservation:
 
         if purchase.user.point_balance() < purchase.reward.point_cost:
-            flash("User no longer has enough points for this reward.")
+            flash(f"User no longer has enough {get_points_label()} for this reward.")
             return redirect(url_for("main.admin_approvals"))
 
         fallback_transaction = PointTransaction(
@@ -1667,7 +1558,7 @@ def create_reward():
 
     # Populate previous reward import dropdown.
     form.import_reward_id.choices = reward_import_choices()
-        # Allow importing from a URL such as:
+    # Allow importing from a URL such as:
     # /rewards/create?import_reward_id=5
     if request.method == "GET":
 
@@ -1774,7 +1665,7 @@ def request_reward(reward_id):
     # Because pending requests now create negative point transactions,
     # this balance already accounts for reserved points.
     if current_user.point_balance() < reward.point_cost:
-        flash("You do not have enough points for this reward.")
+        flash(f"You do not have enough {get_points_label()} for this reward.")
         return redirect(url_for("main.shop"))
 
     # Create the reward purchase request.
@@ -1811,7 +1702,7 @@ def request_reward(reward_id):
     # - the point reservation transaction
     db.session.commit()
 
-    flash("Reward requested. Points have been reserved pending approval.")
+    flash(f"Reward requested. {get_points_label().capitalize()} have been reserved pending approval.")
     return redirect(url_for("main.dashboard"))
 
 
@@ -2151,7 +2042,7 @@ def adjust_points(user_id):
         db.session.add(transaction)
         db.session.commit()
 
-        flash("Point adjustment applied.")
+        flash(f"{get_points_label().capitalize()} adjustment applied.")
         return redirect(url_for("main.users"))
 
     return render_template(
@@ -2849,7 +2740,7 @@ def admin_complete_task():
 
     # Populate the task dropdown.
     form.task_id.choices = [
-        (task.id, f"{task.title} ({task.total_point_value()} points)")
+        (task.id, f"{task.title} ({format_points(task.total_point_value())})")
         for task in active_tasks
     ]
 
@@ -2888,7 +2779,7 @@ def admin_complete_task():
         db.session.add(completion)
         db.session.flush()
 
-        # Calculate awarded points.
+    # Calculate awarded points.
         # Hot tasks include their bonus while they are marked hot.
         awarded_points = task.total_point_value()
 
@@ -2910,14 +2801,14 @@ def admin_complete_task():
         create_notification(
             user_id=user.id,
             title="Task completed by admin",
-            message=f"'{task.title}' was marked complete for you. You earned {awarded_points} points.",
+            message=f"'{task.title}' was marked complete for you. You earned {format_points(awarded_points)}.",
             notification_type="success"
         )
 
         # Save the completion, point transaction, and possible task visibility change.
         db.session.commit()
 
-        flash(f"Task completed for {user.display_name}. Points awarded.")
+        flash(f"Task completed for {user.display_name}. {format_points(awarded_points)} awarded.")
         return redirect(url_for("main.admin_home"))
 
     return render_template(
@@ -2984,24 +2875,7 @@ def leaderboard():
 
     for user in users:
 
-        # Count positive earning transactions.
-        # This includes approved tasks and positive admin adjustments.
-        # Spending, saving, refunds, and negative adjustments do not reduce this score.
-        total_earned = 0
-
-        earning_transaction_types = [
-            "task_approved",
-            "manual_adjustment",
-            "admin_adjustment",
-            "point_adjustment"
-        ]
-
-        for transaction in user.point_transactions:
-            if (
-                transaction.transaction_type in earning_transaction_types
-                and transaction.amount > 0
-            ):
-                total_earned += transaction.amount
+        total_earned = calculate_total_earned(user)
 
         total_earned_leaderboard.append({
             "user": user,
@@ -3350,23 +3224,8 @@ def user_profile(user_id):
     # Current point balance comes from the point transaction ledger.
     current_points = user.point_balance()
 
-    # Total earned only counts approved task point transactions.
-    # This means users are not penalised for spending points.
-    total_earned = 0
-
-    earning_transaction_types = [
-        "task_approved",
-        "manual_adjustment",
-        "admin_adjustment",
-        "point_adjustment"
-    ]
-
-    for transaction in user.point_transactions:
-        if (
-            transaction.transaction_type in earning_transaction_types
-            and transaction.amount > 0
-        ):
-            total_earned += transaction.amount
+    # Total earned uses the same shared calculation as the leaderboard and reports.
+    total_earned = calculate_total_earned(user)
 
     # Count approved task completions.
     tasks_completed = TaskCompletion.query.filter_by(
@@ -3493,15 +3352,10 @@ def user_profile(user_id):
         WishlistContribution.created_at.desc()
     ).limit(5).all()
 
-        # Make sure badges are up to date when viewing the profile.
+    # Make sure badges are up to date when viewing the profile.
     check_and_award_badges(user)
     db.session.commit()
 
-    earned_badges = UserBadge.query.filter_by(
-        user_id=user.id
-    ).order_by(
-        UserBadge.earned_at.desc()
-    ).all()
     # Load badges earned by this user.
     earned_badges = UserBadge.query.filter_by(
         user_id=user.id
@@ -3625,11 +3479,11 @@ def contribute_group_goal(goal_id):
         amount = form.amount.data
 
         if amount > current_user.point_balance():
-            flash("You do not have enough points to contribute that amount.")
+            flash(f"You do not have enough {get_points_label()} to contribute that amount.")
             return redirect(url_for("main.contribute_group_goal", goal_id=goal.id))
 
         if amount > goal.remaining_points():
-            flash(f"This goal only needs {goal.remaining_points()} more point(s).")
+            flash(f"This goal only needs {format_points(goal.remaining_points())} more.")
             return redirect(url_for("main.contribute_group_goal", goal_id=goal.id))
 
         contribution = GroupGoalContribution(
@@ -3657,7 +3511,7 @@ def contribute_group_goal(goal_id):
 
             notify_admins(
                 title="Group goal funded",
-                message=f"The group goal '{goal.title}' has reached its point target and is ready for fulfilment.",
+                message=f"The group goal '{goal.title}' has reached its {get_points_label()} target and is ready for fulfilment.",
                 notification_type="success",
                 action_url=url_for("main.group_goals"),
                 action_label="Open Group Goals"
@@ -3975,7 +3829,7 @@ def admin_add_wishlist_item():
         create_notification(
             user_id=user.id,
             title="Wishlist item added",
-            message=f"'{item.name}' was added to your wishlist for {item.point_cost} points.",
+            message=f"'{item.name}' was added to your wishlist for {format_points(item.point_cost)}.",
             notification_type="success"
         )
 
@@ -4035,7 +3889,7 @@ def approve_wishlist_request(request_id):
         create_notification(
             user_id=wishlist_request.user_id,
             title="Wishlist request approved",
-            message=f"'{item.name}' was added to your wishlist for {item.point_cost} points.",
+            message=f"'{item.name}' was added to your wishlist for {format_points(item.point_cost)}.",
             notification_type="success"
         )
 
@@ -4135,13 +3989,13 @@ def remove_wishlist_item(item_id):
     create_notification(
         user_id=item.user_id,
         title="Wishlist item removed",
-        message=f"'{item.name}' was removed from your wishlist. Any saved points were refunded.",
+        message=f"'{item.name}' was removed from your wishlist. Any saved {get_points_label()} were refunded.",
         notification_type="warning"
     )
 
     db.session.commit()
 
-    flash("Wishlist item removed and saved points refunded.")
+    flash(f"Wishlist item removed and saved {get_points_label()} refunded.")
     return redirect(url_for("main.wishlist"))
 
 @bp.route("/wishlist/items/<int:item_id>/contribute", methods=["GET", "POST"])
@@ -4174,11 +4028,11 @@ def contribute_wishlist_item(item_id):
         amount = form.amount.data
 
         if amount > current_user.point_balance():
-            flash("You do not have enough points to contribute that amount.")
+            flash(f"You do not have enough {get_points_label()} to contribute that amount.")
             return redirect(url_for("main.contribute_wishlist_item", item_id=item.id))
 
         if amount > item.remaining_points():
-            flash(f"This wishlist item only needs {item.remaining_points()} more point(s).")
+            flash(f"This wishlist item only needs {format_points(item.remaining_points())} more.")
             return redirect(url_for("main.contribute_wishlist_item", item_id=item.id))
 
         contribution = WishlistContribution(
@@ -4207,7 +4061,7 @@ def contribute_wishlist_item(item_id):
             create_notification(
                 user_id=current_user.id,
                 title="Wishlist item funded",
-                message=f"Your wishlist item '{item.name}' has reached its point target.",
+                message=f"Your wishlist item '{item.name}' has reached its {get_points_label()} target.",
                 notification_type="success"
             )
 
@@ -4225,7 +4079,7 @@ def contribute_wishlist_item(item_id):
         # Commit every valid contribution, not only fully funded contributions.
         db.session.commit()
 
-        flash("Points added to wishlist item.")
+        flash(f"{get_points_label().capitalize()} added to wishlist item.")
         return redirect(url_for("main.wishlist"))
 
     return render_template(
@@ -4233,6 +4087,8 @@ def contribute_wishlist_item(item_id):
         form=form,
         item=item
     )
+
+
 @bp.route("/admin/wishlist/items/<int:item_id>/fulfil", methods=["POST"])
 @login_required
 def fulfil_wishlist_item(item_id):
@@ -4261,7 +4117,7 @@ def fulfil_wishlist_item(item_id):
 
     # Only funded items should be fulfilled.
     if not item.is_funded():
-        flash("This wishlist item has not reached its point target yet.")
+        flash(f"This wishlist item has not reached its {get_points_label()} target yet.")
         return redirect(url_for("main.wishlist"))
 
     # Mark the item as fulfilled and close it.
@@ -4381,7 +4237,7 @@ def edit_wishlist_item(item_id):
             create_notification(
                 user_id=item.user_id,
                 title="Wishlist point cost changed",
-                message=f"'{item.name}' changed from {old_point_cost} points to {item.point_cost} points.",
+                message=f"'{item.name}' changed from {format_points(old_point_cost)} to {format_points(item.point_cost)}.",
                 notification_type="info",
                 action_url=url_for("main.wishlist"),
                 action_label="Open Wishlist"
