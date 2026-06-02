@@ -70,6 +70,17 @@ from app.models import (
     HouseholdSettings,
 )
 
+from app.services.settings_service import (
+    get_household_settings,
+    get_points_label,
+)
+
+from app.services.notification_service import (
+    create_notification,
+    notify_admins,
+    notify_standard_users,
+)
+
 
 # Create the main blueprint.
 # All routes in this file are registered under this blueprint.
