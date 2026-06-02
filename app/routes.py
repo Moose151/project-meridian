@@ -76,6 +76,13 @@ from app.services.points_service import (
     format_points,
 )
 
+from app.services.report_service import (
+    build_users_report_rows,
+    build_points_report_rows,
+    build_tasks_report_rows,
+    build_rewards_report_rows,
+)
+
 # Create the main blueprint.
 # All routes in this file are registered under this blueprint.
 bp = Blueprint("main", __name__)
@@ -486,66 +493,9 @@ def export_users_csv():
     if not admin_required():
         return redirect(url_for("main.dashboard"))
 
-    rows = [
-        [
-            "User ID",
-            "Username",
-            "Display Name",
-            "Role",
-            "Active",
-            "Current Balance",
-            "Total Earned",
-            "Approved Tasks",
-            "Reward Requests",
-            "Wishlist Saved"
-        ]
-    ]
-
-    users = User.query.order_by(
-        User.display_name
-    ).all()
-
-    for user in users:
-
-        total_earned = calculate_total_earned(user)
-
-        approved_tasks = TaskCompletion.query.filter_by(
-            user_id=user.id,
-            status="approved"
-        ).count()
-
-        reward_requests = RewardPurchase.query.filter_by(
-            user_id=user.id
-        ).count()
-
-        active_wishlist_items = WishlistItem.query.filter_by(
-            user_id=user.id,
-            is_active=True
-        ).all()
-
-        wishlist_saved = 0
-
-        for item in active_wishlist_items:
-            wishlist_saved += item.total_saved()
-
-        rows.append(
-            [
-                user.id,
-                user.username,
-                user.display_name,
-                user.role,
-                user.is_active_account,
-                user.point_balance(),
-                total_earned,
-                approved_tasks,
-                reward_requests,
-                wishlist_saved
-            ]
-        )
-
     return make_csv_response(
         "meridian_users_report.csv",
-        rows
+        build_users_report_rows()
     )
 
 @bp.route("/admin/reports/points.csv")
@@ -558,52 +508,9 @@ def export_points_csv():
     if not admin_required():
         return redirect(url_for("main.dashboard"))
 
-    rows = [
-        [
-            "Transaction ID",
-            "Date",
-            "User",
-            "Username",
-            "Amount",
-            "Transaction Type",
-            "Reason",
-            "Created By"
-        ]
-    ]
-
-    transactions = PointTransaction.query.order_by(
-        PointTransaction.created_at.desc()
-    ).all()
-
-    for transaction in transactions:
-
-        user_name = ""
-        username = ""
-        created_by_name = ""
-
-        if transaction.user:
-            user_name = transaction.user.display_name
-            username = transaction.user.username
-
-        if transaction.created_by:
-            created_by_name = transaction.created_by.display_name
-
-        rows.append(
-            [
-                transaction.id,
-                transaction.created_at,
-                user_name,
-                username,
-                transaction.amount,
-                transaction.transaction_type,
-                transaction.reason,
-                created_by_name
-            ]
-        )
-
     return make_csv_response(
         "meridian_point_history.csv",
-        rows
+        build_points_report_rows()
     )
 
 @bp.route("/admin/reports/tasks.csv")
@@ -616,66 +523,9 @@ def export_tasks_csv():
     if not admin_required():
         return redirect(url_for("main.dashboard"))
 
-    rows = [
-        [
-            "Completion ID",
-            "User",
-            "Username",
-            "Task",
-            "Category",
-            "Status",
-            "Task Value",
-            "Submitted At",
-            "Reviewed At",
-            "Reviewed By",
-            "Rejection Reason"
-        ]
-    ]
-
-    completions = TaskCompletion.query.order_by(
-        TaskCompletion.submitted_at.desc()
-    ).all()
-
-    for completion in completions:
-
-        user_name = ""
-        username = ""
-        task_title = ""
-        task_category = ""
-        task_value = ""
-        reviewed_by_name = ""
-
-        if completion.user:
-            user_name = completion.user.display_name
-            username = completion.user.username
-
-        if completion.task:
-            task_title = completion.task.title
-            task_category = completion.task.category or ""
-            task_value = completion.task.point_value
-
-        if completion.reviewed_by:
-            reviewed_by_name = completion.reviewed_by.display_name
-
-        rows.append(
-            [
-                completion.id,
-                user_name,
-                username,
-                task_title,
-                task_category,
-                completion.status,
-                task_value,
-                completion.submitted_at,
-                completion.reviewed_at,
-                reviewed_by_name,
-                completion.rejection_reason or ""
-            ]
-        )
-
     return make_csv_response(
         "meridian_task_activity.csv",
-        rows
+        build_tasks_report_rows()
     )
 
 @bp.route("/admin/reports/rewards.csv")
@@ -688,66 +538,9 @@ def export_rewards_csv():
     if not admin_required():
         return redirect(url_for("main.dashboard"))
 
-    rows = [
-        [
-            "Purchase ID",
-            "User",
-            "Username",
-            "Reward",
-            "Category",
-            "Status",
-            "Cost",
-            "Requested At",
-            "Reviewed At",
-            "Reviewed By",
-            "Rejection Reason"
-        ]
-    ]
-
-    purchases = RewardPurchase.query.order_by(
-        RewardPurchase.requested_at.desc()
-    ).all()
-
-    for purchase in purchases:
-
-        user_name = ""
-        username = ""
-        reward_name = ""
-        reward_category = ""
-        reward_cost = ""
-        reviewed_by_name = ""
-
-        if purchase.user:
-            user_name = purchase.user.display_name
-            username = purchase.user.username
-
-        if purchase.reward:
-            reward_name = purchase.reward.name
-            reward_category = purchase.reward.category or ""
-            reward_cost = purchase.reward.point_cost
-
-        if purchase.reviewed_by:
-            reviewed_by_name = purchase.reviewed_by.display_name
-
-        rows.append(
-            [
-                purchase.id,
-                user_name,
-                username,
-                reward_name,
-                reward_category,
-                purchase.status,
-                reward_cost,
-                purchase.requested_at,
-                purchase.reviewed_at,
-                reviewed_by_name,
-                purchase.rejection_reason or ""
-            ]
-        )
-
     return make_csv_response(
         "meridian_reward_requests.csv",
-        rows
+        build_rewards_report_rows()
     )
 
 
