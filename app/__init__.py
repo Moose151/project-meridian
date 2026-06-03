@@ -13,10 +13,13 @@ from flask_sqlalchemy import SQLAlchemy
 # Import LoginManager for login/session handling.
 from flask_login import LoginManager
 
+from flask_migrate import Migrate
+
 
 # Create the database object.
 # Models use this object to define tables.
 db = SQLAlchemy()
+migrate = Migrate()
 
 
 # Create the login manager.
@@ -52,6 +55,7 @@ def create_app():
 
     # Connect database to app.
     db.init_app(app)
+    migrate.init_app(app, db)
 
     # Connect Flask-Login to app.
     login_manager.init_app(app)
