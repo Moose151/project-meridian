@@ -69,6 +69,11 @@ from app.models import (
     HouseholdSettings,
 )
 
+from app.services.settings_service import (
+    get_household_settings,
+    get_points_label,
+)
+
 from app.services.badge_service import check_and_award_badges
 
 from app.services.points_service import (
@@ -88,6 +93,12 @@ from app.services.task_service import (
     admin_complete_task_for_user,
 )
 
+from app.services.reward_service import (
+    create_reward_reservation,
+    approve_reward_purchase_request,
+    reject_reward_purchase_request,
+    cancel_reward_purchase_request,
+)
 # Create the main blueprint.
 # All routes in this file are registered under this blueprint.
 bp = Blueprint("main", __name__)
@@ -134,6 +145,36 @@ def task_category_choices(include_current=None):
         is_active=True
     ).order_by(
         TaskCategory.name
+    ).all()
+
+    choices = [("", "No category")]
+
+    for category in categories:
+        choices.append((category.name, category.name))
+
+    current_values = [choice[0] for choice in choices]
+
+    if include_current and include_current not in current_values:
+        choices.append((include_current, f"{include_current} (removed category)"))
+
+    return choices
+
+
+
+def reward_category_choices(include_current=None):
+    """
+    Build dropdown choices for reward categories.
+
+    Active categories appear in the dropdown.
+
+    If a reward already has a category that has since been removed,
+    include it so the edit page does not break.
+    """
+
+    categories = RewardCategory.query.filter_by(
+        is_active=True
+    ).order_by(
+        RewardCategory.name
     ).all()
 
     choices = [("", "No category")]
@@ -1056,15 +1097,7 @@ def approve_reward_purchase(purchase_id):
     """
     Approve a requested reward purchase.
 
-    Current behaviour:
-    - Points are already reserved when the user requests the reward.
-    - Approval does not create another negative transaction.
-    - Approval simply marks the request as approved.
-
-    Legacy safety:
-    - If an old pending request exists from before point reservation was added,
-      and therefore has no reward_requested transaction, this route will deduct
-      points at approval time as a fallback.
+    The reward approval business logic is handled by reward_service.
     """
 
     # Block non-admin users.
@@ -1079,46 +1112,14 @@ def approve_reward_purchase(purchase_id):
         flash("Reward purchase request not found.")
         return redirect(url_for("main.admin_approvals"))
 
-    # Check whether this purchase already has a reservation transaction.
-    reservation = PointTransaction.query.filter_by(
-        related_reward_purchase_id=purchase.id,
-        transaction_type="reward_requested"
-    ).first()
+    # Approve the reward request.
+    # This returns False if a legacy unreserved request can no longer be afforded.
+    approved = approve_reward_purchase_request(purchase)
 
-    # Legacy fallback:
-    # If there is no reservation, this request was probably created before
-    # point reservation was added. In that case, check balance and deduct now.
-    if not reservation:
+    if not approved:
+        flash(f"User no longer has enough {get_points_label()} for this reward.")
+        return redirect(url_for("main.admin_approvals"))
 
-        if purchase.user.point_balance() < purchase.reward.point_cost:
-            flash(f"User no longer has enough {get_points_label()} for this reward.")
-            return redirect(url_for("main.admin_approvals"))
-
-        fallback_transaction = PointTransaction(
-            user_id=purchase.user_id,
-            amount=-purchase.reward.point_cost,
-            transaction_type="reward_approved",
-            reason=f"Approved reward: {purchase.reward.name}",
-            related_reward_purchase_id=purchase.id,
-            created_by_id=current_user.id
-        )
-
-        db.session.add(fallback_transaction)
-
-    # Mark purchase as approved.
-    purchase.status = "approved"
-    purchase.reviewed_at = datetime.now(timezone.utc)
-    purchase.reviewed_by_id = current_user.id
-
-    # Notify the user that the reward was approved.
-    create_notification(
-        user_id=purchase.user_id,
-        title="Reward approved",
-        message=f"Your reward request '{purchase.reward.name}' was approved.",
-        notification_type="success"
-    )
-
-    # Save approval, possible fallback transaction, and notification.
     db.session.commit()
 
     flash("Reward approved.")
@@ -1131,11 +1132,7 @@ def reject_reward_purchase(purchase_id):
     """
     Reject a requested reward purchase.
 
-    New behaviour:
-    - Admin is shown a rejection form.
-    - Admin must enter a short rejection reason.
-    - If points were reserved, they are refunded.
-    - Reason appears in Reward History.
+    The reward rejection and refund logic is handled by reward_service.
     """
 
     # Block non-admin users.
@@ -1156,45 +1153,9 @@ def reject_reward_purchase(purchase_id):
     # If the form was submitted and valid, reject the reward request.
     if form.validate_on_submit():
 
-        # Look for the original point reservation.
-        reservation = PointTransaction.query.filter_by(
-            related_reward_purchase_id=purchase.id,
-            transaction_type="reward_requested"
-        ).first()
-
-        # Check whether a refund already exists.
-        # This prevents accidental double refunds.
-        existing_refund = PointTransaction.query.filter_by(
-            related_reward_purchase_id=purchase.id,
-            transaction_type="reward_refunded"
-        ).first()
-
-        # If points were reserved and have not already been refunded,
-        # create a positive transaction to return the points.
-        if reservation and not existing_refund:
-            refund = PointTransaction(
-                user_id=purchase.user_id,
-                amount=purchase.reward.point_cost,
-                transaction_type="reward_refunded",
-                reason=f"Refunded rejected reward: {purchase.reward.name}",
-                related_reward_purchase_id=purchase.id,
-                created_by_id=current_user.id
-            )
-
-            db.session.add(refund)
-
-        # Mark purchase as rejected.
-        purchase.status = "rejected"
-        purchase.reviewed_at = datetime.now(timezone.utc)
-        purchase.reviewed_by_id = current_user.id
-        purchase.rejection_reason = form.reason.data.strip()
-
-        # Notify the user that the reward was rejected.
-        create_notification(
-            user_id=purchase.user_id,
-            title="Reward rejected",
-            message=f"Your reward request '{purchase.reward.name}' was rejected. Reason: {purchase.rejection_reason}. Reserved {get_points_label()} were refunded.",
-            notification_type="danger"
+        reject_reward_purchase_request(
+            purchase=purchase,
+            rejection_reason=form.reason.data.strip()
         )
 
         db.session.commit()
@@ -1450,17 +1411,8 @@ def request_reward(reward_id):
 
     # Create a negative point transaction immediately.
     # This reserves/deducts the points while the request is pending.
-    transaction = PointTransaction(
-        user_id=current_user.id,
-        amount=-reward.point_cost,
-        transaction_type="reward_requested",
-        reason=f"Requested reward: {reward.name}",
-        related_reward_purchase_id=purchase.id,
-        created_by_id=current_user.id
-    )
-
-    # Save the point reservation.
-    db.session.add(transaction)
+    # Reserve/deduct the reward cost while the request is pending.
+    create_reward_reservation(purchase)
 
     # Commit both:
     # - the reward purchase request
