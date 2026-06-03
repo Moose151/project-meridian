@@ -21,75 +21,60 @@ class User(UserMixin, db.Model):
 
     __tablename__ = "users"
 
-    # Primary key: unique ID for each user.
     id = db.Column(db.Integer, primary_key=True)
 
-    # Internal login username.
-    # Even though the login screen now uses avatars, username is still useful
-    # as a unique account identifier.
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    username = db.Column(db.String(80), unique=True, nullable=False, index=True)
 
-    # Friendly name shown throughout the app.
-    display_name = db.Column(db.String(120), nullable=False)
+    display_name = db.Column(db.String(120), nullable=False, index=True)
 
-    # Emoji avatar shown on the login screen.
     avatar_emoji = db.Column(
         db.String(10),
         nullable=False,
         default="🙂"
     )
 
-    # Secure hashed password/PIN.
     password_hash = db.Column(db.String(255), nullable=False)
 
-    # Role controls permissions.
-    # Expected values:
-    # - "admin"
-    # - "user"
-    role = db.Column(db.String(20), nullable=False, default="user")
+    role = db.Column(db.String(20), nullable=False, default="user", index=True)
 
-    # Allows admins to disable accounts without deleting history.
-    is_active_account = db.Column(db.Boolean, default=True)
+    is_active_account = db.Column(db.Boolean, default=True, index=True)
 
-    # When the account was created.
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
-    # Relationship: task completions submitted by this user.
     task_completions = db.relationship(
         "TaskCompletion",
         foreign_keys="TaskCompletion.user_id",
         back_populates="user"
     )
 
-    # Relationship: task completions reviewed by this admin.
     reviewed_task_completions = db.relationship(
         "TaskCompletion",
         foreign_keys="TaskCompletion.reviewed_by_id",
         back_populates="reviewed_by"
     )
 
-    # Relationship: reward purchases requested by this user.
     reward_purchases = db.relationship(
         "RewardPurchase",
         foreign_keys="RewardPurchase.user_id",
         back_populates="user"
     )
 
-    # Relationship: reward purchases reviewed by this admin.
     reviewed_reward_purchases = db.relationship(
         "RewardPurchase",
         foreign_keys="RewardPurchase.reviewed_by_id",
         back_populates="reviewed_by"
     )
 
-    # Relationship: point transactions belonging to this user.
     point_transactions = db.relationship(
         "PointTransaction",
         foreign_keys="PointTransaction.user_id",
         back_populates="user"
     )
 
-    # Relationship: point transactions created by this admin/user.
     created_point_transactions = db.relationship(
         "PointTransaction",
         foreign_keys="PointTransaction.created_by_id",
@@ -99,8 +84,6 @@ class User(UserMixin, db.Model):
     def set_password(self, password):
         """
         Hash and store a password/PIN.
-
-        The plain password/PIN is never saved directly.
         """
 
         self.password_hash = generate_password_hash(password)
@@ -123,8 +106,7 @@ class User(UserMixin, db.Model):
         """
         Calculate current point balance from point transactions.
 
-        We do not store a separate balance because the transaction ledger
-        is the source of truth.
+        The transaction ledger is the source of truth.
         """
 
         total = 0
@@ -138,57 +120,39 @@ class User(UserMixin, db.Model):
 class Task(db.Model):
     """
     Stores task definitions.
-
-    Example:
-    - Tidy bedroom
-    - Feed pets
-    - Empty dishwasher
     """
 
     __tablename__ = "tasks"
 
-    # Primary key: unique ID for each task.
     id = db.Column(db.Integer, primary_key=True)
 
-    # Short task title.
-    title = db.Column(db.String(120), nullable=False)
+    title = db.Column(db.String(120), nullable=False, index=True)
 
-    # Optional longer description.
     description = db.Column(db.Text)
 
-    # How many points the task awards when approved.
     point_value = db.Column(db.Integer, nullable=False, default=0)
 
-    # Optional category such as Bedroom, Kitchen, Pets, School.
-    category = db.Column(db.String(80))
+    category = db.Column(db.String(80), index=True)
 
-    # Controls what happens after an admin approves a task completion.
-    #
-    # "stay_active":
-    # - task remains visible after approval
-    #
-    # "hide_after_approval":
-    # - task is hidden after approval
     completion_behavior = db.Column(
         db.String(30),
         nullable=False,
         default="stay_active"
     )
 
-    # Allows admins to hide/archive tasks without deleting history.
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)
 
-    # Hot tasks are promoted tasks that appear first on the task board.
-    is_hot = db.Column(db.Boolean, default=False)
+    is_hot = db.Column(db.Boolean, default=False, index=True)
 
-    # Optional bonus points awarded while the task is hot.
     hot_bonus_points = db.Column(db.Integer, nullable=False, default=0)
 
-    # Optional short label shown on the task card.
     hot_label = db.Column(db.String(120))
 
-    # When the task was created.
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
     def total_point_value(self):
         """
@@ -204,7 +168,6 @@ class Task(db.Model):
 
         return total
 
-    # Relationship: one task can have many completion records.
     completions = db.relationship(
         "TaskCompletion",
         back_populates="task"
@@ -214,41 +177,49 @@ class Task(db.Model):
 class TaskCompletion(db.Model):
     """
     Stores task completion submissions and review outcomes.
-
-    Status examples:
-    - submitted
-    - approved
-    - rejected
-    - cancelled
     """
 
     __tablename__ = "task_completions"
 
-    # Primary key.
     id = db.Column(db.Integer, primary_key=True)
 
-    # Linked task.
-    task_id = db.Column(db.Integer, db.ForeignKey("tasks.id"), nullable=False)
+    task_id = db.Column(
+        db.Integer,
+        db.ForeignKey("tasks.id"),
+        nullable=False,
+        index=True
+    )
 
-    # User who completed/submitted the task.
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
 
-    # Status of the task completion.
-    status = db.Column(db.String(30), nullable=False, default="submitted")
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default="submitted",
+        index=True
+    )
 
-    # When the task was submitted.
-    submitted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    submitted_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
-    # When the task was reviewed or cancelled.
-    reviewed_at = db.Column(db.DateTime)
+    reviewed_at = db.Column(db.DateTime, index=True)
 
-    # Admin who reviewed the task.
-    reviewed_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    reviewed_by_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        index=True
+    )
 
-    # Optional reason for rejection or cancellation.
     rejection_reason = db.Column(db.Text)
 
-    # Relationships.
     task = db.relationship(
         "Task",
         back_populates="completions"
@@ -275,37 +246,28 @@ class TaskCompletion(db.Model):
 class Reward(db.Model):
     """
     Stores shop rewards.
-
-    Example:
-    - Screen time
-    - Snack
-    - Day trip
     """
 
     __tablename__ = "rewards"
 
-    # Primary key.
     id = db.Column(db.Integer, primary_key=True)
 
-    # Reward name.
-    name = db.Column(db.String(120), nullable=False)
+    name = db.Column(db.String(120), nullable=False, index=True)
 
-    # Optional reward description.
     description = db.Column(db.Text)
 
-    # Optional reward category such as Screen Time, Food, Activities, Toys.
-    category = db.Column(db.String(80))
+    category = db.Column(db.String(80), index=True)
 
-    # Point cost.
     point_cost = db.Column(db.Integer, nullable=False, default=0)
 
-    # Allows admins to hide rewards without deleting history.
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)
 
-    # When the reward was created.
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
-    # Relationship: one reward can have many purchase/request records.
     purchases = db.relationship(
         "RewardPurchase",
         back_populates="reward"
@@ -315,42 +277,49 @@ class Reward(db.Model):
 class RewardPurchase(db.Model):
     """
     Stores reward requests and review outcomes.
-
-    Status examples:
-    - requested
-    - approved
-    - rejected
-    - cancelled
-    - fulfilled
     """
 
     __tablename__ = "reward_purchases"
 
-    # Primary key.
     id = db.Column(db.Integer, primary_key=True)
 
-    # Linked reward.
-    reward_id = db.Column(db.Integer, db.ForeignKey("rewards.id"), nullable=False)
+    reward_id = db.Column(
+        db.Integer,
+        db.ForeignKey("rewards.id"),
+        nullable=False,
+        index=True
+    )
 
-    # User who requested the reward.
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
 
-    # Request status.
-    status = db.Column(db.String(30), nullable=False, default="requested")
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default="requested",
+        index=True
+    )
 
-    # When the reward was requested.
-    requested_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    requested_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
-    # When the request was reviewed or cancelled.
-    reviewed_at = db.Column(db.DateTime)
+    reviewed_at = db.Column(db.DateTime, index=True)
 
-    # Admin who reviewed the request.
-    reviewed_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    reviewed_by_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        index=True
+    )
 
-    # Optional reason for rejection or cancellation.
     rejection_reason = db.Column(db.Text)
 
-    # Relationships.
     reward = db.relationship(
         "Reward",
         back_populates="purchases"
@@ -383,41 +352,49 @@ class PointTransaction(db.Model):
 
     __tablename__ = "point_transactions"
 
-    # Primary key.
     id = db.Column(db.Integer, primary_key=True)
 
-    # User whose points changed.
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
 
-    # Positive values add points.
-    # Negative values remove/reserve points.
     amount = db.Column(db.Integer, nullable=False)
 
-    # Internal transaction type.
-    transaction_type = db.Column(db.String(50), nullable=False)
+    transaction_type = db.Column(
+        db.String(50),
+        nullable=False,
+        index=True
+    )
 
-    # Human-readable reason.
     reason = db.Column(db.String(255), nullable=False)
 
-    # Optional link to a task completion.
     related_task_completion_id = db.Column(
         db.Integer,
-        db.ForeignKey("task_completions.id")
+        db.ForeignKey("task_completions.id"),
+        index=True
     )
 
-    # Optional link to a reward purchase.
     related_reward_purchase_id = db.Column(
         db.Integer,
-        db.ForeignKey("reward_purchases.id")
+        db.ForeignKey("reward_purchases.id"),
+        index=True
     )
 
-    # Who created this transaction.
-    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_by_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        index=True
+    )
 
-    # When the transaction was created.
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
-    # Relationships.
     user = db.relationship(
         "User",
         foreign_keys=[user_id],
@@ -440,91 +417,88 @@ class PointTransaction(db.Model):
         back_populates="point_transactions"
     )
 
+
 class TaskCategory(db.Model):
     """
     Stores admin-managed task categories.
-
-    These categories appear in:
-    - Create Task
-    - Edit Task
-    - Task Board filter
     """
 
     __tablename__ = "task_categories"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    name = db.Column(db.String(80), unique=True, nullable=False)
+    name = db.Column(db.String(80), unique=True, nullable=False, index=True)
 
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
 
 class RewardCategory(db.Model):
     """
     Stores admin-managed reward/shop categories.
-
-    These categories appear in:
-    - Create Reward
-    - Edit Reward
-    - Shop filter
     """
 
     __tablename__ = "reward_categories"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    name = db.Column(db.String(80), unique=True, nullable=False)
+    name = db.Column(db.String(80), unique=True, nullable=False, index=True)
 
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
+
 
 class Notification(db.Model):
     """
     Stores dashboard notifications for users.
-
-    Example:
-    - Your task was approved.
-    - Your reward request was rejected.
     """
 
     __tablename__ = "notifications"
 
-    # Primary key.
     id = db.Column(db.Integer, primary_key=True)
 
-    # User who should see this notification.
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
 
-    # Short notification title.
     title = db.Column(db.String(120), nullable=False)
 
-    # Longer notification message.
     message = db.Column(db.String(255), nullable=False)
-        # Optional URL for an action button.
+
     action_url = db.Column(db.String(255))
 
-    # Optional action button label.
     action_label = db.Column(db.String(80))
 
-    # Notification type controls styling.
-    # Examples:
-    # - success
-    # - warning
-    # - danger
-    # - info
-    notification_type = db.Column(db.String(30), nullable=False, default="info")
+    notification_type = db.Column(
+        db.String(30),
+        nullable=False,
+        default="info",
+        index=True
+    )
 
-    # Whether the user has dismissed/read this notification.
-    is_read = db.Column(db.Boolean, default=False)
+    is_read = db.Column(db.Boolean, default=False, index=True)
 
-    # When the notification was created.
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
-    # Relationship to user.
     user = db.relationship("User")
+
 
 class GroupGoal(db.Model):
     """
@@ -537,17 +511,26 @@ class GroupGoal(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    title = db.Column(db.String(120), nullable=False)
+    title = db.Column(db.String(120), nullable=False, index=True)
 
     description = db.Column(db.Text)
 
     target_points = db.Column(db.Integer, nullable=False)
 
-    status = db.Column(db.String(30), nullable=False, default="active")
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default="active",
+        index=True
+    )
 
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
     contributions = db.relationship(
         "GroupGoalContribution",
@@ -611,15 +594,34 @@ class GroupGoalContribution(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    goal_id = db.Column(db.Integer, db.ForeignKey("group_goals.id"), nullable=False)
+    goal_id = db.Column(
+        db.Integer,
+        db.ForeignKey("group_goals.id"),
+        nullable=False,
+        index=True
+    )
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
 
     amount = db.Column(db.Integer, nullable=False)
 
-    status = db.Column(db.String(30), nullable=False, default="active")
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default="active",
+        index=True
+    )
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
     goal = db.relationship(
         "GroupGoal",
@@ -628,35 +630,49 @@ class GroupGoalContribution(db.Model):
 
     user = db.relationship("User")
 
+
 class WishlistRequest(db.Model):
     """
     Stores user requests for items to be added to their wishlist.
-
-    Example:
-    - User requests "Lego Star Wars X-Wing"
-    - Admin reviews the request
-    - Admin approves it and creates a WishlistItem with a point cost
     """
 
     __tablename__ = "wishlist_requests"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
 
-    requested_name = db.Column(db.String(120), nullable=False)
+    requested_name = db.Column(db.String(120), nullable=False, index=True)
 
     requested_description = db.Column(db.Text)
 
-    status = db.Column(db.String(30), nullable=False, default="requested")
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default="requested",
+        index=True
+    )
 
     rejection_reason = db.Column(db.Text)
 
-    reviewed_at = db.Column(db.DateTime)
+    reviewed_at = db.Column(db.DateTime, index=True)
 
-    reviewed_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    reviewed_by_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        index=True
+    )
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
     user = db.relationship(
         "User",
@@ -681,21 +697,39 @@ class WishlistItem(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
 
-    name = db.Column(db.String(120), nullable=False)
+    name = db.Column(db.String(120), nullable=False, index=True)
 
     description = db.Column(db.Text)
 
     point_cost = db.Column(db.Integer, nullable=False)
 
-    status = db.Column(db.String(30), nullable=False, default="active")
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default="active",
+        index=True
+    )
 
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)
 
-    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_by_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        index=True
+    )
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
     user = db.relationship(
         "User",
@@ -763,24 +797,40 @@ class WishlistItem(db.Model):
 class WishlistContribution(db.Model):
     """
     Stores user point contributions toward an approved wishlist item.
-
-    Points are deducted immediately when contributed.
-    If the wishlist item is removed, active contributions can be refunded.
     """
 
     __tablename__ = "wishlist_contributions"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    item_id = db.Column(db.Integer, db.ForeignKey("wishlist_items.id"), nullable=False)
+    item_id = db.Column(
+        db.Integer,
+        db.ForeignKey("wishlist_items.id"),
+        nullable=False,
+        index=True
+    )
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
 
     amount = db.Column(db.Integer, nullable=False)
 
-    status = db.Column(db.String(30), nullable=False, default="active")
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default="active",
+        index=True
+    )
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
     item = db.relationship(
         "WishlistItem",
@@ -789,29 +839,29 @@ class WishlistContribution(db.Model):
 
     user = db.relationship("User")
 
+
 class Badge(db.Model):
     """
     Stores available achievement badges.
-
-    Examples:
-    - First Task
-    - Team Player
-    - Wishlist Saver
     """
 
     __tablename__ = "badges"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    code = db.Column(db.String(80), unique=True, nullable=False)
+    code = db.Column(db.String(80), unique=True, nullable=False, index=True)
 
-    name = db.Column(db.String(120), nullable=False)
+    name = db.Column(db.String(120), nullable=False, index=True)
 
     description = db.Column(db.String(255), nullable=False)
 
     icon = db.Column(db.String(20), nullable=False, default="🏅")
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
 
 class UserBadge(db.Model):
@@ -823,15 +873,30 @@ class UserBadge(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
 
-    badge_id = db.Column(db.Integer, db.ForeignKey("badges.id"), nullable=False)
+    badge_id = db.Column(
+        db.Integer,
+        db.ForeignKey("badges.id"),
+        nullable=False,
+        index=True
+    )
 
-    earned_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    earned_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
 
     user = db.relationship("User")
 
     badge = db.relationship("Badge")
+
 
 class HouseholdSettings(db.Model):
     """
