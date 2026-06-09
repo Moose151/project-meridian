@@ -3,38 +3,39 @@
 <head>
     <!-- Basic page metadata -->
     <meta charset="utf-8">
-    <title>Project Meridian</title>
+    <title>{{ household_settings.household_name or "Project Meridian" }}</title>
 
     <!-- Makes the page scale properly on different screen sizes -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- Bootstrap CSS from a CDN.
-         Bootstrap gives us layout, buttons, cards, forms, and tables. -->
+    <!-- Bootstrap CSS from a CDN -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
 
-    <!-- Custom Project Meridian styles -->
+    <!-- Project Meridian base styles -->
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/styles.css') }}"
+    >
+
+    <!-- Shared HomeStack UI styles -->
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/homestack.css') }}"
     >
 </head>
 
 <body>
 
-<!-- =========================================================
-     NAVIGATION BAR
-     ========================================================= -->
-
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-4">
     <div class="container">
 
         <!-- App name / brand -->
-      <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
-    {{ household_settings.household_name }}
-</a>
+        <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
+            {{ household_settings.household_name }}
+        </a>
 
         <!-- Mobile menu button -->
         <button
@@ -56,7 +57,6 @@
 
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
-                    <!-- Dashboard -->
                     <li class="nav-item">
                         <a
                             class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
@@ -66,7 +66,6 @@
                         </a>
                     </li>
 
-                    <!-- Tasks -->
                     <li class="nav-item">
                         <a
                             class="nav-link {% if request.endpoint in [
@@ -81,7 +80,6 @@
                         </a>
                     </li>
 
-                    <!-- Shop -->
                     <li class="nav-item">
                         <a
                             class="nav-link {% if request.endpoint in [
@@ -96,7 +94,6 @@
                         </a>
                     </li>
 
-                    <!-- Wishlist -->
                     <li class="nav-item">
                         <a
                             class="nav-link {% if request.endpoint in [
@@ -107,8 +104,8 @@
                                 'main.reject_wishlist_request',
                                 'main.contribute_wishlist_item',
                                 'main.fulfil_wishlist_item',
-                                'main.edit_wishlist_item'
-                                'main.wishlist_archive',
+                                'main.edit_wishlist_item',
+                                'main.wishlist_archive'
                             ] %}active{% endif %}"
                             href="{{ url_for('main.wishlist') }}"
                         >
@@ -116,7 +113,6 @@
                         </a>
                     </li>
 
-                    <!-- More dropdown -->
                     <li class="nav-item dropdown">
                         <a
                             class="nav-link dropdown-toggle {% if request.endpoint in [
@@ -128,7 +124,9 @@
                                 'main.leaderboard',
                                 'main.group_goals',
                                 'main.create_group_goal',
-                                'main.contribute_group_goal'
+                                'main.contribute_group_goal',
+                                'main.request_archive',
+                                'main.household_settings'
                             ] %}active{% endif %}"
                             href="#"
                             id="moreDropdown"
@@ -140,7 +138,6 @@
                         </a>
 
                         <ul class="dropdown-menu" aria-labelledby="moreDropdown">
-
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('main.my_profile') }}">
                                     Profile
@@ -176,23 +173,22 @@
                                     Group Goals
                                 </a>
                             </li>
-                            <li>
-    <a class="dropdown-item" href="{{ url_for('main.request_archive') }}">
-        Request Archive
-    </a>
-    <li>
-    <a class="dropdown-item" href="{{ url_for('main.household_settings') }}">
-        Settings
-    </a>
-</li>
-</li>
 
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('main.request_archive') }}">
+                                    Request Archive
+                                </a>
+                            </li>
+
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('main.household_settings') }}">
+                                    Settings
+                                </a>
+                            </li>
                         </ul>
                     </li>
 
-                    <!-- Admin dropdown -->
                     {% if current_user.is_admin() %}
-
                         <li class="nav-item dropdown">
                             <a
                                 class="nav-link dropdown-toggle {% if request.endpoint in [
@@ -209,14 +205,14 @@
                                     'main.manage_rewards',
                                     'main.create_reward',
                                     'main.manage_categories',
-                                    'main.backup_database'
+                                    'main.backup_database',
                                     'main.request_archive',
                                     'main.household_settings',
                                     'main.admin_reports',
                                     'main.export_users_csv',
                                     'main.export_points_csv',
                                     'main.export_tasks_csv',
-                                    'main.export_rewards_csv',
+                                    'main.export_rewards_csv'
                                 ] %}active{% endif %}"
                                 href="#"
                                 id="adminDropdown"
@@ -228,7 +224,6 @@
                             </a>
 
                             <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('main.admin_home') }}">
                                         Admin Centre
@@ -272,37 +267,35 @@
                                         Categories
                                     </a>
                                 </li>
+
                                 <li>
-    <a class="dropdown-item" href="{{ url_for('main.household_settings') }}">
-        Settings
-    </a>
-</li>
+                                    <a class="dropdown-item" href="{{ url_for('main.household_settings') }}">
+                                        Settings
+                                    </a>
+                                </li>
 
                                 <li><hr class="dropdown-divider"></li>
-<li>
-    <a class="dropdown-item" href="{{ url_for('main.admin_reports') }}">
-        Reports
-    </a>
-</li>
+
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.admin_reports') }}">
+                                        Reports
+                                    </a>
+                                </li>
+
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('main.backup_database') }}">
                                         Backup Database
                                     </a>
                                 </li>
-
                             </ul>
                         </li>
-
                     {% endif %}
-
                 </ul>
 
-
                 <!-- Right-side account controls -->
-                <ul class="navbar-nav ms-auto">
-
+                <ul class="navbar-nav ms-auto align-items-lg-center">
                     <li class="nav-item">
-                        <span class="navbar-text me-3">
+                        <span class="navbar-text me-lg-3">
                             {{ current_user.avatar_emoji }} {{ current_user.display_name }}
                         </span>
                     </li>
@@ -312,7 +305,6 @@
                             Logout
                         </a>
                     </li>
-
                 </ul>
 
             {% endif %}
@@ -321,11 +313,9 @@
     </div>
 </nav>
 
-<!-- Main content area -->
 <main class="container-fluid px-4 pb-5">
     <div class="page-shell">
 
-        <!-- Flash messages from routes.py -->
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
@@ -336,13 +326,11 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Page-specific content goes here -->
         {% block content %}{% endblock %}
 
     </div>
 </main>
 
-<!-- Bootstrap JavaScript for mobile navbar behaviour -->
 <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
