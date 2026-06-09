@@ -6,11 +6,15 @@
      PAGE HEADER
      ========================================================= -->
 
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
     <div>
+        <p class="text-muted-small mb-1">
+            Admin review
+        </p>
+
         <h1>Reject Reward Request</h1>
 
-        <p class="text-muted-small">
+        <p class="text-muted-small mb-0">
             Enter a short reason so the user can understand why the reward request was rejected.
         </p>
     </div>
@@ -21,72 +25,124 @@
 </div>
 
 
-<div class="row">
-    <div class="col-lg-8">
+<!-- =========================================================
+     REJECTION FORM
+     ========================================================= -->
 
-        <div class="card">
+<div class="row g-4">
+
+    <div class="col-lg-8">
+        <div class="card h-100">
             <div class="card-body">
 
-                <form method="post">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+                    <div>
+                        <h2>Rejection Reason</h2>
 
-                    <!-- CSRF/security hidden fields from Flask-WTF -->
+                        <p class="text-muted-small mb-0">
+                            This note will be visible in the user's Reward History.
+                        </p>
+                    </div>
+
+                    <span class="badge bg-danger">
+                        Reject
+                    </span>
+                </div>
+
+                <form method="post">
                     {{ form.hidden_tag() }}
 
-                    <!-- Rejection reason -->
                     <div class="mb-4">
                         {{ form.reason.label(class="form-label") }}
-                        {{ form.reason(class="form-control", rows="4", placeholder="Example: This reward is not available tonight.") }}
+                        {{ form.reason(
+                            class="form-control",
+                            rows="5",
+                            placeholder="Example: This reward is not available tonight."
+                        ) }}
 
                         <div class="form-text">
-                            This reason will appear in the user's Reward History.
                             Reserved {{ household_settings.points_label }} will be refunded when the request is rejected.
                         </div>
                     </div>
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-danger") }}
 
-                        <a class="btn btn-secondary" href="{{ url_for('main.admin_approvals') }}">
+                        <a class="btn btn-outline-secondary" href="{{ url_for('main.admin_approvals') }}">
                             Cancel
                         </a>
                     </div>
-
                 </form>
 
             </div>
         </div>
-
     </div>
 
-    <div class="col-lg-4">
 
-        <div class="card mb-3">
+    <!-- =========================================================
+         REWARD DETAILS
+         ========================================================= -->
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
             <div class="card-body">
+
                 <h2>Reward Details</h2>
 
-                <p class="text-muted-small mb-1">
-                    Reward
-                </p>
+                <div class="mb-3">
+                    <p class="text-muted-small mb-1">
+                        Reward
+                    </p>
 
-                <p>
-                    <strong>{{ purchase.reward.name }}</strong>
-                </p>
+                    <p class="mb-0">
+                        <strong>{{ purchase.reward.name }}</strong>
+                    </p>
+                </div>
 
-                <p class="text-muted-small mb-1">
-                    Requested by
-                </p>
+                <div class="mb-3">
+                    <p class="text-muted-small mb-1">
+                        Requested by
+                    </p>
 
-                <p>
-                    {{ purchase.user.avatar_emoji }} {{ purchase.user.display_name }}
-                </p>
+                    <p class="mb-0">
+                        {{ purchase.user.avatar_emoji }} {{ purchase.user.display_name }}
+                    </p>
+                </div>
 
-                <p class="text-muted-small mb-1">
-                    Cost
-                </p>
+                {% if purchase.reward.category %}
+                    <div class="mb-3">
+                        <p class="text-muted-small mb-1">
+                            Category
+                        </p>
 
-                <p class="display-6 mb-0">
-                    {{ purchase.reward.point_cost }}
-                </p>
+                        <p class="mb-0">
+                            {{ purchase.reward.category }}
+                        </p>
+                    </div>
+                {% endif %}
+
+                {% if purchase.requested_at %}
+                    <div class="mb-3">
+                        <p class="text-muted-small mb-1">
+                            Requested
+                        </p>
+
+                        <p class="mb-0">
+                            {{ purchase.requested_at }}
+                        </p>
+                    </div>
+                {% endif %}
+
+                <div>
+                    <p class="text-muted-small mb-1">
+                        Cost
+                    </p>
+
+                    <p class="display-6 mb-0">
+                        {{ purchase.reward.point_cost }}
+                    </p>
+                </div>
+
             </div>
         </div>
 
@@ -95,12 +151,12 @@
                 <h2>Refund</h2>
 
                 <p class="text-muted-small mb-0">
-                    If {{ household_settings.points_label }} were reserved for this request, rejecting it will automatically refund them.
+                    If {{ household_settings.points_label }} were reserved for this request, rejecting it will automatically refund them to the user.
                 </p>
             </div>
         </div>
-
     </div>
+
 </div>
 
 {% endblock %}
