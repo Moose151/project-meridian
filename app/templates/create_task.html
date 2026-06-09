@@ -2,16 +2,12 @@
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HEADER
-     ========================================================= -->
-
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
     <div>
-        <h1>Create Task</h1>
-
-        <p class="text-muted-small">
-            Add a new task, set its point value, and choose what happens after approval.
+        <p class="text-muted-small mb-1">Admin · Tasks</p>
+        <h1 class="mb-1">Create Task</h1>
+        <p class="text-muted-small mb-0">
+            Add a task, set its {{ household_settings.points_label }} value, and choose how it behaves after approval.
         </p>
     </div>
 
@@ -20,137 +16,117 @@
     </a>
 </div>
 
-
-<!-- =========================================================
-     CREATE TASK FORM
-     ========================================================= -->
-
-<div class="row">
+<div class="row g-4">
     <div class="col-lg-8">
-
         <div class="card">
             <div class="card-body">
-
                 <form method="post">
-
-                    <!-- CSRF/security hidden fields from Flask-WTF -->
                     {{ form.hidden_tag() }}
-                    <!-- =========================================================
-     IMPORT PREVIOUS TASK
-     ========================================================= -->
 
-<div class="card mb-4">
-    <div class="card-body">
-        <h2>Import from Previous Task</h2>
+                    <div class="card mb-4 border-0 bg-light">
+                        <div class="card-body">
+                            <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                                <div>
+                                    <h2 class="mb-1">Import from Previous Task</h2>
+                                    <p class="text-muted-small mb-0">
+                                        Pre-fill this form from an existing task, then adjust it before saving.
+                                    </p>
+                                </div>
+                            </div>
 
-        <p class="text-muted-small">
-            Select a previous task to pre-fill this form. You can edit the details before saving.
-        </p>
+                            <div class="row g-3 align-items-end mt-1">
+                                <div class="col-md-8">
+                                    {{ form.import_task_id.label(class="form-label") }}
+                                    {{ form.import_task_id(class="form-control") }}
+                                </div>
 
-        <div class="row align-items-end">
-
-            <div class="col-md-8 mb-3 mb-md-0">
-                {{ form.import_task_id.label(class="form-label") }}
-                {{ form.import_task_id(class="form-control") }}
-            </div>
-
-            <div class="col-md-4">
-<button
-    class="btn btn-outline-primary w-100"
-    type="submit"
-    name="import_action"
-    value="1"
-    formnovalidate
->
-    Import Task
-</button>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-                    <!-- Task title field -->
-                    <div class="mb-3">
-                        {{ form.title.label(class="form-label") }}
-                        {{ form.title(class="form-control", placeholder="Example: Tidy bedroom") }}
-
-                        <div class="form-text">
-                            Use a short, clear task name.
+                                <div class="col-md-4">
+                                    <button
+                                        class="btn btn-outline-primary w-100"
+                                        type="submit"
+                                        name="import_action"
+                                        value="1"
+                                        formnovalidate
+                                    >
+                                        Import Task
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Task description field -->
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control", placeholder="Example: Tidy bedroom") }}
+                        <div class="form-text">
+                            Use a short, clear name that is easy to recognise on the task board.
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         {{ form.description.label(class="form-label") }}
                         {{ form.description(class="form-control", rows="4", placeholder="Describe what needs to be done.") }}
-
                         <div class="form-text">
                             Optional, but useful if the task needs extra explanation.
                         </div>
                     </div>
 
-                    <div class="row">
-
-                        <!-- Point value field -->
-                        <div class="col-md-6 mb-3">
+                    <div class="row g-3">
+                        <div class="col-md-6">
                             {{ form.point_value.label(class="form-label") }}
                             {{ form.point_value(class="form-control", placeholder="Example: 10") }}
-
                             <div class="form-text">
-                                {{ household_settings.points_label|capitalize }} awarded after admin approval.
+                                This is the base value awarded when the task is approved.
                             </div>
                         </div>
 
-                        <!-- Category field -->
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             {{ form.category.label(class="form-label") }}
                             {{ form.category(class="form-control", placeholder="Example: Bedroom") }}
-
                             <div class="form-text">
-                                Optional grouping, such as Bedroom, Kitchen, Pets, or School.
+                                Choose from the admin-managed task category list.
                             </div>
                         </div>
-
                     </div>
 
-                    <!-- Completion behaviour field -->
-                    <div class="mb-4">
+                    <div class="mt-3 mb-4">
                         {{ form.completion_behavior.label(class="form-label") }}
                         {{ form.completion_behavior(class="form-control") }}
-
                         <div class="form-text">
-                            Use “stay active” for repeatable tasks. Use “hide after approval” for one-off tasks.
+                            Use repeatable for regular tasks. Use one-off for tasks that should hide after approval.
                         </div>
                     </div>
-                                        <!-- Hot task fields -->
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <h2>Hot Task</h2>
 
-                            <p class="text-muted-small">
-                                Hot tasks appear first on the task board and notify users when they become hot.
-                            </p>
+                    <div class="card mb-4 border-0 bg-light">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                <div>
+                                    <h2 class="mb-1">Hot Task</h2>
+                                    <p class="text-muted-small mb-0">
+                                        Hot tasks appear first and can include a temporary bonus.
+                                    </p>
+                                </div>
+
+                                <span class="badge bg-warning text-dark">Optional</span>
+                            </div>
 
                             <div class="form-check mb-3">
                                 {{ form.is_hot(class="form-check-input") }}
                                 {{ form.is_hot.label(class="form-check-label") }}
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
+                            <div class="row g-3">
+                                <div class="col-md-6">
                                     {{ form.hot_bonus_points.label(class="form-label") }}
                                     {{ form.hot_bonus_points(class="form-control", placeholder="Example: 5") }}
-
                                     <div class="form-text">
-                                        Optional bonus {{ household_settings.points_label }} while this task is hot.
+                                        Optional bonus {{ household_settings.points_label }} added while hot.
                                     </div>
                                 </div>
 
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-6">
                                     {{ form.hot_label.label(class="form-label") }}
                                     {{ form.hot_label(class="form-control", placeholder="Example: Do this today") }}
-
                                     <div class="form-text">
                                         Optional short label shown on the task card.
                                     </div>
@@ -159,38 +135,38 @@
                         </div>
                     </div>
 
-                    <!-- Action buttons -->
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-primary") }}
-
                         <a class="btn btn-secondary" href="{{ url_for('main.manage_tasks') }}">
                             Cancel
                         </a>
                     </div>
-
                 </form>
-
             </div>
         </div>
-
     </div>
 
     <div class="col-lg-4">
-
-        <div class="card">
+        <div class="card mb-3">
             <div class="card-body">
                 <h2>Task Behaviour</h2>
-
-                <p class="text-muted-small">
-                    <strong>Stay active after approval</strong> is best for repeatable jobs like feeding pets, tidying rooms, or unloading the dishwasher.
+                <p class="text-muted-small mb-2">
+                    Repeatable tasks stay visible after approval.
                 </p>
-
                 <p class="text-muted-small mb-0">
-                    <strong>Hide after approval</strong> is best for one-off jobs like cleaning the garage or helping move boxes.
+                    One-off tasks hide after approval and keep their history.
                 </p>
             </div>
         </div>
 
+        <div class="card">
+            <div class="card-body">
+                <h2>Hot Tasks</h2>
+                <p class="text-muted-small mb-0">
+                    Use hot tasks for temporary priorities. Users can filter the task board to show only hot tasks.
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 

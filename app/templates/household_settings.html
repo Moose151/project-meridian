@@ -2,16 +2,12 @@
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HEADER
-     ========================================================= -->
-
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
     <div>
-        <h1>Household Settings</h1>
-
-        <p class="text-muted-small">
-            Configure basic household-level app settings.
+        <p class="text-muted-small mb-1">Admin · Settings</p>
+        <h1 class="mb-1">Household Settings</h1>
+        <p class="text-muted-small mb-0">
+            Configure household-level app settings and shared labels.
         </p>
     </div>
 
@@ -20,124 +16,92 @@
     </a>
 </div>
 
-
-<div class="row">
-
+<div class="row g-4">
     <div class="col-lg-8">
-
         <div class="card">
             <div class="card-body">
-
                 <form method="post">
-
                     {{ form.hidden_tag() }}
 
                     <div class="mb-3">
                         {{ form.household_name.label(class="form-label") }}
                         {{ form.household_name(class="form-control") }}
-
                         <div class="form-text">
-                            This can be used as the household or app display name.
+                            This is used as the household or app display name.
                         </div>
                     </div>
 
                     <div class="mb-3">
                         {{ form.points_label.label(class="form-label") }}
                         {{ form.points_label(class="form-control", placeholder="points, stars, coins") }}
-
                         <div class="form-text">
                             Example: points, stars, coins, credits.
                         </div>
                     </div>
 
-                    <div class="form-check mb-3">
-                        {{ form.wishlist_requests_enabled(class="form-check-input") }}
-                        {{ form.wishlist_requests_enabled.label(class="form-check-label") }}
+                    <div class="card border-0 bg-light mb-4">
+                        <div class="card-body">
+                            <h2>Feature Access</h2>
+                            <p class="text-muted-small">
+                                These switches control whether standard users can use selected shared features.
+                            </p>
 
-                        <div class="form-text">
-                            If disabled, users cannot submit new wishlist item requests.
+                            <div class="form-check mb-3">
+                                {{ form.wishlist_requests_enabled(class="form-check-input") }}
+                                {{ form.wishlist_requests_enabled.label(class="form-check-label") }}
+                                <div class="form-text">
+                                    If disabled, users cannot submit new wishlist item requests.
+                                </div>
+                            </div>
+
+                            <div class="form-check">
+                                {{ form.group_goals_enabled(class="form-check-input") }}
+                                {{ form.group_goals_enabled.label(class="form-check-label") }}
+                                <div class="form-text">
+                                    If disabled, users cannot contribute to group goals.
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="form-check mb-4">
-                        {{ form.group_goals_enabled(class="form-check-input") }}
-                        {{ form.group_goals_enabled.label(class="form-check-label") }}
-
-                        <div class="form-text">
-                            If disabled, users cannot contribute to group goals.
-                        </div>
-                    </div>
-
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-primary") }}
-
                         <a class="btn btn-secondary" href="{{ url_for('main.admin_home') }}">
                             Cancel
                         </a>
                     </div>
-
                 </form>
-
             </div>
         </div>
-
     </div>
 
-
     <div class="col-lg-4">
-
         <div class="card">
             <div class="card-body">
                 <h2>Current Settings</h2>
 
-                <p class="text-muted-small mb-1">
-                    Household name
-                </p>
+                <p class="text-muted-small mb-1">Household name</p>
+                <p><strong>{{ settings.household_name }}</strong></p>
 
-                <p>
-                    <strong>{{ settings.household_name }}</strong>
-                </p>
+                <p class="text-muted-small mb-1">{{ household_settings.points_label|capitalize }} label</p>
+                <p><strong>{{ settings.points_label }}</strong></p>
 
-                <p class="text-muted-small mb-1">
-                    Points label
-                </p>
-
-                <p>
-                    <strong>{{ settings.points_label }}</strong>
-                </p>
-
-                <p class="text-muted-small mb-1">
-                    Wishlist requests
-                </p>
-
+                <p class="text-muted-small mb-1">Wishlist requests</p>
                 {% if settings.wishlist_requests_enabled %}
-                    <p>
-                        <span class="badge bg-success">Enabled</span>
-                    </p>
+                    <p><span class="badge bg-success">Enabled</span></p>
                 {% else %}
-                    <p>
-                        <span class="badge bg-secondary">Disabled</span>
-                    </p>
+                    <p><span class="badge bg-secondary">Disabled</span></p>
                 {% endif %}
 
-                <p class="text-muted-small mb-1">
-                    Group goals
-                </p>
-
+                <p class="text-muted-small mb-1">Group goals</p>
                 {% if settings.group_goals_enabled %}
-                    <p class="mb-0">
-                        <span class="badge bg-success">Enabled</span>
-                    </p>
+                    <p class="mb-0"><span class="badge bg-success">Enabled</span></p>
                 {% else %}
-                    <p class="mb-0">
-                        <span class="badge bg-secondary">Disabled</span>
-                    </p>
+                    <p class="mb-0"><span class="badge bg-secondary">Disabled</span></p>
                 {% endif %}
             </div>
         </div>
-
     </div>
-
 </div>
 
 {% endblock %}

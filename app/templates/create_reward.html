@@ -2,16 +2,12 @@
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HEADER
-     ========================================================= -->
-
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
     <div>
-        <h1>Create Reward</h1>
-
-        <p class="text-muted-small">
-            Add a new reward to the shop and set its point cost.
+        <p class="text-muted-small mb-1">Admin · Rewards</p>
+        <h1 class="mb-1">Create Reward</h1>
+        <p class="text-muted-small mb-0">
+            Add a new reward to the shop and set its {{ household_settings.points_label }} cost.
         </p>
     </div>
 
@@ -20,127 +16,104 @@
     </a>
 </div>
 
-
-<!-- =========================================================
-     CREATE REWARD FORM
-     ========================================================= -->
-
-<div class="row">
+<div class="row g-4">
     <div class="col-lg-8">
-
         <div class="card">
             <div class="card-body">
-
                 <form method="post">
-
-                    <!-- CSRF/security hidden fields from Flask-WTF -->
                     {{ form.hidden_tag() }}
-<!-- =========================================================
-     IMPORT PREVIOUS REWARD
-     ========================================================= -->
 
-<div class="card mb-4">
-    <div class="card-body">
-        <h2>Import from Previous Reward</h2>
+                    <div class="card mb-4 border-0 bg-light">
+                        <div class="card-body">
+                            <h2 class="mb-1">Import from Previous Reward</h2>
+                            <p class="text-muted-small mb-0">
+                                Pre-fill this form from an existing reward, then adjust it before saving.
+                            </p>
 
-        <p class="text-muted-small">
-            Select a previous reward to pre-fill this form. You can edit the details before saving.
-        </p>
+                            <div class="row g-3 align-items-end mt-1">
+                                <div class="col-md-8">
+                                    {{ form.import_reward_id.label(class="form-label") }}
+                                    {{ form.import_reward_id(class="form-control") }}
+                                </div>
 
-        <div class="row align-items-end">
+                                <div class="col-md-4">
+                                    <button
+                                        class="btn btn-outline-primary w-100"
+                                        type="submit"
+                                        name="import_action"
+                                        value="1"
+                                        formnovalidate
+                                    >
+                                        Import Reward
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="col-md-8 mb-3 mb-md-0">
-                {{ form.import_reward_id.label(class="form-label") }}
-                {{ form.import_reward_id(class="form-control") }}
-            </div>
-
-            <div class="col-md-4">
-                <button
-                    class="btn btn-outline-primary w-100"
-                    type="submit"
-                    name="import_action"
-                    value="1"
-                    formnovalidate
-                >
-                    Import Reward
-                </button>
-            </div>
-
-        </div>
-    </div>
-</div>
-                    <!-- Reward name field -->
                     <div class="mb-3">
                         {{ form.name.label(class="form-label") }}
                         {{ form.name(class="form-control", placeholder="Example: 30 minutes screen time") }}
-
                         <div class="form-text">
                             Use a short, clear reward name.
                         </div>
                     </div>
 
-                    <!-- Reward description field -->
                     <div class="mb-3">
                         {{ form.description.label(class="form-label") }}
                         {{ form.description(class="form-control", rows="4", placeholder="Describe what this reward includes.") }}
-
                         <div class="form-text">
                             Optional, but helpful for explaining limits or conditions.
                         </div>
                     </div>
 
-                    <!-- Reward category field -->
-<div class="mb-3">
-    {{ form.category.label(class="form-label") }}
-    {{ form.category(class="form-control") }}
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            {{ form.category.label(class="form-label") }}
+                            {{ form.category(class="form-control") }}
+                            <div class="form-text">
+                                Choose a reward category from the admin-managed category list.
+                            </div>
+                        </div>
 
-    <div class="form-text">
-        Choose a reward category from the admin-managed category list.
-    </div>
-</div>
-
-                    <!-- Point cost field -->
-                    <div class="mb-4">
-                        {{ form.point_cost.label(class="form-label") }}
-                        {{ form.point_cost(class="form-control", placeholder="Example: 10") }}
-
-                        <div class="form-text">
-                            {{ household_settings.points_label|capitalize }} are reserved immediately when a user requests this reward.
+                        <div class="col-md-6">
+                            {{ form.point_cost.label(class="form-label") }}
+                            {{ form.point_cost(class="form-control", placeholder="Example: 10") }}
+                            <div class="form-text">
+                                This amount is reserved when a user requests the reward.
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Action buttons -->
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-primary") }}
-
                         <a class="btn btn-secondary" href="{{ url_for('main.manage_rewards') }}">
                             Cancel
                         </a>
                     </div>
-
                 </form>
-
             </div>
         </div>
-
     </div>
 
     <div class="col-lg-4">
-
-        <div class="card">
+        <div class="card mb-3">
             <div class="card-body">
                 <h2>Reward Requests</h2>
-
-                <p class="text-muted-small">
-                    When a user requests a reward, the {{ household_settings.points_label }} are reserved immediately.
-                </p>
-
                 <p class="text-muted-small mb-0">
-                    If the request is cancelled or rejected, those {{ household_settings.points_label }} are refunded automatically.
+                    When users request rewards, the required {{ household_settings.points_label }} are reserved immediately.
                 </p>
             </div>
         </div>
 
+        <div class="card">
+            <div class="card-body">
+                <h2>Categories</h2>
+                <p class="text-muted-small mb-0">
+                    Use categories to keep the shop easy to filter, especially on mobile.
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 
