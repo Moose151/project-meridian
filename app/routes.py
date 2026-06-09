@@ -2402,7 +2402,7 @@ def cancel_reward_request(purchase_id):
     # Save cancellation and possible refund.
     db.session.commit()
 
-    flash("Reward request cancelled and reserved points refunded.")
+    flash("Reward request cancelled and reserved balance refunded.")
     return redirect(url_for("main.reward_history"))
 
 # =========================================================
@@ -3174,7 +3174,7 @@ def contribute_group_goal(goal_id):
     """
 
     if current_user.is_admin():
-        flash("Admins do not contribute points to group goals.")
+        flash("Admins do not contribute to group goals.")
         return redirect(url_for("main.group_goals"))
 
     settings = get_household_settings()
@@ -3725,7 +3725,7 @@ def contribute_wishlist_item(item_id):
     """
 
     if current_user.is_admin():
-        flash("Admins cannot contribute points to wishlist items.")
+        flash("Admins cannot contribute to wishlist items.")
         return redirect(url_for("main.wishlist"))
 
     item = db.session.get(WishlistItem, item_id)
@@ -3766,7 +3766,7 @@ def contribute_wishlist_item(item_id):
             user_id=current_user.id,
             amount=-amount,
             transaction_type="wishlist_contribution",
-            reason=f"Saved points toward wishlist item: {item.name}",
+            reason=f"Saved toward wishlist item: {item.name}",
             created_by_id=current_user.id
         )
 
@@ -3953,7 +3953,7 @@ def edit_wishlist_item(item_id):
         if old_point_cost != item.point_cost:
             create_notification(
                 user_id=item.user_id,
-                title="Wishlist point cost changed",
+                title="Wishlist cost changed",
                 message=f"'{item.name}' changed from {format_points(old_point_cost)} to {format_points(item.point_cost)}.",
                 notification_type="info",
                 action_url=url_for("main.wishlist"),

@@ -51,7 +51,7 @@ def seed_badges():
         {
             "code": "wishlist_saver",
             "name": "Wishlist Saver",
-            "description": "Saved points toward a wishlist item.",
+            "description": "Saved toward a wishlist item.",
             "icon": "🎁"
         },
         {
@@ -63,13 +63,13 @@ def seed_badges():
         {
             "code": "group_contributor",
             "name": "Team Player",
-            "description": "Contributed points to a group goal.",
+            "description": "Contributed to a group goal.",
             "icon": "🤝"
         },
         {
             "code": "hundred_points_earned",
             "name": "Big Earner",
-            "description": "Earned 100 total points.",
+            "description": "Reached an earning milestone.",
             "icon": "💰"
         },
     ]

@@ -104,7 +104,7 @@ class TaskForm(FlaskForm):
     )
 
     point_value = IntegerField(
-        "Point Value",
+        "Value",
         validators=[
             DataRequired(),
             NumberRange(min=0)
@@ -196,7 +196,7 @@ class RewardForm(FlaskForm):
     )
 
     point_cost = IntegerField(
-        "Point Cost",
+        "Cost",
         validators=[
             DataRequired(),
             NumberRange(min=0)
@@ -345,7 +345,7 @@ class PointAdjustmentForm(FlaskForm):
     """
 
     amount = IntegerField(
-        "Point Adjustment",
+        "Balance Adjustment",
         validators=[
             DataRequired()
         ]
@@ -387,7 +387,7 @@ class AdminCompleteTaskForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField("Complete Task and Award Points")
+    submit = SubmitField("Complete Task and Award")
 
 
 # =========================================================
@@ -455,7 +455,7 @@ class GroupGoalForm(FlaskForm):
     )
 
     target_points = IntegerField(
-        "Target Points",
+        "Target Amount",
         validators=[
             DataRequired(),
             NumberRange(min=1)
@@ -478,7 +478,7 @@ class GroupGoalContributionForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField("Contribute Points")
+    submit = SubmitField("Contribute")
 
 # =========================================================
 # WISHLIST FORMS
@@ -530,7 +530,7 @@ class WishlistApproveForm(FlaskForm):
     )
 
     point_cost = IntegerField(
-        "Point Cost",
+        "Cost",
         validators=[
             DataRequired(),
             NumberRange(min=1)
@@ -569,7 +569,7 @@ class WishlistAdminItemForm(FlaskForm):
     )
 
     point_cost = IntegerField(
-        "Point Cost",
+        "Cost",
         validators=[
             DataRequired(),
             NumberRange(min=1)
@@ -591,7 +591,7 @@ class WishlistContributionForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField("Add Points to Wishlist Item")
+    submit = SubmitField("Add to Wishlist Item")
 
 class WishlistEditItemForm(FlaskForm):
     """
@@ -622,7 +622,7 @@ class WishlistEditItemForm(FlaskForm):
     )
 
     point_cost = IntegerField(
-        "Point Cost",
+        "Cost",
         validators=[
             DataRequired(),
             NumberRange(min=1)
@@ -645,7 +645,7 @@ class HouseholdSettingsForm(FlaskForm):
     )
 
     points_label = StringField(
-        "Points Label",
+        "Balance Label",
         validators=[
             DataRequired(),
             Length(max=40)
