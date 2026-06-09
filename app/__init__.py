@@ -81,8 +81,11 @@ def create_app():
     from app.routes import bp
     app.register_blueprint(bp)
 
-    # Create database tables if they do not already exist.
+    # Create database tables and seed required default data.
     with app.app_context():
         db.create_all()
+
+        from app.services.seed_service import seed_default_data
+        seed_default_data()
 
     return app
