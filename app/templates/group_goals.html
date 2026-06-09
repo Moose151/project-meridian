@@ -2,11 +2,11 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-start mb-4">
+<section class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
     <div>
-        <h1>Group Goals</h1>
-
-        <p class="text-muted-small">
+        <p class="text-muted-small mb-1">Shared rewards</p>
+        <h1 class="mb-2">Group Goals</h1>
+        <p class="text-muted-small mb-0">
             Work together by contributing {{ household_settings.points_label }} toward larger shared rewards.
         </p>
     </div>
@@ -16,22 +16,18 @@
             New Group Goal
         </a>
     {% endif %}
-</div>
-
+</section>
 
 {% if goals %}
 
     <div class="row">
-
         {% for goal in goals %}
-
-            <div class="col-md-6 mb-4">
+            <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-body d-flex flex-column">
-
-                        <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                             <div>
-                                <h2>{{ goal.title }}</h2>
+                                <h2 class="mb-1">{{ goal.title }}</h2>
 
                                 {% if goal.description %}
                                     <p class="text-muted-small mb-0">
@@ -52,22 +48,23 @@
                         </div>
 
                         <div class="mb-3">
-                            <p class="text-muted-small mb-1">
-                                Progress
-                            </p>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <p class="text-muted-small mb-0">Progress</p>
+                                <p class="text-muted-small mb-0">{{ goal.progress_percentage() }}%</p>
+                            </div>
 
-<div class="progress mb-2">
-    <div
-        class="progress-bar group-goal-progress"
-        role="progressbar"
-        data-progress="{{ goal.progress_percentage() }}"
-        aria-valuenow="{{ goal.progress_percentage() }}"
-        aria-valuemin="0"
-        aria-valuemax="100"
-    >
-        {{ goal.progress_percentage() }}%
-    </div>
-</div>
+                            <div class="progress mb-2">
+                                <div
+                                    class="progress-bar group-goal-progress"
+                                    role="progressbar"
+                                    data-progress="{{ goal.progress_percentage() }}"
+                                    aria-valuenow="{{ goal.progress_percentage() }}"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100"
+                                >
+                                    {{ goal.progress_percentage() }}%
+                                </div>
+                            </div>
 
                             <p class="mb-0">
                                 <strong>{{ goal.total_contributed() }}</strong>
@@ -82,21 +79,17 @@
 
                         {% if goal.contributions %}
                             <div class="mb-3">
-                                <p class="text-muted-small mb-1">
-                                    Contributions
-                                </p>
+                                <p class="text-muted-small mb-1">Contributions</p>
 
                                 {% for contribution in goal.contributions %}
                                     {% if contribution.status == "active" %}
-                                        <div class="d-flex justify-content-between">
+                                        <div class="d-flex justify-content-between align-items-center border-bottom py-1">
                                             <span>
                                                 {{ contribution.user.avatar_emoji }}
                                                 {{ contribution.user.display_name }}
                                             </span>
 
-                                            <strong>
-                                                {{ contribution.amount }}
-                                            </strong>
+                                            <strong>{{ contribution.amount }}</strong>
                                         </div>
                                     {% endif %}
                                 {% endfor %}
@@ -104,16 +97,13 @@
                         {% endif %}
 
                         <div class="mt-auto">
-
                             {% if current_user.is_admin() %}
-
-                                <div class="d-flex gap-2">
-
+                                <div class="d-flex flex-column flex-sm-row gap-2">
                                     {% if goal.is_funded() and goal.status != "fulfilled" %}
                                         <form
                                             method="post"
                                             action="{{ url_for('main.fulfil_group_goal', goal_id=goal.id) }}"
-                                            style="flex: 1;"
+                                            class="flex-fill"
                                         >
                                             <button class="btn btn-success w-100" type="submit">
                                                 Mark Fulfilled
@@ -125,7 +115,7 @@
                                         <form
                                             method="post"
                                             action="{{ url_for('main.cancel_group_goal', goal_id=goal.id) }}"
-                                            style="flex: 1;"
+                                            class="flex-fill"
                                             onsubmit="return confirm('Cancel this group goal and refund all active contributions?');"
                                         >
                                             <button class="btn btn-danger w-100" type="submit">
@@ -133,11 +123,8 @@
                                             </button>
                                         </form>
                                     {% endif %}
-
                                 </div>
-
                             {% else %}
-
                                 {% if goal.status == "active" and goal.remaining_points() > 0 %}
                                     <a
                                         class="btn btn-primary w-100"
@@ -154,17 +141,12 @@
                                         No Action Available
                                     </button>
                                 {% endif %}
-
                             {% endif %}
-
                         </div>
-
                     </div>
                 </div>
             </div>
-
         {% endfor %}
-
     </div>
 
 {% else %}
@@ -172,7 +154,6 @@
     <div class="card">
         <div class="card-body">
             <h2>No group goals yet</h2>
-
             <p class="text-muted-small">
                 Group goals will appear here once an admin creates one.
             </p>
@@ -186,12 +167,13 @@
     </div>
 
 {% endif %}
+
 <script>
     // Set group goal progress bar widths after the page loads.
-    // This avoids putting Jinja expressions directly inside inline CSS.
     document.querySelectorAll(".group-goal-progress").forEach((bar) => {
         const progress = bar.dataset.progress;
         bar.style.width = `${progress}%`;
     });
 </script>
+
 {% endblock %}

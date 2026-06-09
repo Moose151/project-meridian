@@ -2,16 +2,13 @@
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HEADER
-     ========================================================= -->
-
-<div class="d-flex justify-content-between align-items-start mb-4">
+<section class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
     <div>
-        <h1>User Profile</h1>
-
-        <p class="text-muted-small">
-            View progress, {{ household_settings.points_label }}, task history, reward history, wishlist progress, group goal activity, and recent transactions.
+        <p class="text-muted-small mb-1">Profile overview</p>
+        <h1 class="mb-2">User Profile</h1>
+        <p class="text-muted-small mb-0">
+            View progress, {{ household_settings.points_label }}, task history, reward history,
+            wishlist progress, group goal activity, and recent transactions.
         </p>
     </div>
 
@@ -24,133 +21,49 @@
             Back to Dashboard
         </a>
     {% endif %}
-</div>
-
-
-<!-- =========================================================
-     PROFILE HEADER CARD
-     ========================================================= -->
+</section>
 
 <div class="card mb-4">
     <div class="card-body">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="profile-avatar-large">
+                    {{ user.avatar_emoji }}
+                </div>
 
-        <div class="d-flex align-items-center gap-3">
+                <div>
+                    <h2 class="mb-1">{{ user.display_name }}</h2>
+                    <p class="text-muted-small mb-2">Username: {{ user.username }}</p>
 
-            <div class="profile-avatar-large">
-                {{ user.avatar_emoji }}
+                    {% if user.role == "admin" %}
+                        <span class="badge bg-primary">Admin</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Standard User</span>
+                    {% endif %}
+
+                    {% if user.is_active_account %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-dark">Disabled</span>
+                    {% endif %}
+                </div>
             </div>
 
-            <div>
-                <h2 class="mb-1">
-                    {{ user.display_name }}
-                </h2>
-
-                <p class="text-muted-small mb-2">
-                    Username: {{ user.username }}
-                </p>
-
-                {% if user.role == "admin" %}
-                    <span class="badge bg-primary">
-                        Admin
-                    </span>
-                {% else %}
-                    <span class="badge bg-secondary">
-                        Standard User
-                    </span>
-                {% endif %}
-
-                {% if user.is_active_account %}
-                    <span class="badge bg-success">
-                        Active
-                    </span>
-                {% else %}
-                    <span class="badge bg-dark">
-                        Disabled
-                    </span>
-                {% endif %}
+            <div class="text-md-end">
+                <p class="text-muted-small mb-1">Current {{ household_settings.points_label }}</p>
+                <p class="display-5 mb-0">{{ current_points }}</p>
             </div>
-
         </div>
-
     </div>
 </div>
-
-<!-- =========================================================
-     BADGES
-     ========================================================= -->
-
-<div class="card mb-4">
-    <div class="card-body">
-        <h2>Badges</h2>
-
-        <p class="text-muted-small">
-            Achievements earned through tasks, wishlist progress, and group goals.
-        </p>
-
-        {% if earned_badges %}
-
-            <div class="row">
-
-                {% for user_badge in earned_badges %}
-
-                    <div class="col-md-4 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="badge-icon-large">
-                                        {{ user_badge.badge.icon }}
-                                    </div>
-
-                                    <div>
-                                        <h5 class="mb-1">
-                                            {{ user_badge.badge.name }}
-                                        </h5>
-
-                                        <p class="text-muted-small mb-1">
-                                            {{ user_badge.badge.description }}
-                                        </p>
-
-                                        <p class="text-muted-small mb-0">
-                                            Earned: {{ user_badge.earned_at }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                {% endfor %}
-
-            </div>
-
-        {% else %}
-
-            <p class="text-muted-small mb-0">
-                No badges earned yet.
-            </p>
-
-        {% endif %}
-
-    </div>
-</div>
-<!-- =========================================================
-     CORE SUMMARY CARDS
-     ========================================================= -->
 
 <div class="row mb-4">
-
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-body">
                 <h2>Current {{ household_settings.points_label|capitalize }}</h2>
-
-                <p class="text-muted-small">
-                    Available {{ household_settings.points_label }} balance.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ current_points }}
-                </p>
+                <p class="text-muted-small">Available {{ household_settings.points_label }} balance.</p>
+                <p class="display-5 mb-0">{{ current_points }}</p>
             </div>
         </div>
     </div>
@@ -159,14 +72,8 @@
         <div class="card h-100">
             <div class="card-body">
                 <h2>Total Earned</h2>
-
-                <p class="text-muted-small">
-                    {{ household_settings.points_label|capitalize }} earned from approved tasks.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ total_earned }}
-                </p>
+                <p class="text-muted-small">{{ household_settings.points_label|capitalize }} earned from approved tasks.</p>
+                <p class="display-5 mb-0">{{ total_earned }}</p>
             </div>
         </div>
     </div>
@@ -175,39 +82,20 @@
         <div class="card h-100">
             <div class="card-body">
                 <h2>Tasks Completed</h2>
-
-                <p class="text-muted-small">
-                    Approved task completions.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ tasks_completed }}
-                </p>
+                <p class="text-muted-small">Approved task completions.</p>
+                <p class="display-5 mb-0">{{ tasks_completed }}</p>
             </div>
         </div>
     </div>
-
 </div>
 
-
-<!-- =========================================================
-     REWARD / GROUP SUMMARY CARDS
-     ========================================================= -->
-
 <div class="row mb-4">
-
     <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body">
                 <h2>Rewards Requested</h2>
-
-                <p class="text-muted-small">
-                    Total reward requests made.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ rewards_requested }}
-                </p>
+                <p class="text-muted-small">Total reward requests made.</p>
+                <p class="display-5 mb-0">{{ rewards_requested }}</p>
             </div>
         </div>
     </div>
@@ -216,14 +104,8 @@
         <div class="card h-100">
             <div class="card-body">
                 <h2>Rewards Approved</h2>
-
-                <p class="text-muted-small">
-                    Reward requests approved.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ rewards_approved }}
-                </p>
+                <p class="text-muted-small">Reward requests approved.</p>
+                <p class="display-5 mb-0">{{ rewards_approved }}</p>
             </div>
         </div>
     </div>
@@ -232,14 +114,8 @@
         <div class="card h-100">
             <div class="card-body">
                 <h2>Group {{ household_settings.points_label|capitalize }}</h2>
-
-                <p class="text-muted-small">
-                    {{ household_settings.points_label|capitalize }} contributed to active group goals.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ total_group_contributed }}
-                </p>
+                <p class="text-muted-small">{{ household_settings.points_label|capitalize }} contributed to active group goals.</p>
+                <p class="display-5 mb-0">{{ total_group_contributed }}</p>
             </div>
         </div>
     </div>
@@ -248,39 +124,20 @@
         <div class="card h-100">
             <div class="card-body">
                 <h2>Group Goals</h2>
-
-                <p class="text-muted-small">
-                    Active group goal contributions.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ active_group_goal_count }}
-                </p>
+                <p class="text-muted-small">Active group goal contributions.</p>
+                <p class="display-5 mb-0">{{ active_group_goal_count }}</p>
             </div>
         </div>
     </div>
-
 </div>
 
-
-<!-- =========================================================
-     WISHLIST SUMMARY CARDS
-     ========================================================= -->
-
 <div class="row mb-4">
-
     <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body">
                 <h2>Wishlist Items</h2>
-
-                <p class="text-muted-small">
-                    Active wishlist items.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ wishlist_item_count }}
-                </p>
+                <p class="text-muted-small">Active wishlist items.</p>
+                <p class="display-5 mb-0">{{ wishlist_item_count }}</p>
             </div>
         </div>
     </div>
@@ -289,14 +146,8 @@
         <div class="card h-100">
             <div class="card-body">
                 <h2>Wishlist Saved</h2>
-
-                <p class="text-muted-small">
-                    {{ household_settings.points_label|capitalize }} saved toward wishlist items.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ wishlist_points_saved }}
-                </p>
+                <p class="text-muted-small">{{ household_settings.points_label|capitalize }} saved toward wishlist items.</p>
+                <p class="display-5 mb-0">{{ wishlist_points_saved }}</p>
             </div>
         </div>
     </div>
@@ -305,14 +156,8 @@
         <div class="card h-100">
             <div class="card-body">
                 <h2>Funded Items</h2>
-
-                <p class="text-muted-small">
-                    Wishlist items ready for fulfilment.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ funded_wishlist_count }}
-                </p>
+                <p class="text-muted-small">Wishlist items ready for fulfilment.</p>
+                <p class="display-5 mb-0">{{ funded_wishlist_count }}</p>
             </div>
         </div>
     </div>
@@ -321,174 +166,136 @@
         <div class="card h-100">
             <div class="card-body">
                 <h2>Requests</h2>
-
-                <p class="text-muted-small">
-                    Wishlist requests submitted.
-                </p>
-
-                <p class="display-5 mb-0">
-                    {{ wishlist_request_count }}
-                </p>
+                <p class="text-muted-small">Wishlist requests submitted.</p>
+                <p class="display-5 mb-0">{{ wishlist_request_count }}</p>
             </div>
         </div>
     </div>
-
 </div>
 
+<div class="card mb-4">
+    <div class="card-body">
+        <h2>Badges</h2>
+        <p class="text-muted-small">
+            Achievements earned through tasks, wishlist progress, and group goals.
+        </p>
 
-<!-- =========================================================
-     RECENT ACTIVITY
-     ========================================================= -->
+        {% if earned_badges %}
+            <div class="row">
+                {% for user_badge in earned_badges %}
+                    <div class="col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="badge-icon-large">
+                                        {{ user_badge.badge.icon }}
+                                    </div>
+
+                                    <div>
+                                        <h3 class="h5 mb-1">{{ user_badge.badge.name }}</h3>
+                                        <p class="text-muted-small mb-1">{{ user_badge.badge.description }}</p>
+                                        <p class="text-muted-small mb-0">Earned: {{ user_badge.earned_at }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted-small mb-0">No badges earned yet.</p>
+        {% endif %}
+    </div>
+</div>
 
 <div class="row">
-
-    <!-- Recent Tasks -->
     <div class="col-lg-6 mb-4">
         <div class="card h-100">
             <div class="card-body">
-
                 <h2>Recent Tasks</h2>
 
                 {% if recent_task_completions %}
-
                     {% for completion in recent_task_completions %}
-
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ completion.task.title }}</strong>
-
-                                <div class="text-muted-small">
-                                    {{ completion.submitted_at }}
-                                </div>
+                                <div class="text-muted-small">{{ completion.submitted_at }}</div>
 
                                 {% if completion.rejection_reason %}
-                                    <div class="text-muted-small">
-                                        Reason: {{ completion.rejection_reason }}
-                                    </div>
+                                    <div class="text-muted-small">Reason: {{ completion.rejection_reason }}</div>
                                 {% endif %}
                             </div>
 
                             <div>
                                 {% if completion.status == "approved" %}
-                                    <span class="badge bg-success">
-                                        Approved
-                                    </span>
+                                    <span class="badge bg-success">Approved</span>
                                 {% elif completion.status == "rejected" %}
-                                    <span class="badge bg-danger">
-                                        Rejected
-                                    </span>
+                                    <span class="badge bg-danger">Rejected</span>
                                 {% elif completion.status == "cancelled" %}
-                                    <span class="badge bg-secondary">
-                                        Cancelled
-                                    </span>
+                                    <span class="badge bg-secondary">Cancelled</span>
                                 {% else %}
-                                    <span class="badge bg-warning text-dark">
-                                        Submitted
-                                    </span>
+                                    <span class="badge bg-warning text-dark">Submitted</span>
                                 {% endif %}
                             </div>
                         </div>
-
                     {% endfor %}
-
                 {% else %}
-
-                    <p class="text-muted-small mb-0">
-                        No task history yet.
-                    </p>
-
+                    <p class="text-muted-small mb-0">No task history yet.</p>
                 {% endif %}
-
             </div>
         </div>
     </div>
 
-
-    <!-- Recent Rewards -->
     <div class="col-lg-6 mb-4">
         <div class="card h-100">
             <div class="card-body">
-
                 <h2>Recent Rewards</h2>
 
                 {% if recent_reward_purchases %}
-
                     {% for purchase in recent_reward_purchases %}
-
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ purchase.reward.name }}</strong>
-
-                                <div class="text-muted-small">
-                                    {{ purchase.requested_at }}
-                                </div>
+                                <div class="text-muted-small">{{ purchase.requested_at }}</div>
 
                                 {% if purchase.rejection_reason %}
-                                    <div class="text-muted-small">
-                                        Reason: {{ purchase.rejection_reason }}
-                                    </div>
+                                    <div class="text-muted-small">Reason: {{ purchase.rejection_reason }}</div>
                                 {% endif %}
                             </div>
 
                             <div>
                                 {% if purchase.status == "approved" %}
-                                    <span class="badge bg-success">
-                                        Approved
-                                    </span>
+                                    <span class="badge bg-success">Approved</span>
                                 {% elif purchase.status == "rejected" %}
-                                    <span class="badge bg-danger">
-                                        Rejected
-                                    </span>
+                                    <span class="badge bg-danger">Rejected</span>
                                 {% elif purchase.status == "cancelled" %}
-                                    <span class="badge bg-secondary">
-                                        Cancelled
-                                    </span>
+                                    <span class="badge bg-secondary">Cancelled</span>
                                 {% elif purchase.status == "fulfilled" %}
-                                    <span class="badge bg-primary">
-                                        Fulfilled
-                                    </span>
+                                    <span class="badge bg-primary">Fulfilled</span>
                                 {% else %}
-                                    <span class="badge bg-warning text-dark">
-                                        Requested
-                                    </span>
+                                    <span class="badge bg-warning text-dark">Requested</span>
                                 {% endif %}
                             </div>
                         </div>
-
                     {% endfor %}
-
                 {% else %}
-
-                    <p class="text-muted-small mb-0">
-                        No reward history yet.
-                    </p>
-
+                    <p class="text-muted-small mb-0">No reward history yet.</p>
                 {% endif %}
-
             </div>
         </div>
     </div>
 
-
-    <!-- Recent Wishlist Items -->
     <div class="col-lg-6 mb-4">
         <div class="card h-100">
             <div class="card-body">
-
                 <h2>Recent Wishlist Items</h2>
 
                 {% if recent_wishlist_items %}
-
                     {% for item in recent_wishlist_items %}
-
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ item.name }}</strong>
-
-                                <div class="text-muted-small">
-                                    {{ item.created_at }}
-                                </div>
-
+                                <div class="text-muted-small">{{ item.created_at }}</div>
                                 <div class="text-muted-small">
                                     {{ item.total_saved() }} / {{ item.point_cost }} {{ household_settings.points_label }} saved
                                 </div>
@@ -496,288 +303,167 @@
 
                             <div>
                                 {% if item.status == "active" %}
-                                    <span class="badge bg-primary">
-                                        Active
-                                    </span>
+                                    <span class="badge bg-primary">Active</span>
                                 {% elif item.status == "funded" %}
-                                    <span class="badge bg-success">
-                                        Funded
-                                    </span>
+                                    <span class="badge bg-success">Funded</span>
                                 {% elif item.status == "fulfilled" %}
-                                    <span class="badge bg-success">
-                                        Fulfilled
-                                    </span>
+                                    <span class="badge bg-success">Fulfilled</span>
                                 {% elif item.status == "removed" %}
-                                    <span class="badge bg-secondary">
-                                        Removed
-                                    </span>
+                                    <span class="badge bg-secondary">Removed</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        {{ item.status }}
-                                    </span>
+                                    <span class="badge bg-secondary">{{ item.status }}</span>
                                 {% endif %}
                             </div>
                         </div>
-
                     {% endfor %}
-
                 {% else %}
-
-                    <p class="text-muted-small mb-0">
-                        No wishlist items yet.
-                    </p>
-
+                    <p class="text-muted-small mb-0">No wishlist items yet.</p>
                 {% endif %}
-
             </div>
         </div>
     </div>
 
-
-    <!-- Recent Wishlist Requests -->
     <div class="col-lg-6 mb-4">
         <div class="card h-100">
             <div class="card-body">
-
                 <h2>Recent Wishlist Requests</h2>
 
                 {% if recent_wishlist_requests %}
-
                     {% for wishlist_request in recent_wishlist_requests %}
-
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ wishlist_request.requested_name }}</strong>
-
-                                <div class="text-muted-small">
-                                    {{ wishlist_request.created_at }}
-                                </div>
+                                <div class="text-muted-small">{{ wishlist_request.created_at }}</div>
 
                                 {% if wishlist_request.rejection_reason %}
-                                    <div class="text-muted-small">
-                                        Reason: {{ wishlist_request.rejection_reason }}
-                                    </div>
+                                    <div class="text-muted-small">Reason: {{ wishlist_request.rejection_reason }}</div>
                                 {% endif %}
                             </div>
 
                             <div>
                                 {% if wishlist_request.status == "requested" %}
-                                    <span class="badge bg-warning text-dark">
-                                        Requested
-                                    </span>
+                                    <span class="badge bg-warning text-dark">Requested</span>
                                 {% elif wishlist_request.status == "approved" %}
-                                    <span class="badge bg-success">
-                                        Approved
-                                    </span>
+                                    <span class="badge bg-success">Approved</span>
                                 {% elif wishlist_request.status == "rejected" %}
-                                    <span class="badge bg-danger">
-                                        Rejected
-                                    </span>
+                                    <span class="badge bg-danger">Rejected</span>
                                 {% elif wishlist_request.status == "cancelled" %}
-                                    <span class="badge bg-secondary">
-                                        Cancelled
-                                    </span>
+                                    <span class="badge bg-secondary">Cancelled</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        {{ wishlist_request.status }}
-                                    </span>
+                                    <span class="badge bg-secondary">{{ wishlist_request.status }}</span>
                                 {% endif %}
                             </div>
                         </div>
-
                     {% endfor %}
-
                 {% else %}
-
-                    <p class="text-muted-small mb-0">
-                        No wishlist requests yet.
-                    </p>
-
+                    <p class="text-muted-small mb-0">No wishlist requests yet.</p>
                 {% endif %}
-
             </div>
         </div>
     </div>
 
-
-    <!-- Recent Wishlist Contributions -->
     <div class="col-lg-6 mb-4">
         <div class="card h-100">
             <div class="card-body">
-
                 <h2>Recent Wishlist Contributions</h2>
 
                 {% if recent_wishlist_contributions %}
-
                     {% for contribution in recent_wishlist_contributions %}
-
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ contribution.item.name }}</strong>
-
-                                <div class="text-muted-small">
-                                    {{ contribution.created_at }}
-                                </div>
-
-                                <div class="text-muted-small">
-                                    Status: {{ contribution.status }}
-                                </div>
+                                <div class="text-muted-small">{{ contribution.created_at }}</div>
+                                <div class="text-muted-small">Status: {{ contribution.status }}</div>
                             </div>
 
                             <div>
                                 {% if contribution.status == "active" %}
-                                    <span class="badge bg-primary">
-                                        {{ contribution.amount }}
-                                    </span>
+                                    <span class="badge bg-primary">{{ contribution.amount }}</span>
                                 {% elif contribution.status == "refunded" %}
-                                    <span class="badge bg-warning text-dark">
-                                        Refunded
-                                    </span>
+                                    <span class="badge bg-warning text-dark">Refunded</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        {{ contribution.amount }}
-                                    </span>
+                                    <span class="badge bg-secondary">{{ contribution.amount }}</span>
                                 {% endif %}
                             </div>
                         </div>
-
                     {% endfor %}
-
                 {% else %}
-
-                    <p class="text-muted-small mb-0">
-                        No wishlist contributions yet.
-                    </p>
-
+                    <p class="text-muted-small mb-0">No wishlist contributions yet.</p>
                 {% endif %}
-
             </div>
         </div>
     </div>
 
-
-    <!-- Recent Point Transactions -->
     <div class="col-lg-6 mb-4">
         <div class="card h-100">
             <div class="card-body">
-
                 <h2>Recent {{ household_settings.points_label|capitalize }}</h2>
 
                 {% if recent_point_transactions %}
-
                     {% for transaction in recent_point_transactions %}
-
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ transaction.reason }}</strong>
-
-                                <div class="text-muted-small">
-                                    {{ transaction.created_at }}
-                                </div>
+                                <div class="text-muted-small">{{ transaction.created_at }}</div>
                             </div>
 
                             <div>
                                 {% if transaction.amount > 0 %}
-                                    <span class="badge bg-success">
-                                        +{{ transaction.amount }}
-                                    </span>
+                                    <span class="badge bg-success">+{{ transaction.amount }}</span>
                                 {% elif transaction.amount < 0 %}
-                                    <span class="badge bg-danger">
-                                        {{ transaction.amount }}
-                                    </span>
+                                    <span class="badge bg-danger">{{ transaction.amount }}</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        {{ transaction.amount }}
-                                    </span>
+                                    <span class="badge bg-secondary">{{ transaction.amount }}</span>
                                 {% endif %}
                             </div>
                         </div>
-
                     {% endfor %}
-
                 {% else %}
-
-                    <p class="text-muted-small mb-0">
-                        No {{ household_settings.points_label }} history yet.
-                    </p>
-
+                    <p class="text-muted-small mb-0">No {{ household_settings.points_label }} history yet.</p>
                 {% endif %}
-
             </div>
         </div>
     </div>
 
-
-    <!-- Recent Group Goals -->
     <div class="col-lg-6 mb-4">
         <div class="card h-100">
             <div class="card-body">
-
                 <h2>Recent Group Goals</h2>
 
                 {% if recent_group_contributions %}
-
                     {% for contribution in recent_group_contributions %}
-
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ contribution.goal.title }}</strong>
-
-                                <div class="text-muted-small">
-                                    {{ contribution.created_at }}
-                                </div>
-
-                                <div class="text-muted-small">
-                                    Status: {{ contribution.status }}
-                                </div>
+                                <div class="text-muted-small">{{ contribution.created_at }}</div>
+                                <div class="text-muted-small">Status: {{ contribution.status }}</div>
                             </div>
 
                             <div>
                                 {% if contribution.status == "active" %}
-                                    <span class="badge bg-primary">
-                                        {{ contribution.amount }}
-                                    </span>
+                                    <span class="badge bg-primary">{{ contribution.amount }}</span>
                                 {% elif contribution.status == "refunded" %}
-                                    <span class="badge bg-warning text-dark">
-                                        Refunded
-                                    </span>
+                                    <span class="badge bg-warning text-dark">Refunded</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        {{ contribution.amount }}
-                                    </span>
+                                    <span class="badge bg-secondary">{{ contribution.amount }}</span>
                                 {% endif %}
                             </div>
                         </div>
-
                     {% endfor %}
-
                 {% else %}
-
-                    <p class="text-muted-small mb-0">
-                        No group goal contributions yet.
-                    </p>
-
+                    <p class="text-muted-small mb-0">No group goal contributions yet.</p>
                 {% endif %}
-
             </div>
         </div>
     </div>
-
 </div>
-
-
-<!-- =========================================================
-     QUICK LINKS
-     ========================================================= -->
 
 <div class="card">
     <div class="card-body">
         <h2>Quick Links</h2>
 
         <div class="row">
-
             {% if current_user.is_admin() %}
-
                 <div class="col-md-3 mb-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.adjust_points', user_id=user.id) }}">
                         Adjust {{ household_settings.points_label|capitalize }}
@@ -786,8 +472,8 @@
 
                 <div class="col-md-3 mb-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.change_user_password', user_id=user.id) }}">
-    Change PIN / Password
-</a>
+                        Change PIN / Password
+                    </a>
                 </div>
 
                 <div class="col-md-3 mb-3">
@@ -801,9 +487,7 @@
                         Wishlist
                     </a>
                 </div>
-
             {% else %}
-
                 <div class="col-md-3 mb-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.tasks') }}">
                         Tasks
@@ -827,9 +511,7 @@
                         Leaderboard
                     </a>
                 </div>
-
             {% endif %}
-
         </div>
     </div>
 </div>

@@ -2,15 +2,11 @@
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HEADER
-     ========================================================= -->
-
-<div class="d-flex justify-content-between align-items-start mb-4">
+<section class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
     <div>
-        <h1>Task History</h1>
-
-        <p class="text-muted-small">
+        <p class="text-muted-small mb-1">Task records</p>
+        <h1 class="mb-2">Task History</h1>
+        <p class="text-muted-small mb-0">
             Review submitted, approved, rejected, and cancelled task submissions.
         </p>
     </div>
@@ -18,33 +14,24 @@
     <a class="btn btn-primary" href="{{ url_for('main.tasks') }}">
         View Tasks
     </a>
-</div>
-
-
-<!-- =========================================================
-     TASK HISTORY
-     ========================================================= -->
+</section>
 
 {% if completions %}
 
     <div class="row">
-
         {% for completion in completions %}
-
-            <div class="col-md-6 mb-4">
+            <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-body d-flex flex-column">
-
-                        <!-- Task title and status -->
-                        <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                             <div>
-                                <h5 class="card-title mb-1">
+                                <h2 class="h5 mb-1">
                                     {{ completion.task.title }}
-                                </h5>
+                                </h2>
 
                                 {% if current_user.is_admin() %}
                                     <p class="text-muted-small mb-0">
-                                        Submitted by {{ completion.user.display_name }}
+                                        Submitted by {{ completion.user.avatar_emoji }} {{ completion.user.display_name }}
                                     </p>
                                 {% else %}
                                     <p class="text-muted-small mb-0">
@@ -55,72 +42,51 @@
 
                             <div class="text-end">
                                 {% if completion.status == "approved" %}
-                                    <span class="badge bg-success">
-                                        Approved
-                                    </span>
+                                    <span class="badge bg-success">Approved</span>
                                 {% elif completion.status == "rejected" %}
-                                    <span class="badge bg-danger">
-                                        Rejected
-                                    </span>
+                                    <span class="badge bg-danger">Rejected</span>
                                 {% elif completion.status == "cancelled" %}
-                                    <span class="badge bg-secondary">
-                                        Cancelled
-                                    </span>
+                                    <span class="badge bg-secondary">Cancelled</span>
                                 {% else %}
-                                    <span class="badge bg-warning text-dark">
-                                        Submitted
-                                    </span>
+                                    <span class="badge bg-warning text-dark">Submitted</span>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <!-- Task point value -->
-                        <div class="row mb-3">
-                            <div class="col">
-                                <p class="text-muted-small mb-1">
-                                    Current Task Value
-                                </p>
-
-                                <p class="display-6 mb-0">
-                                    {{ completion.task.point_value }}
-                                </p>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <div class="border rounded-3 p-3 h-100">
+                                    <p class="text-muted-small mb-1">Current Task Value</p>
+                                    <p class="display-6 mb-0">
+                                        {{ completion.task.point_value }}
+                                    </p>
+                                </div>
                             </div>
 
-                            <div class="col">
-                                <p class="text-muted-small mb-1">
-                                    Submitted
-                                </p>
-
-                                <p class="mb-0">
-                                    {{ completion.submitted_at }}
-                                </p>
+                            <div class="col-6">
+                                <div class="border rounded-3 p-3 h-100">
+                                    <p class="text-muted-small mb-1">Submitted</p>
+                                    <p class="mb-0">
+                                        {{ completion.submitted_at }}
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Review details -->
                         <div class="mb-3">
-                            <p class="text-muted-small mb-1">
-                                Review Status
-                            </p>
+                            <p class="text-muted-small mb-1">Review Status</p>
 
                             {% if completion.reviewed_at %}
-                                <p class="mb-1">
-                                    Reviewed: {{ completion.reviewed_at }}
-                                </p>
+                                <p class="mb-1">Reviewed: {{ completion.reviewed_at }}</p>
                             {% else %}
-                                <p class="mb-1">
-                                    Not reviewed yet.
-                                </p>
+                                <p class="mb-1">Not reviewed yet.</p>
                             {% endif %}
 
                             {% if completion.reviewed_by %}
-                                <p class="mb-1">
-                                    Reviewed by: {{ completion.reviewed_by.display_name }}
-                                </p>
+                                <p class="mb-1">Reviewed by: {{ completion.reviewed_by.display_name }}</p>
                             {% endif %}
                         </div>
 
-                        <!-- Rejection or cancellation reason -->
                         {% if completion.rejection_reason %}
                             <div class="alert alert-light border">
                                 <strong>Reason:</strong>
@@ -128,16 +94,13 @@
                             </div>
                         {% endif %}
 
-                        <!-- Note about point values -->
                         <p class="status-note">
-                            {{ household_settings.points_label|capitalize }} History is the accurate record of {{ household_settings.points_label }} actually awarded.
+                            {{ household_settings.points_label|capitalize }} History is the accurate record of
+                            {{ household_settings.points_label }} actually awarded.
                         </p>
 
-                        <!-- User action buttons -->
                         <div class="mt-auto">
                             {% if not current_user.is_admin() and completion.status == "submitted" %}
-
-                                <!-- Standard users can cancel pending task submissions -->
                                 <form
                                     method="post"
                                     action="{{ url_for('main.cancel_task_submission', completion_id=completion.id) }}"
@@ -147,22 +110,16 @@
                                         Cancel Submission
                                     </button>
                                 </form>
-
                             {% else %}
-
                                 <button class="btn btn-secondary w-100" disabled>
                                     No Action Available
                                 </button>
-
                             {% endif %}
                         </div>
-
                     </div>
                 </div>
             </div>
-
         {% endfor %}
-
     </div>
 
 {% else %}
@@ -170,11 +127,9 @@
     <div class="card">
         <div class="card-body">
             <h2>No task history found</h2>
-
             <p class="text-muted-small">
                 Task submissions will appear here once tasks are submitted.
             </p>
-
             <a class="btn btn-primary" href="{{ url_for('main.tasks') }}">
                 View Tasks
             </a>
