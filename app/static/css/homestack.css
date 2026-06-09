@@ -744,3 +744,25 @@ textarea.form-control {
         width: 100%;
     }
 }
+
+/* =========================================================
+   Navbar / dropdown layering fix
+   ========================================================= */
+
+/* Keep the top navigation above page cards and dashboard panels. */
+.navbar {
+    position: relative;
+    z-index: 2000;
+}
+
+/* Ensure Bootstrap dropdown menus render above cards. */
+.navbar .dropdown-menu {
+    z-index: 2050;
+}
+
+/* Prevent cards/shells from visually sitting above open menus. */
+.page-shell,
+.card {
+    position: relative;
+    z-index: 1;
+}
