@@ -2,12 +2,12 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
     <div>
-        <h1>Approve Wishlist Request</h1>
-
-        <p class="text-muted-small">
-            Review the request, adjust details if needed, and set the final point cost.
+        <p class="text-muted-small mb-1">Wishlist Review</p>
+        <h1 class="mb-1">Approve Wishlist Request</h1>
+        <p class="text-muted-small mb-0">
+            Review the request, adjust details if needed, and set the final {{ household_settings.points_label }} cost.
         </p>
     </div>
 
@@ -16,15 +16,16 @@
     </a>
 </div>
 
-
-<div class="row">
+<div class="row g-4">
     <div class="col-lg-8">
-
-        <div class="card">
+        <div class="card h-100">
             <div class="card-body">
+                <h2 class="mb-1">Approved Item Details</h2>
+                <p class="text-muted-small">
+                    These details will be used to create the wishlist item.
+                </p>
 
                 <form method="post">
-
                     {{ form.hidden_tag() }}
 
                     <div class="mb-3">
@@ -42,59 +43,39 @@
                         {{ form.point_cost(class="form-control", placeholder="Example: 300") }}
 
                         <div class="form-text">
-                            The user cannot set this value. The admin decides the final point cost.
+                            The user cannot set this value. The admin decides the final {{ household_settings.points_label }} cost.
                         </div>
                     </div>
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-success") }}
 
-                        <a class="btn btn-secondary" href="{{ url_for('main.wishlist') }}">
+                        <a class="btn btn-outline-secondary" href="{{ url_for('main.wishlist') }}">
                             Cancel
                         </a>
                     </div>
-
                 </form>
-
             </div>
         </div>
-
     </div>
 
     <div class="col-lg-4">
-
-        <div class="card">
+        <div class="card h-100">
             <div class="card-body">
                 <h2>Request Details</h2>
 
-                <p class="text-muted-small mb-1">
-                    Requested by
-                </p>
+                <p class="text-muted-small mb-1">Requested by</p>
+                <p>{{ wishlist_request.user.avatar_emoji }} {{ wishlist_request.user.display_name }}</p>
 
-                <p>
-                    {{ wishlist_request.user.avatar_emoji }} {{ wishlist_request.user.display_name }}
-                </p>
-
-                <p class="text-muted-small mb-1">
-                    Original request
-                </p>
-
-                <p>
-                    <strong>{{ wishlist_request.requested_name }}</strong>
-                </p>
+                <p class="text-muted-small mb-1">Original request</p>
+                <p><strong>{{ wishlist_request.requested_name }}</strong></p>
 
                 {% if wishlist_request.requested_description %}
-                    <p class="text-muted-small mb-1">
-                        Notes
-                    </p>
-
-                    <p>
-                        {{ wishlist_request.requested_description }}
-                    </p>
+                    <p class="text-muted-small mb-1">Notes</p>
+                    <p class="mb-0">{{ wishlist_request.requested_description }}</p>
                 {% endif %}
             </div>
         </div>
-
     </div>
 </div>
 

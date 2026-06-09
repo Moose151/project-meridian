@@ -2,11 +2,11 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
     <div>
-        <h1>Request Wishlist Item</h1>
-
-        <p class="text-muted-small">
+        <p class="text-muted-small mb-1">Wishlist</p>
+        <h1 class="mb-1">Request Wishlist Item</h1>
+        <p class="text-muted-small mb-0">
             Request a larger item to be added to your wishlist.
         </p>
     </div>
@@ -16,15 +16,16 @@
     </a>
 </div>
 
-
-<div class="row">
+<div class="row g-4">
     <div class="col-lg-8">
-
-        <div class="card">
+        <div class="card h-100">
             <div class="card-body">
+                <h2 class="mb-1">Item Details</h2>
+                <p class="text-muted-small">
+                    Add a clear name and any useful notes so an admin can review the request.
+                </p>
 
                 <form method="post">
-
                     {{ form.hidden_tag() }}
 
                     <div class="mb-3">
@@ -37,37 +38,51 @@
                         {{ form.requested_description(class="form-control", rows="4", placeholder="Add details, links, or notes if useful.") }}
                     </div>
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-primary") }}
 
-                        <a class="btn btn-secondary" href="{{ url_for('main.wishlist') }}">
+                        <a class="btn btn-outline-secondary" href="{{ url_for('main.wishlist') }}">
                             Cancel
                         </a>
                     </div>
-
                 </form>
-
             </div>
         </div>
-
     </div>
 
     <div class="col-lg-4">
-
-        <div class="card">
+        <div class="card h-100">
             <div class="card-body">
                 <h2>How it works</h2>
 
-                <p class="text-muted-small">
-                    An admin reviews wishlist requests before they are added.
-                </p>
+                <div class="profile-activity-row">
+                    <div>
+                        <strong>1. Submit request</strong>
+                        <div class="text-muted-small">
+                            Your request is sent to an admin.
+                        </div>
+                    </div>
+                </div>
 
-                <p class="text-muted-small mb-0">
-                    If approved, the admin sets the final point cost.
-                </p>
+                <div class="profile-activity-row">
+                    <div>
+                        <strong>2. Admin review</strong>
+                        <div class="text-muted-small">
+                            An admin approves or rejects the item.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-activity-row">
+                    <div>
+                        <strong>3. Final cost</strong>
+                        <div class="text-muted-small">
+                            If approved, the admin sets the final {{ household_settings.points_label }} cost.
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
     </div>
 </div>
 

@@ -2,11 +2,11 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
     <div>
-        <h1>Contribute {{ household_settings.points_label|capitalize }}</h1>
-
-        <p class="text-muted-small">
+        <p class="text-muted-small mb-1">Group Goal Contribution</p>
+        <h1 class="mb-1">Contribute {{ household_settings.points_label|capitalize }}</h1>
+        <p class="text-muted-small mb-0">
             Add your {{ household_settings.points_label }} to this group goal.
         </p>
     </div>
@@ -16,44 +16,57 @@
     </a>
 </div>
 
-
-<div class="row">
+<div class="row g-4">
     <div class="col-lg-8">
-
-        <div class="card">
+        <div class="card h-100">
             <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <h2 class="mb-1">{{ goal.title }}</h2>
 
-                <h2>{{ goal.title }}</h2>
+                        {% if goal.description %}
+                            <p class="text-muted-small mb-0">
+                                {{ goal.description }}
+                            </p>
+                        {% endif %}
+                    </div>
 
-                {% if goal.description %}
-                    <p class="text-muted-small">
-                        {{ goal.description }}
-                    </p>
-                {% endif %}
+                    <span class="badge bg-primary">
+                        {{ goal.target_points }} {{ household_settings.points_label }}
+                    </span>
+                </div>
 
-<div class="progress mb-3">
-    <div
-        class="progress-bar group-goal-progress"
-        role="progressbar"
-        data-progress="{{ goal.progress_percentage() }}"
-    >
-        {{ goal.progress_percentage() }}%
-    </div>
-</div>
+                <div class="progress mb-3">
+                    <div
+                        class="progress-bar group-goal-progress"
+                        role="progressbar"
+                        data-progress="{{ goal.progress_percentage() }}"
+                        aria-valuenow="{{ goal.progress_percentage() }}"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                    >
+                        {{ goal.progress_percentage() }}%
+                    </div>
+                </div>
 
-                <p>
-                    <strong>{{ goal.total_contributed() }}</strong>
-                    /
-                    {{ goal.target_points }}
-                    {{ household_settings.points_label }} contributed.
-                </p>
+                <div class="row mb-4">
+                    <div class="col-sm-4 mb-3 mb-sm-0">
+                        <p class="text-muted-small mb-1">Contributed</p>
+                        <p class="display-6 mb-0">{{ goal.total_contributed() }}</p>
+                    </div>
 
-                <p class="text-muted-small">
-                    This goal needs {{ goal.remaining_points() }} more {{ household_settings.points_label }}.
-                </p>
+                    <div class="col-sm-4 mb-3 mb-sm-0">
+                        <p class="text-muted-small mb-1">Target</p>
+                        <p class="display-6 mb-0">{{ goal.target_points }}</p>
+                    </div>
+
+                    <div class="col-sm-4">
+                        <p class="text-muted-small mb-1">Remaining</p>
+                        <p class="display-6 mb-0">{{ goal.remaining_points() }}</p>
+                    </div>
+                </div>
 
                 <form method="post">
-
                     {{ form.hidden_tag() }}
 
                     <div class="mb-4">
@@ -65,24 +78,20 @@
                         </div>
                     </div>
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-primary") }}
 
-                        <a class="btn btn-secondary" href="{{ url_for('main.group_goals') }}">
+                        <a class="btn btn-outline-secondary" href="{{ url_for('main.group_goals') }}">
                             Cancel
                         </a>
                     </div>
-
                 </form>
-
             </div>
         </div>
-
     </div>
 
     <div class="col-lg-4">
-
-        <div class="card">
+        <div class="card h-100">
             <div class="card-body">
                 <h2>{{ household_settings.points_label|capitalize }} Reservation</h2>
 
@@ -90,18 +99,15 @@
                     Contributed {{ household_settings.points_label }} are removed from your balance immediately.
                 </p>
 
-                <p class="text-muted-small mb-0">
+                <p class="status-note mb-0">
                     If the group goal is cancelled, your contribution is refunded.
                 </p>
             </div>
         </div>
-
     </div>
 </div>
 
 <script>
-    // Set group goal progress bar widths after the page loads.
-    // This avoids putting Jinja expressions directly inside inline CSS.
     document.querySelectorAll(".group-goal-progress").forEach((bar) => {
         const progress = bar.dataset.progress;
         bar.style.width = `${progress}%`;

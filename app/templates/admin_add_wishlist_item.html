@@ -2,12 +2,12 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
     <div>
-        <h1>Add Wishlist Item</h1>
-
-        <p class="text-muted-small">
-            Add an item directly to a user's wishlist and set its point cost.
+        <p class="text-muted-small mb-1">Admin Wishlist</p>
+        <h1 class="mb-1">Add Wishlist Item</h1>
+        <p class="text-muted-small mb-0">
+            Add an item directly to a user's wishlist and set its {{ household_settings.points_label }} cost.
         </p>
     </div>
 
@@ -16,15 +16,16 @@
     </a>
 </div>
 
-
-<div class="row">
+<div class="row g-4">
     <div class="col-lg-8">
-
-        <div class="card">
+        <div class="card h-100">
             <div class="card-body">
+                <h2 class="mb-1">Wishlist Item</h2>
+                <p class="text-muted-small">
+                    Assign the item to a user, then set the cost users need to save toward.
+                </p>
 
                 <form method="post">
-
                     {{ form.hidden_tag() }}
 
                     <div class="mb-3">
@@ -47,33 +48,32 @@
                         {{ form.point_cost(class="form-control", placeholder="Example: 300") }}
                     </div>
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-primary") }}
 
-                        <a class="btn btn-secondary" href="{{ url_for('main.wishlist') }}">
+                        <a class="btn btn-outline-secondary" href="{{ url_for('main.wishlist') }}">
                             Cancel
                         </a>
                     </div>
-
                 </form>
-
             </div>
         </div>
-
     </div>
 
     <div class="col-lg-4">
-
-        <div class="card">
+        <div class="card h-100">
             <div class="card-body">
                 <h2>Admin Control</h2>
 
-                <p class="text-muted-small mb-0">
-                    Admins control which wishlist items are approved and how many {{ household_settings.points_label }} each item costs.
+                <p class="text-muted-small">
+                    Admins control which wishlist items are available and how many {{ household_settings.points_label }} each item costs.
+                </p>
+
+                <p class="status-note mb-0">
+                    Saved {{ household_settings.points_label }} are reserved toward the item until it is fulfilled or removed.
                 </p>
             </div>
         </div>
-
     </div>
 </div>
 

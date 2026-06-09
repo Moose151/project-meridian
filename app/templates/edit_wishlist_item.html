@@ -2,16 +2,12 @@
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HEADER
-     ========================================================= -->
-
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
     <div>
-        <h1>Edit Wishlist Item</h1>
-
-        <p class="text-muted-small">
-            Update the item owner, name, description, or point cost.
+        <p class="text-muted-small mb-1">Admin Wishlist</p>
+        <h1 class="mb-1">Edit Wishlist Item</h1>
+        <p class="text-muted-small mb-0">
+            Update the item owner, name, description, or {{ household_settings.points_label }} cost.
         </p>
     </div>
 
@@ -20,15 +16,16 @@
     </a>
 </div>
 
-
-<div class="row">
+<div class="row g-4">
     <div class="col-lg-8">
-
-        <div class="card">
+        <div class="card h-100">
             <div class="card-body">
+                <h2 class="mb-1">Item Settings</h2>
+                <p class="text-muted-small">
+                    Use caution when changing costs after users have already contributed.
+                </p>
 
                 <form method="post">
-
                     {{ form.hidden_tag() }}
 
                     <div class="mb-3">
@@ -59,24 +56,20 @@
                         </div>
                     </div>
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-primary") }}
 
-                        <a class="btn btn-secondary" href="{{ url_for('main.wishlist') }}">
+                        <a class="btn btn-outline-secondary" href="{{ url_for('main.wishlist') }}">
                             Cancel
                         </a>
                     </div>
-
                 </form>
-
             </div>
         </div>
-
     </div>
 
     <div class="col-lg-4">
-
-        <div class="card mb-3">
+        <div class="card mb-4">
             <div class="card-body">
                 <h2>Current Progress</h2>
 
@@ -98,16 +91,23 @@
             <div class="card-body">
                 <h2>Status</h2>
 
-                <p class="text-muted-small mb-1">
-                    Current status
-                </p>
+                {% if item.status == "active" %}
+                    <span class="badge bg-primary">Active</span>
+                {% elif item.status == "funded" %}
+                    <span class="badge bg-success">Funded</span>
+                {% elif item.status == "fulfilled" %}
+                    <span class="badge bg-success">Fulfilled</span>
+                {% elif item.status == "removed" %}
+                    <span class="badge bg-secondary">Removed</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ item.status }}</span>
+                {% endif %}
 
-                <p class="mb-0">
-                    {{ item.status }}
+                <p class="status-note mt-3 mb-0">
+                    Editing the item does not remove contribution history.
                 </p>
             </div>
         </div>
-
     </div>
 </div>
 
