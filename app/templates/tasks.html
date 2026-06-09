@@ -2,15 +2,15 @@
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HEADER
-     ========================================================= -->
-
-<div class="d-flex justify-content-between align-items-start mb-4">
+<section class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
     <div>
-        <h1>Tasks</h1>
+        <p class="text-muted-small mb-1">
+            Task board
+        </p>
 
-        <p class="text-muted-small">
+        <h1 class="mb-1">Tasks</h1>
+
+        <p class="text-muted-small mb-0">
             View available tasks and submit completed work for approval.
         </p>
     </div>
@@ -20,20 +20,13 @@
             New Task
         </a>
     {% endif %}
-</div>
+</section>
 
-
-<!-- =========================================================
-     FILTERS
-     ========================================================= -->
-
-<div class="card mb-4">
-    <div class="card-body">
-
+<section class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
         <form method="get" class="row g-3 align-items-end">
 
-            <!-- Task filter -->
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label" for="filter">
                     Task Filter
                 </label>
@@ -49,9 +42,7 @@
                 </select>
             </div>
 
-
-            <!-- Category filter -->
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label" for="category">
                     Category
                 </label>
@@ -69,14 +60,11 @@
                 </select>
             </div>
 
-
-            <!-- Filter button -->
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <button class="btn btn-primary w-100" type="submit">
                     Apply Filters
                 </button>
             </div>
-
         </form>
 
         {% if selected_filter == "hot" or selected_category %}
@@ -86,70 +74,54 @@
                 </a>
             </div>
         {% endif %}
-
     </div>
-</div>
-
-
-<!-- =========================================================
-     TASK BOARD
-     ========================================================= -->
+</section>
 
 {% if tasks %}
-
-    <div class="row">
-
-        <!-- Loop through each active task passed in from the tasks() route -->
+    <section class="row g-4">
         {% for task in tasks %}
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card h-100 border-0 shadow-sm {% if task.is_hot %}border-danger{% endif %}">
+                    <div class="card-body p-4 d-flex flex-column">
 
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 {% if task.is_hot %}border-danger{% endif %}">
-
-                    <div class="card-body d-flex flex-column">
-
-                        <!-- Task title and badges -->
-                        <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                             <div>
-                                <h5 class="card-title mb-1">
+                                <h2 class="h4 mb-2">
                                     {{ task.title }}
-                                </h5>
+                                </h2>
 
-                                {% if task.is_hot %}
-                                    <span class="badge bg-danger">
-                                        Hot
-                                    </span>
-                                {% endif %}
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% if task.is_hot %}
+                                        <span class="badge bg-danger">
+                                            Hot
+                                        </span>
+                                    {% endif %}
 
-                                {% if task.completion_behavior == "hide_after_approval" %}
-                                    <span class="badge bg-secondary">
-                                        One-off
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-success">
-                                        Repeatable
-                                    </span>
-                                {% endif %}
+                                    {% if task.completion_behavior == "hide_after_approval" %}
+                                        <span class="badge bg-secondary">
+                                            One-off
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success">
+                                            Repeatable
+                                        </span>
+                                    {% endif %}
+
+                                    {% if task.category %}
+                                        <span class="badge bg-light text-dark border">
+                                            {{ task.category }}
+                                        </span>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
 
-
-                        <!-- Optional task category -->
-                        {% if task.category %}
-                            <p class="text-muted-small mb-2">
-                                {{ task.category }}
-                            </p>
-                        {% endif %}
-
-
-                        <!-- Optional hot task label -->
                         {% if task.is_hot and task.hot_label %}
-                            <p class="text-muted-small mb-2">
+                            <p class="status-note mb-2">
                                 <strong>{{ task.hot_label }}</strong>
                             </p>
                         {% endif %}
 
-
-                        <!-- Optional task description -->
                         {% if task.description %}
                             <p>
                                 {{ task.description }}
@@ -160,12 +132,8 @@
                             </p>
                         {% endif %}
 
-
-                        <!-- Point value and action area -->
-                        <div class="mt-auto">
-
+                        <div class="mt-auto pt-3">
                             <div class="mb-3">
-
                                 {% if task.is_hot and task.hot_bonus_points > 0 %}
                                     <span class="badge bg-primary">
                                         {{ task.total_point_value() }} {{ household_settings.points_label }}
@@ -191,14 +159,9 @@
                                         </span>
                                     {% endif %}
                                 </div>
-
                             </div>
 
-
-                            <!-- Standard users can submit tasks.
-                                 Admins can view the task board but do not submit tasks. -->
                             {% if not current_user.is_admin() %}
-
                                 <form
                                     method="post"
                                     action="{{ url_for('main.submit_task', task_id=task.id) }}"
@@ -207,33 +170,24 @@
                                         Submit as Complete
                                     </button>
                                 </form>
-
                             {% else %}
-
                                 <a
                                     class="btn btn-outline-primary w-100"
                                     href="{{ url_for('main.edit_task', task_id=task.id) }}"
                                 >
                                     Edit Task
                                 </a>
-
                             {% endif %}
-
                         </div>
 
                     </div>
                 </div>
             </div>
-
         {% endfor %}
-
-    </div>
-
+    </section>
 {% else %}
-
-    <!-- Empty state when no active tasks match the current filters -->
-    <div class="card">
-        <div class="card-body">
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4">
             <h2>No active tasks</h2>
 
             {% if selected_filter == "hot" or selected_category %}
@@ -256,8 +210,7 @@
                 </a>
             {% endif %}
         </div>
-    </div>
-
+    </section>
 {% endif %}
 
 {% endblock %}

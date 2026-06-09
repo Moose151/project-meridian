@@ -14,505 +14,412 @@
     "manual_adjustment": "Manual adjustment"
 } %}
 
-<!-- =========================================================
-     DASHBOARD USER HEADER
-     ========================================================= -->
+<section class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
 
-<div class="card mb-4">
-    <div class="card-body d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <div class="dashboard-avatar">
+                    {{ current_user.avatar_emoji }}
+                </div>
 
-        <div class="d-flex align-items-center gap-3">
+                <div>
+                    <p class="text-muted-small mb-1">
+                        Welcome back
+                    </p>
 
-            <div class="dashboard-avatar">
-                {{ current_user.avatar_emoji }}
+                    <h1 class="mb-1">
+                        {{ current_user.display_name }}
+                    </h1>
+
+                    {% if current_user.is_admin() %}
+                        <p class="text-muted-small mb-0">
+                            Admin dashboard for {{ household_settings.household_name }}.
+                        </p>
+                    {% else %}
+                        <p class="text-muted-small mb-0">
+                            Current balance:
+                            <strong>{{ current_user.point_balance() }}</strong>
+                            {{ household_settings.points_label }}
+                        </p>
+                    {% endif %}
+                </div>
             </div>
 
-            <div>
-                <h1 class="mb-1">
-                    {{ current_user.display_name }}
-                </h1>
-
-                {% if current_user.is_admin() %}
-                    <p class="text-muted-small mb-0">
-                        Admin dashboard
-                    </p>
-                {% else %}
-                    <p class="text-muted-small mb-0">
-                        Current balance: {{ current_user.point_balance() }} {{ household_settings.points_label }}
-                    </p>
-                {% endif %}
-            </div>
-
+            <a class="btn btn-outline-primary" href="{{ url_for('main.my_profile') }}">
+                View Profile
+            </a>
         </div>
-
-        <a class="btn btn-outline-primary" href="{{ url_for('main.my_profile') }}">
-            View Profile
-        </a>
-
     </div>
-</div>
-
+</section>
 
 {% if current_user.is_admin() %}
 
-    <!-- =========================================================
-         ADMIN DASHBOARD
-         ========================================================= -->
-
-    <!-- =========================================================
-         ADMIN NOTIFICATIONS
-         ========================================================= -->
-
     {% if notifications %}
-
-        <div class="card mb-4">
-            <div class="card-body">
-                <h2>Notifications</h2>
-
-                <p class="text-muted-small">
-                    Recent system updates requiring admin action or review.
-                </p>
-
-                {% for notification in notifications %}
-
-                    <div class="alert alert-{{ notification.notification_type }} d-flex justify-content-between align-items-start">
-                        <div>
-                            <strong>{{ notification.title }}</strong>
-
-                            <p class="mb-0">
-                                {{ notification.message }}
-                            </p>
-
-                            <p class="text-muted-small mb-0">
-                                {{ notification.created_at }}
-                            </p>
-                        </div>
-
-                        <div class="d-flex gap-2">
-
-                            {% if notification.action_url and notification.action_label %}
-                                <a
-                                    class="btn btn-sm btn-primary"
-                                    href="{{ notification.action_url }}"
-                                >
-                                    {{ notification.action_label }}
-                                </a>
-                            {% endif %}
-
-                            <form
-                                method="post"
-                                action="{{ url_for('main.mark_notification_read', notification_id=notification.id) }}"
-                            >
-                                <button class="btn btn-sm btn-outline-secondary" type="submit">
-                                    Dismiss
-                                </button>
-                            </form>
-
-                        </div>
+        <section class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+                    <div>
+                        <h2 class="mb-1">Notifications</h2>
+                        <p class="text-muted-small mb-0">
+                            Recent system updates requiring admin action or review.
+                        </p>
                     </div>
+                </div>
 
-                {% endfor %}
+                <div class="d-grid gap-3">
+                    {% for notification in notifications %}
+                        <div class="alert alert-{{ notification.notification_type }} mb-0">
+                            <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                                <div>
+                                    <strong>{{ notification.title }}</strong>
 
+                                    <p class="mb-1">
+                                        {{ notification.message }}
+                                    </p>
+
+                                    <p class="text-muted-small mb-0">
+                                        {{ notification.created_at }}
+                                    </p>
+                                </div>
+
+                                <div class="d-flex flex-column flex-sm-row gap-2">
+                                    {% if notification.action_url and notification.action_label %}
+                                        <a class="btn btn-sm btn-primary" href="{{ notification.action_url }}">
+                                            {{ notification.action_label }}
+                                        </a>
+                                    {% endif %}
+
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('main.mark_notification_read', notification_id=notification.id) }}"
+                                    >
+                                        <button class="btn btn-sm btn-outline-secondary w-100" type="submit">
+                                            Dismiss
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
-        </div>
-
+        </section>
     {% endif %}
 
-
-    <!-- =========================================================
-         ADMIN SUMMARY CARDS
-         ========================================================= -->
-
-    <div class="row mb-4">
-
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h2>Task Approvals</h2>
-
-                        <span class="badge bg-warning text-dark">
-                            Pending
-                        </span>
+    <section class="row g-4 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <h2 class="mb-0">Task Approvals</h2>
+                        <span class="badge bg-warning text-dark">Pending</span>
                     </div>
 
                     <p class="text-muted-small">
                         Submitted tasks waiting for review.
                     </p>
 
-                    <p class="display-5 mb-0">
+                    <p class="display-5 fw-semibold mb-3">
                         {{ pending_tasks|length }}
                     </p>
 
-                    <a class="btn btn-primary mt-3" href="{{ url_for('main.admin_approvals') }}">
+                    <a class="btn btn-primary w-100" href="{{ url_for('main.admin_approvals') }}">
                         Review Tasks
                     </a>
                 </div>
             </div>
         </div>
 
-
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h2>Reward Requests</h2>
-
-                        <span class="badge bg-warning text-dark">
-                            Pending
-                        </span>
+        <div class="col-12 col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <h2 class="mb-0">Reward Requests</h2>
+                        <span class="badge bg-warning text-dark">Pending</span>
                     </div>
 
                     <p class="text-muted-small">
                         Reward requests waiting for review.
                     </p>
 
-                    <p class="display-5 mb-0">
+                    <p class="display-5 fw-semibold mb-3">
                         {{ pending_purchases|length }}
                     </p>
 
-                    <a class="btn btn-primary mt-3" href="{{ url_for('main.admin_approvals') }}">
+                    <a class="btn btn-primary w-100" href="{{ url_for('main.admin_approvals') }}">
                         Review Rewards
                     </a>
                 </div>
             </div>
         </div>
 
-
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h2>Active Users</h2>
-
-                        <span class="badge bg-success">
-                            Active
-                        </span>
+        <div class="col-12 col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <h2 class="mb-0">Active Users</h2>
+                        <span class="badge bg-success">Active</span>
                     </div>
 
                     <p class="text-muted-small">
                         Active standard user accounts.
                     </p>
 
-                    <p class="display-5 mb-0">
+                    <p class="display-5 fw-semibold mb-3">
                         {{ active_user_count }}
                     </p>
 
-                    <a class="btn btn-primary mt-3" href="{{ url_for('main.users') }}">
+                    <a class="btn btn-primary w-100" href="{{ url_for('main.users') }}">
                         Manage Users
                     </a>
                 </div>
             </div>
         </div>
+    </section>
 
-    </div>
-        <!-- =========================================================
-         ADMIN RECENT ACTIVITY
-         ========================================================= -->
-
-    <div class="card mb-4">
-        <div class="card-body">
-            <h2>Recent Activity</h2>
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h2 class="mb-1">Recent Activity</h2>
 
             <p class="text-muted-small">
                 Latest {{ household_settings.points_label }}-related activity across all users.
             </p>
 
             {% if recent_activity %}
+                <div class="d-grid gap-2">
+                    {% for transaction in recent_activity %}
+                        <div class="profile-activity-row">
+                            <div>
+                                <strong>
+                                    {{ dashboard_transaction_labels.get(transaction.transaction_type, transaction.transaction_type) }}
+                                </strong>
 
-                {% for transaction in recent_activity %}
+                                <div class="text-muted-small">
+                                    {% if transaction.user %}
+                                        {{ transaction.user.avatar_emoji }} {{ transaction.user.display_name }}
+                                    {% else %}
+                                        Unknown user
+                                    {% endif %}
+                                    · {{ transaction.created_at }}
+                                </div>
 
-                    <div class="profile-activity-row">
-                        <div>
-                            <strong>
-                                {{ dashboard_transaction_labels.get(transaction.transaction_type, transaction.transaction_type) }}
-                            </strong>
+                                <div class="text-muted-small">
+                                    {{ transaction.reason }}
+                                </div>
+                            </div>
 
-                            <div class="text-muted-small">
-                                {% if transaction.user %}
-                                    {{ transaction.user.avatar_emoji }} {{ transaction.user.display_name }}
+                            <div>
+                                {% if transaction.amount > 0 %}
+                                    <span class="badge bg-success">+{{ transaction.amount }}</span>
+                                {% elif transaction.amount < 0 %}
+                                    <span class="badge bg-danger">{{ transaction.amount }}</span>
                                 {% else %}
-                                    Unknown user
+                                    <span class="badge bg-secondary">{{ transaction.amount }}</span>
                                 {% endif %}
-                                ·
-                                {{ transaction.created_at }}
-                            </div>
-
-                            <div class="text-muted-small">
-                                {{ transaction.reason }}
                             </div>
                         </div>
-
-                        <div>
-                            {% if transaction.amount > 0 %}
-                                <span class="badge bg-success">
-                                    +{{ transaction.amount }}
-                                </span>
-                            {% elif transaction.amount < 0 %}
-                                <span class="badge bg-danger">
-                                    {{ transaction.amount }}
-                                </span>
-                            {% else %}
-                                <span class="badge bg-secondary">
-                                    {{ transaction.amount }}
-                                </span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                {% endfor %}
-
+                    {% endfor %}
+                </div>
             {% else %}
-
                 <p class="text-muted-small mb-0">
                     No recent {{ household_settings.points_label }} activity yet.
                 </p>
-
             {% endif %}
-
         </div>
-    </div>
+    </section>
 
-
-    <!-- =========================================================
-         ADMIN QUICK ACTIONS
-         ========================================================= -->
-
-    <div class="card">
-        <div class="card-body">
-            <h2>Admin Quick Actions</h2>
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="mb-1">Admin Quick Actions</h2>
 
             <p class="text-muted-small">
                 Common admin tools are grouped here for faster access.
             </p>
 
-            <div class="row">
-
-                <div class="col-md-3 mb-3">
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.create_task') }}">
                         New Task
                     </a>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.admin_complete_task') }}">
                         Complete Task
                     </a>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.create_reward') }}">
                         New Reward
                     </a>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.backup_database') }}">
                         Backup Database
                     </a>
                 </div>
 
-            </div>
-
-            <div class="row">
-
-                <div class="col-md-3 mb-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.manage_categories') }}">
                         Categories
                     </a>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.group_goals') }}">
                         Group Goals
                     </a>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.wishlist') }}">
                         Wishlist
                     </a>
                 </div>
-                
 
-                <div class="col-md-3 mb-3">
-    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.household_settings') }}">
-        Settings
-    </a>
-</div>
-
+                <div class="col-6 col-md-3">
+                    <a class="btn btn-outline-primary w-100" href="{{ url_for('main.household_settings') }}">
+                        Settings
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-
+    </section>
 
 {% else %}
 
-    <!-- =========================================================
-         STANDARD USER DASHBOARD
-         ========================================================= -->
-
-    <!-- =========================================================
-         USER NOTIFICATIONS
-         ========================================================= -->
-
     {% if notifications %}
-
-        <div class="card mb-4">
-            <div class="card-body">
-                <h2>Notifications</h2>
+        <section class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <h2 class="mb-1">Notifications</h2>
 
                 <p class="text-muted-small">
                     Recent task, reward, wishlist, and group goal updates.
                 </p>
 
-                {% for notification in notifications %}
+                <div class="d-grid gap-3">
+                    {% for notification in notifications %}
+                        <div class="alert alert-{{ notification.notification_type }} mb-0">
+                            <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                                <div>
+                                    <strong>{{ notification.title }}</strong>
 
-                    <div class="alert alert-{{ notification.notification_type }} d-flex justify-content-between align-items-start">
-                        <div>
-                            <strong>{{ notification.title }}</strong>
+                                    <p class="mb-1">
+                                        {{ notification.message }}
+                                    </p>
 
-                            <p class="mb-0">
-                                {{ notification.message }}
-                            </p>
+                                    <p class="text-muted-small mb-0">
+                                        {{ notification.created_at }}
+                                    </p>
+                                </div>
 
-                            <p class="text-muted-small mb-0">
-                                {{ notification.created_at }}
-                            </p>
+                                <div class="d-flex flex-column flex-sm-row gap-2">
+                                    {% if notification.action_url and notification.action_label %}
+                                        <a class="btn btn-sm btn-primary" href="{{ notification.action_url }}">
+                                            {{ notification.action_label }}
+                                        </a>
+                                    {% endif %}
+
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('main.mark_notification_read', notification_id=notification.id) }}"
+                                    >
+                                        <button class="btn btn-sm btn-outline-secondary w-100" type="submit">
+                                            Dismiss
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="d-flex gap-2">
-
-                            {% if notification.action_url and notification.action_label %}
-                                <a
-                                    class="btn btn-sm btn-primary"
-                                    href="{{ notification.action_url }}"
-                                >
-                                    {{ notification.action_label }}
-                                </a>
-                            {% endif %}
-
-                            <form
-                                method="post"
-                                action="{{ url_for('main.mark_notification_read', notification_id=notification.id) }}"
-                            >
-                                <button class="btn btn-sm btn-outline-secondary" type="submit">
-                                    Dismiss
-                                </button>
-                            </form>
-
-                        </div>
-                    </div>
-
-                {% endfor %}
-
+                    {% endfor %}
+                </div>
             </div>
-        </div>
-
+        </section>
     {% endif %}
 
-
-    <!-- =========================================================
-         USER SUMMARY CARDS
-         ========================================================= -->
-
-    <div class="row mb-4">
-
-        <div class="col-md-3 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h2>Your {{ household_settings.points_label|capitalize }}</h2>
-
-                        <span class="badge bg-primary">
-                            Balance
-                        </span>
+    <section class="row g-4 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <h2 class="mb-0">Your {{ household_settings.points_label|capitalize }}</h2>
+                        <span class="badge bg-primary">Balance</span>
                     </div>
 
                     <p class="text-muted-small">
                         Current available balance.
                     </p>
 
-                    <p class="display-5 mb-0">
+                    <p class="display-5 fw-semibold mb-3">
                         {{ current_balance }}
                     </p>
 
-                    <a class="btn btn-primary mt-3" href="{{ url_for('main.point_history') }}">
-                        Point History
+                    <a class="btn btn-primary w-100" href="{{ url_for('main.point_history') }}">
+                        {{ household_settings.points_label|capitalize }} History
                     </a>
                 </div>
             </div>
         </div>
 
-
-        <div class="col-md-3 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h2>Pending Tasks</h2>
-
-                        <span class="badge bg-warning text-dark">
-                            Pending
-                        </span>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <h2 class="mb-0">Pending Tasks</h2>
+                        <span class="badge bg-warning text-dark">Pending</span>
                     </div>
 
                     <p class="text-muted-small">
                         Submitted tasks waiting for approval.
                     </p>
 
-                    <p class="display-5 mb-0">
+                    <p class="display-5 fw-semibold mb-3">
                         {{ pending_user_tasks|length }}
                     </p>
 
-                    <a class="btn btn-primary mt-3" href="{{ url_for('main.task_history') }}">
+                    <a class="btn btn-primary w-100" href="{{ url_for('main.task_history') }}">
                         Task History
                     </a>
                 </div>
             </div>
         </div>
 
-
-        <div class="col-md-3 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h2>Pending Rewards</h2>
-
-                        <span class="badge bg-warning text-dark">
-                            Pending
-                        </span>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <h2 class="mb-0">Pending Rewards</h2>
+                        <span class="badge bg-warning text-dark">Pending</span>
                     </div>
 
                     <p class="text-muted-small">
                         Reward requests waiting for approval.
                     </p>
 
-                    <p class="display-5 mb-0">
+                    <p class="display-5 fw-semibold mb-3">
                         {{ pending_user_purchases|length }}
                     </p>
 
-                    <a class="btn btn-primary mt-3" href="{{ url_for('main.reward_history') }}">
+                    <a class="btn btn-primary w-100" href="{{ url_for('main.reward_history') }}">
                         Reward History
                     </a>
                 </div>
             </div>
         </div>
 
-
-        <div class="col-md-3 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h2>Wishlist</h2>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <h2 class="mb-0">Wishlist</h2>
 
                         {% if funded_wishlist_count > 0 %}
-                            <span class="badge bg-success">
-                                Funded
-                            </span>
+                            <span class="badge bg-success">Funded</span>
                         {% else %}
-                            <span class="badge bg-primary">
-                                Active
-                            </span>
+                            <span class="badge bg-primary">Active</span>
                         {% endif %}
                     </div>
 
@@ -520,7 +427,7 @@
                         Active wishlist items and saved {{ household_settings.points_label }}.
                     </p>
 
-                    <p class="display-5 mb-0">
+                    <p class="display-5 fw-semibold mb-1">
                         {{ wishlist_item_count }}
                     </p>
 
@@ -529,171 +436,142 @@
                     </p>
 
                     {% if funded_wishlist_count > 0 %}
-                        <p class="status-note mb-0">
+                        <p class="status-note mb-3">
                             {{ funded_wishlist_count }} item(s) fully funded.
                         </p>
                     {% endif %}
 
-                    <a class="btn btn-primary mt-3" href="{{ url_for('main.wishlist') }}">
+                    <a class="btn btn-primary w-100 mt-3" href="{{ url_for('main.wishlist') }}">
                         View Wishlist
                     </a>
                 </div>
             </div>
         </div>
+    </section>
 
-    </div>
-
-
-    <!-- =========================================================
-         SECONDARY ACTION CARDS
-         ========================================================= -->
-
-    <div class="row mb-4">
-
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
+    <section class="row g-4 mb-4">
+        <div class="col-12 col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4">
                     <h2>Available Tasks</h2>
 
                     <p class="text-muted-small">
                         Active tasks currently available on the task board.
                     </p>
 
-                    <p class="display-5 mb-0">
+                    <p class="display-5 fw-semibold mb-3">
                         {{ available_task_count }}
                     </p>
 
-                    <a class="btn btn-primary mt-3" href="{{ url_for('main.tasks') }}">
+                    <a class="btn btn-primary w-100" href="{{ url_for('main.tasks') }}">
                         Go to Tasks
                     </a>
                 </div>
             </div>
         </div>
 
-
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
+        <div class="col-12 col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4">
                     <h2>Rewards You Can Afford</h2>
 
                     <p class="text-muted-small">
                         Rewards currently affordable with your available {{ household_settings.points_label }}.
                     </p>
 
-                    <p class="display-5 mb-0">
+                    <p class="display-5 fw-semibold mb-3">
                         {{ affordable_reward_count }}
                     </p>
 
-                    <a class="btn btn-primary mt-3" href="{{ url_for('main.shop') }}">
+                    <a class="btn btn-primary w-100" href="{{ url_for('main.shop') }}">
                         Go to Shop
                     </a>
                 </div>
             </div>
         </div>
+    </section>
 
-    </div>
-    <!-- =========================================================
-         USER RECENT ACTIVITY
-         ========================================================= -->
-
-    <div class="card mb-4">
-        <div class="card-body">
-            <h2>Recent Activity</h2>
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h2 class="mb-1">Recent Activity</h2>
 
             <p class="text-muted-small">
                 Your latest {{ household_settings.points_label }}-related activity.
             </p>
 
             {% if recent_activity %}
+                <div class="d-grid gap-2">
+                    {% for transaction in recent_activity %}
+                        <div class="profile-activity-row">
+                            <div>
+                                <strong>
+                                    {{ dashboard_transaction_labels.get(transaction.transaction_type, transaction.transaction_type) }}
+                                </strong>
 
-                {% for transaction in recent_activity %}
+                                <div class="text-muted-small">
+                                    {{ transaction.created_at }}
+                                </div>
 
-                    <div class="profile-activity-row">
-                        <div>
-                            <strong>
-                                {{ dashboard_transaction_labels.get(transaction.transaction_type, transaction.transaction_type) }}
-                            </strong>
-
-                            <div class="text-muted-small">
-                                {{ transaction.created_at }}
+                                <div class="text-muted-small">
+                                    {{ transaction.reason }}
+                                </div>
                             </div>
 
-                            <div class="text-muted-small">
-                                {{ transaction.reason }}
+                            <div>
+                                {% if transaction.amount > 0 %}
+                                    <span class="badge bg-success">+{{ transaction.amount }}</span>
+                                {% elif transaction.amount < 0 %}
+                                    <span class="badge bg-danger">{{ transaction.amount }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ transaction.amount }}</span>
+                                {% endif %}
                             </div>
                         </div>
-
-                        <div>
-                            {% if transaction.amount > 0 %}
-                                <span class="badge bg-success">
-                                    +{{ transaction.amount }}
-                                </span>
-                            {% elif transaction.amount < 0 %}
-                                <span class="badge bg-danger">
-                                    {{ transaction.amount }}
-                                </span>
-                            {% else %}
-                                <span class="badge bg-secondary">
-                                    {{ transaction.amount }}
-                                </span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                {% endfor %}
-
+                    {% endfor %}
+                </div>
             {% else %}
-
                 <p class="text-muted-small mb-0">
                     No recent {{ household_settings.points_label }} activity yet.
                 </p>
-
             {% endif %}
-
         </div>
-    </div>
+    </section>
 
-    <!-- =========================================================
-         QUICK ACTIONS
-         ========================================================= -->
-
-    <div class="card">
-        <div class="card-body">
-            <h2>Quick Actions</h2>
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="mb-1">Quick Actions</h2>
 
             <p class="text-muted-small">
                 Common actions for tasks, rewards, wishlist items, and profile progress.
             </p>
 
-            <div class="row">
-
-                <div class="col-md-3 mb-3">
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.tasks') }}">
                         Tasks
                     </a>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.shop') }}">
                         Shop
                     </a>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.wishlist') }}">
                         Wishlist
                     </a>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-6 col-md-3">
                     <a class="btn btn-outline-primary w-100" href="{{ url_for('main.my_profile') }}">
                         Profile
                     </a>
                 </div>
-
             </div>
         </div>
-    </div>
+    </section>
 
 {% endif %}
 

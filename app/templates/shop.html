@@ -2,15 +2,15 @@
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HEADER
-     ========================================================= -->
-
-<div class="d-flex justify-content-between align-items-start mb-4">
+<section class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
     <div>
-        <h1>Reward Shop</h1>
+        <p class="text-muted-small mb-1">
+            Reward shop
+        </p>
 
-        <p class="text-muted-small">
+        <h1 class="mb-1">Reward Shop</h1>
+
+        <p class="text-muted-small mb-0">
             Browse rewards and request items using your available {{ household_settings.points_label }}.
         </p>
     </div>
@@ -20,45 +20,33 @@
             New Reward
         </a>
     {% endif %}
-</div>
-
-
-<!-- =========================================================
-     USER BALANCE SUMMARY
-     ========================================================= -->
+</section>
 
 {% if not current_user.is_admin() %}
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                    <h2>Your Available {{ household_settings.points_label|capitalize }}</h2>
 
-    <div class="card mb-4">
-        <div class="card-body d-flex justify-content-between align-items-center">
-            <div>
-                <h2>Your Available {{ household_settings.points_label|capitalize }}</h2>
+                    <p class="text-muted-small mb-0">
+                        {{ household_settings.points_label|capitalize }} are reserved immediately when you request a reward.
+                        If the request is cancelled or rejected, the {{ household_settings.points_label }} are refunded.
+                    </p>
+                </div>
 
-                <p class="text-muted-small mb-0">
-                    {{ household_settings.points_label|capitalize }} are reserved immediately when you request a reward.
-                    If the request is cancelled or rejected, the {{ household_settings.points_label }} are refunded.
+                <p class="display-5 fw-semibold mb-0">
+                    {{ current_user.point_balance() }}
                 </p>
             </div>
-
-            <p class="display-5 mb-0">
-                {{ current_user.point_balance() }}
-            </p>
         </div>
-    </div>
-
+    </section>
 {% endif %}
 
-
-<!-- =========================================================
-     SHOP FILTERS
-     ========================================================= -->
-
-<div class="card mb-4">
-    <div class="card-body">
-
-        <form method="get" class="row align-items-end">
-
-            <div class="col-md-8 mb-3 mb-md-0">
+<section class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-12 col-md-8">
                 <label class="form-label" for="category">
                     Filter by Category
                 </label>
@@ -77,12 +65,11 @@
                 </select>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <button class="btn btn-primary w-100" type="submit">
                     Apply Filter
                 </button>
             </div>
-
         </form>
 
         {% if selected_category %}
@@ -92,50 +79,38 @@
                 </a>
             </div>
         {% endif %}
-
     </div>
-</div>
-
-
-<!-- =========================================================
-     REWARD SHOP
-     ========================================================= -->
+</section>
 
 {% if rewards %}
-
-    <div class="row">
-
-        <!-- Loop through each active reward passed in from the shop() route -->
+    <section class="row g-4">
         {% for reward in rewards %}
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4 d-flex flex-column">
 
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                            <div>
+                                <h2 class="h4 mb-2">
+                                    {{ reward.name }}
+                                </h2>
 
-                    <div class="card-body d-flex flex-column">
-
-                        <!-- Reward title and cost badge -->
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h5 class="card-title mb-0">
-                                {{ reward.name }}
-                            </h5>
+                                {% if reward.category %}
+                                    <span class="badge bg-light text-dark border">
+                                        {{ reward.category }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border">
+                                        No category
+                                    </span>
+                                {% endif %}
+                            </div>
 
                             <span class="badge bg-primary">
                                 {{ reward.point_cost }} {{ household_settings.points_label }}
                             </span>
                         </div>
 
-                        <!-- Optional reward category -->
-                        {% if reward.category %}
-                            <p class="text-muted-small mb-2">
-                                {{ reward.category }}
-                            </p>
-                        {% else %}
-                            <p class="text-muted-small mb-2">
-                                No category
-                            </p>
-                        {% endif %}
-
-                        <!-- Reward description -->
                         {% if reward.description %}
                             <p>
                                 {{ reward.description }}
@@ -146,23 +121,16 @@
                             </p>
                         {% endif %}
 
-                        <div class="mt-auto">
-
+                        <div class="mt-auto pt-3">
                             {% if current_user.is_admin() %}
-
-                                <!-- Admins can edit rewards from the shop view -->
                                 <a
                                     class="btn btn-outline-primary w-100"
                                     href="{{ url_for('main.edit_reward', reward_id=reward.id) }}"
                                 >
                                     Edit Reward
                                 </a>
-
                             {% else %}
-
                                 {% if current_user.point_balance() >= reward.point_cost %}
-
-                                    <!-- User can afford this reward -->
                                     <form
                                         method="post"
                                         action="{{ url_for('main.request_reward', reward_id=reward.id) }}"
@@ -175,38 +143,26 @@
                                     <p class="status-note mt-2 mb-0">
                                         {{ reward.point_cost }} {{ household_settings.points_label }} will be reserved immediately.
                                     </p>
-
                                 {% else %}
-
-                                    <!-- User cannot afford this reward -->
                                     <button class="btn btn-secondary w-100" disabled>
-                                     Not Enough {{ household_settings.points_label|capitalize }}
+                                        Not Enough {{ household_settings.points_label|capitalize }}
                                     </button>
 
                                     <p class="status-note mt-2 mb-0">
                                         You need {{ reward.point_cost - current_user.point_balance() }} more {{ household_settings.points_label }}.
                                     </p>
-
                                 {% endif %}
-
                             {% endif %}
-
                         </div>
 
                     </div>
                 </div>
             </div>
-
         {% endfor %}
-
-    </div>
-
+    </section>
 {% else %}
-
-    <!-- Empty state when no active rewards exist or no rewards match the selected filter -->
-    <div class="card">
-        <div class="card-body">
-
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4">
             {% if selected_category %}
                 <h2>No rewards found</h2>
 
@@ -230,10 +186,8 @@
                     </a>
                 {% endif %}
             {% endif %}
-
         </div>
-    </div>
-
+    </section>
 {% endif %}
 
 {% endblock %}

@@ -2,40 +2,33 @@
 
 {% block content %}
 
-<!-- =========================================================
-     AVATAR LOGIN PAGE
-     ========================================================= -->
+<section class="row justify-content-center">
+    <div class="col-12 col-lg-9 col-xl-8">
 
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-
-        <div class="card mt-4">
-            <div class="card-body">
+        <div class="card border-0 shadow-sm mt-3 mt-md-4">
+            <div class="card-body p-4 p-md-5">
 
                 <div class="text-center mb-4">
-                    <h1>Project Meridian</h1>
+                    <div class="dashboard-avatar mx-auto mb-3">
+                        🏠
+                    </div>
+
+                    <h1 class="mb-2">
+                        {{ household_settings.household_name or "Project Meridian" }}
+                    </h1>
 
                     <p class="text-muted-small mb-0">
                         Select your avatar, then enter your PIN.
                     </p>
                 </div>
 
-                <!-- Login form -->
                 <form method="post">
-
-                    <!-- CSRF/security hidden fields from Flask-WTF -->
                     {{ form.hidden_tag() }}
-
-                    <!-- Hidden selected user field.
-                         JavaScript fills this when an avatar card is clicked. -->
                     {{ form.selected_user_id(id="selected_user_id") }}
 
-                    <!-- Avatar cards -->
-                    <div class="row mb-4">
-
+                    <div class="row g-3 mb-4">
                         {% for user in users %}
-
-                            <div class="col-6 col-md-3 mb-3">
+                            <div class="col-6 col-md-3">
                                 <button
                                     type="button"
                                     class="avatar-login-card"
@@ -49,26 +42,21 @@
                                         {{ user.display_name }}
                                     </div>
 
-                                    {% if user.is_admin() %}
-                                        <div class="avatar-login-role">
+                                    <div class="avatar-login-role">
+                                        {% if user.is_admin() %}
                                             Admin
-                                        </div>
-                                    {% else %}
-                                        <div class="avatar-login-role">
+                                        {% else %}
                                             User
-                                        </div>
-                                    {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </button>
                             </div>
-
                         {% endfor %}
-
                     </div>
 
-                    <!-- Selected user label -->
                     <div class="mb-3">
                         <p class="text-muted-small mb-1">
-                            Selected User
+                            Selected user
                         </p>
 
                         <div id="selected-user-display" class="selected-user-box">
@@ -76,55 +64,35 @@
                         </div>
                     </div>
 
-                    <!-- PIN field -->
                     <div class="mb-4">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control text-center", placeholder="Enter PIN") }}
+                        {{ form.password(class="form-control form-control-lg text-center", placeholder="Enter PIN") }}
                     </div>
 
-                    <!-- Submit button -->
-                    {{ form.submit(class="btn btn-primary w-100") }}
-
+                    {{ form.submit(class="btn btn-primary btn-lg w-100") }}
                 </form>
 
             </div>
         </div>
 
     </div>
-</div>
+</section>
 
-
-<!-- Small page-specific script.
-     This handles selecting avatar cards on the login page. -->
 <script>
-    // Find the hidden input that stores the selected user ID.
     const selectedUserInput = document.getElementById("selected_user_id");
-
-    // Find the visible box that tells the user who is selected.
     const selectedUserDisplay = document.getElementById("selected-user-display");
-
-    // Find all avatar card buttons.
     const avatarCards = document.querySelectorAll(".avatar-login-card");
 
-    // Add a click handler to each avatar card.
     avatarCards.forEach((card) => {
         card.addEventListener("click", () => {
-
-            // Remove selected styling from all cards.
             avatarCards.forEach((otherCard) => {
                 otherCard.classList.remove("selected");
             });
 
-            // Add selected styling to clicked card.
             card.classList.add("selected");
-
-            // Store selected user ID in the hidden form field.
             selectedUserInput.value = card.dataset.userId;
 
-            // Get the selected user's display name from the card.
             const selectedName = card.querySelector(".avatar-login-name").textContent.trim();
-
-            // Update the visible selected-user box.
             selectedUserDisplay.textContent = selectedName;
         });
     });
