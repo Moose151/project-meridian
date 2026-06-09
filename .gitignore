@@ -1,33 +1,63 @@
-# Python
+# Python cache / build artefacts
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 *.pyo
 *.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
 
-# Virtual environment
+# Virtual environments
 .venv/
+venv/
+env/
+ENV/
 
 # Environment secrets
 .env
+.env.*
+!.env.example
 
-# Database and local data
+# Flask / local runtime data
 instance/
 *.db
 *.sqlite
 *.sqlite3
 
-# Backups
-backups/
+# Logs
+*.log
+logs/
 
-# Editor/system files
+# Backups / exports
+backups/
+exports/
+*.bak
+*.backup
+
+# Editor files
 .vscode/
 .idea/
+*.swp
+*.swo
 .DS_Store
 
-# Docker/runtime noise
-*.log
+# LibreOffice / OnlyOffice lock files
+.~lock.*
 
 # Local planning documents
 *.docx
+*.odt
 *.xlsx
-.~lock.*#
+*.ods
+
+# Docker local overrides
+docker-compose.override.yml
+
+# OS files
+Thumbs.db
