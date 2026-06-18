@@ -1271,51 +1271,7 @@ Ctrl + F5
 
 or test in a private/incognito window.
 
-## 15. Decisions already made
-
-Do not relitigate unless the user explicitly asks:
-
-- The app is called Project Meridian for now.
-- It is a self-hosted household task/reward app.
-- It uses Flask and SQLite.
-- It is deployed through Docker Compose.
-- It runs on the home server.
-- The point ledger is the balance source of truth.
-- Avatar/PIN login is the preferred login style.
-- Admin and standard user roles are required.
-- Hot Tasks already exist.
-- Reward requests reserve points immediately.
-- Cancelled/rejected rewards refund reserved points.
-- Admins do not receive task points or participate by default. `participation_enabled` on the User model controls opt-in. Toggle is on the Admin Centre page.
-- `household_settings.points_label` controls the visible points label where practical.
-- HomeStack-style UI is the chosen design direction.
-- Mobile compatibility matters.
-- `.env`, databases, backups, and runtime files must not be tracked.
-- Default admin should only be seeded if the database has zero users.
-- Keep changes incremental, tested, and committed.
-
-## 16. Working preferences
-
-The developer prefers:
-
-- direct, practical guidance
-- copy-pasteable commands
-- step-by-step instructions
-- explanations of why steps matter
-- full-file replacements or replacement ZIPs when practical
-- small batches instead of risky large rewrites
-- clear test commands after changes
-- clear commit messages
-- rollback/safety guidance when modifying production-like systems
-- code comments that explain sections
-- mobile-first design
-- consistent UI across Project Meridian, Project Solace, and the home server dashboard
-- Fedora/Docker Compose-compatible instructions
-- careful handling of persistent data and secrets
-
-When continuing work, give exact files to edit, exact commands to run, and what output to paste back if something fails.
-
-## 17. Recommended handoff workflow for the next assistant
+## 15. Recommended handoff workflow for the next assistant
 
 Start by checking the repo state:
 
