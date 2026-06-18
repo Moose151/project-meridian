@@ -58,10 +58,7 @@ from app.services.settings_service import (
 
 from app.services.badge_service import check_and_award_badges
 
-from app.services.points_service import (
-    calculate_total_earned,
-    format_points,
-)
+from app.services.points_service import format_points
 
 from app.services.task_service import (
     approve_submitted_task_completion,
@@ -81,6 +78,7 @@ from app.route_sections.auth import register_auth_routes
 from app.route_sections.categories import register_category_routes
 from app.route_sections.dashboard import register_dashboard_routes
 from app.route_sections.group_goals import register_group_goal_routes
+from app.route_sections.leaderboard import register_leaderboard_routes
 from app.route_sections.profiles import register_profile_routes
 
 # Create the main blueprint.
@@ -122,6 +120,7 @@ register_auth_routes(bp)
 register_category_routes(bp, admin_required)
 register_dashboard_routes(bp)
 register_group_goal_routes(bp, admin_required)
+register_leaderboard_routes(bp)
 register_profile_routes(bp)
 
 
@@ -1998,107 +1997,6 @@ def admin_complete_task():
         form=form,
         active_users=active_users,
         active_tasks=active_tasks
-    )
-
-# =========================================================
-# LEADERBOARD
-# =========================================================
-
-@bp.route("/leaderboard")
-@login_required
-def leaderboard():
-    """
-    Leaderboard page.
-
-    Shows rankings for active standard users.
-
-    Current Points:
-    - calculated from the user's current point balance
-
-    Total Points Earned:
-    - calculated from positive task_approved transactions only
-    - spending points does not reduce this score
-
-    Tasks Completed:
-    - calculated from approved task completion records
-    """
-
-    # Get active standard users only.
-    users = User.query.filter_by(
-        role="user",
-        is_active_account=True
-    ).order_by(
-        User.display_name
-    ).all()
-
-    # -----------------------------------------------------
-    # Current points leaderboard
-    # -----------------------------------------------------
-
-    current_points_leaderboard = []
-
-    for user in users:
-        current_points_leaderboard.append({
-            "user": user,
-            "score": user.point_balance()
-        })
-
-    current_points_leaderboard = sorted(
-        current_points_leaderboard,
-        key=lambda item: item["score"],
-        reverse=True
-    )
-
-    # -----------------------------------------------------
-    # Total points earned leaderboard
-    # -----------------------------------------------------
-
-    total_earned_leaderboard = []
-
-    for user in users:
-
-        total_earned = calculate_total_earned(user)
-
-        total_earned_leaderboard.append({
-            "user": user,
-            "score": total_earned
-        })
-
-    total_earned_leaderboard = sorted(
-        total_earned_leaderboard,
-        key=lambda item: item["score"],
-        reverse=True
-    )
-
-    # -----------------------------------------------------
-    # Tasks completed leaderboard
-    # -----------------------------------------------------
-
-    tasks_completed_leaderboard = []
-
-    for user in users:
-
-        approved_task_count = TaskCompletion.query.filter_by(
-            user_id=user.id,
-            status="approved"
-        ).count()
-
-        tasks_completed_leaderboard.append({
-            "user": user,
-            "score": approved_task_count
-        })
-
-    tasks_completed_leaderboard = sorted(
-        tasks_completed_leaderboard,
-        key=lambda item: item["score"],
-        reverse=True
-    )
-
-    return render_template(
-        "leaderboard.html",
-        current_points_leaderboard=current_points_leaderboard,
-        total_earned_leaderboard=total_earned_leaderboard,
-        tasks_completed_leaderboard=tasks_completed_leaderboard
     )
 
 # =========================================================
