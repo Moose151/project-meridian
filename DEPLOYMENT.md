@@ -5,5 +5,5 @@
 Start from the project folder:
 
 ```bash
-cd ~/Documents/project-meridian
+cd <local-project-meridian-directory>
 git status

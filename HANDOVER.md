@@ -57,7 +57,6 @@ Known stack:
 - **CSS files:** `app/static/css/styles.css` and `app/static/css/homestack.css`
 - **Deployment:** Docker Compose
 - **Host OS preference:** Fedora Server
-- **Repository:** `https://github.com/Moose151/project-meridian`
 - **Container name:** `project-meridian`
 - **Local browser URL commonly used:** `http://localhost:8000`
 
@@ -85,7 +84,7 @@ GitHub may classify the repo as HTML because the app has many large Jinja templa
 Typical local development workflow:
 
 ```bash
-cd ~/Documents/project-meridian
+cd <local-project-meridian-directory>
 
 python -m py_compile app/routes.py app/models.py app/forms.py app/__init__.py
 python -m py_compile app/services/*.py
@@ -140,7 +139,11 @@ Known fields/concepts:
 - `password_hash`
 - `role`
 - `is_active_account`
+- `created_at`
 - `set_password()`
+- `check_password()`
+- `is_admin()`
+- `point_balance()` — calculates current balance from point transactions
 - admin vs standard user roles
 - user can be active/disabled/restored/deleted depending on admin workflows
 - current point balance is calculated from point transactions
@@ -156,42 +159,56 @@ household_name="Project Meridian"
 points_label="points"
 wishlist_requests_enabled=True
 group_goals_enabled=True
+updated_at=<timestamp>
 ```
 
-`points_label` is important. Visible UI text should use the configured household points label where practical rather than hardcoded “points”. Internal variable names like `point_cost`, `point_value`, and `points_label` are acceptable and should not be renamed casually.
+`points_label` is important. Visible UI text should use the configured household points label where practical rather than hardcoded "points". Internal variable names like `point_cost`, `point_value`, and `points_label` are acceptable and should not be renamed casually.
+
+This table should normally only have one row.
 
 ### Task
 
-Known concepts:
+Known fields/concepts:
 
-- task name/title
-- description
-- category
-- point value
-- active/hidden state
-- persistent vs one-time task
-- Hot Tasks
-- Hot Tasks can optionally add bonus points
+- `title`
+- `description`
+- `point_value`
+- `category`
+- `completion_behavior` — `"stay_active"` (persistent) or similar for one-time tasks
+- `is_active`
+- `is_hot`
+- `hot_bonus_points`
+- `hot_label`
+- `created_at`
+- `total_point_value()` — returns `point_value + hot_bonus_points` when `is_hot` is true
+- Hot Tasks are already implemented — do not treat as a missing dependency
 - admin can create/edit/manage/delete/hide tasks
 - admin can complete a task for a user
 - standard users submit task completions for approval
 
-Important: **Hot Tasks are already implemented**. Do not treat Hot Tasks as a missing dependency in future planning.
-
 ### TaskCompletion
 
-Known concepts:
+Known fields/concepts:
 
+- `task_id`, `user_id`
+- `status` — `"submitted"`, `"approved"`, `"rejected"`, `"cancelled"`
+- `submitted_at`, `reviewed_at`, `reviewed_by_id`
+- `rejection_reason`
 - user submits a completion request
 - admin approves or rejects
 - points are not awarded until approval
 - task history exists
 - rejection workflow exists
+- users can cancel their own pending submissions
 
 ### PointTransaction
 
-Known concepts:
+Known fields/concepts:
 
+- `user_id`, `amount`, `transaction_type`, `reason`
+- `related_task_completion_id`
+- `related_reward_purchase_id`
+- `created_by_id`, `created_at`
 - stores every point change
 - point ledger is the source of truth
 - positive transactions award points
@@ -207,66 +224,121 @@ Known routes:
 
 ### Reward
 
-Known concepts:
+Known fields/concepts:
 
-- reward name
-- description
-- point cost
-- stock/availability
-- category
-- active/hidden state
+- `name`, `description`, `category`, `point_cost`
+- `is_active`, `created_at`
 - admin can create/edit/manage rewards
 - users can request rewards
 
 ### RewardPurchase / reward request
 
-Known behaviour:
+Known fields/behaviour:
 
+- `reward_id`, `user_id`
+- `status` — `"requested"`, `"approved"`, `"rejected"`, `"cancelled"`, `"fulfilled"`
+- `requested_at`, `reviewed_at`, `reviewed_by_id`
+- `rejection_reason`
 - a user requests a reward
 - points are reserved/deducted immediately
 - admin approves or rejects the request
 - if rejected or cancelled, reserved points are refunded
 - service layer should prevent double deductions/refunds
 
-### Category
+### TaskCategory / RewardCategory
 
-Known concepts:
+Two separate category models exist:
 
-- categories are used for tasks and rewards
-- admin can manage categories
-- future filtering/grouping should use categories consistently
+- `TaskCategory` — admin-managed categories for tasks (`task_categories` table)
+- `RewardCategory` — admin-managed categories for rewards/shop (`reward_categories` table)
+
+Both have `name`, `is_active`, and `created_at` fields. Categories are managed via `/admin/categories`.
+
+### Notification
+
+Known fields/concepts:
+
+- `user_id`, `title`, `message`
+- `action_url`, `action_label`
+- `notification_type` — `"info"`, `"success"`, etc.
+- `is_read`, `created_at`
+- notifications are created by services (e.g. badge awards)
+- users can mark notifications as read via `/notifications/<id>/read`
+- notifications surface on the dashboard
+
+### WishlistRequest
+
+Known fields/concepts:
+
+- `user_id`, `requested_name`, `requested_description`
+- `status` — `"requested"`, `"approved"`, `"rejected"`, `"cancelled"`
+- `rejection_reason`, `reviewed_at`, `reviewed_by_id`
+- users submit requests for new wishlist items
+- admin can approve (which creates a WishlistItem) or reject
 
 ### WishlistItem
 
-Known concepts:
+Known fields/concepts:
 
+- `user_id`, `name`, `description`, `point_cost`
+- `status` — `"active"`, `"funded"`, `"fulfilled"`
+- `is_active`, `created_by_id`, `created_at`
+- `total_saved()`, `remaining_points()`, `progress_percentage()`, `is_funded()`
 - wishlist items belong to one user
-- users can request wishlist items
-- admin can add or approve wishlist items
 - admin controls or finalises the item name/description/cost
 - users contribute points toward wishlist items over time
-- the app calculates active saved points
-- the app calculates remaining points required
 - item can be considered funded when saved points reach the point cost
+- admin can fulfil funded items via `/admin/wishlist/items/<id>/fulfil`
 - archive workflow exists
 
 ### WishlistContribution
 
-Known concepts:
+Known fields/concepts:
 
+- `item_id`, `user_id`, `amount`
+- `status` — `"active"`
+- `created_at`
 - stores user point contributions toward wishlist items
 - creates point transactions
 - contributes to point history
 
 ### GroupGoal
 
-Known concepts:
+Known fields/concepts:
 
+- `title`, `description`, `target_points`
+- `status` — `"active"`, `"fulfilled"`, `"cancelled"`
+- `is_active`, `created_at`
+- `total_contributed()`, `remaining_points()`, `progress_percentage()`, `is_funded()`
 - shared household goals
 - users contribute points toward a common target
-- app calculates contributed points and remaining points
-- standard users can contribute
 - admins do not normally contribute
+- admin can fulfil a funded goal via `/group-goals/<id>/fulfil`
+- admin can cancel a goal via `/group-goals/<id>/cancel`
+
+### GroupGoalContribution
+
+Known fields/concepts:
+
+- `goal_id`, `user_id`, `amount`
+- `status` — `"active"`
+- `created_at`
+
+### Badge / UserBadge
+
+Known badge codes (seeded automatically):
+
+```text
+first_task          — First Task (✅) — completed first approved task
+five_tasks          — Task Starter (⭐) — completed 5 approved tasks
+ten_tasks           — Task Champion (🏆) — completed 10 approved tasks
+wishlist_saver      — Wishlist Saver (🎁) — saved toward a wishlist item
+wishlist_funded     — Goal Reached (🎯) — fully funded a wishlist item
+group_contributor   — Team Player (🤝) — contributed to a group goal
+hundred_points_earned — Big Earner (💰) — reached 100 total points earned
+```
+
+`UserBadge` stores user-badge links with `earned_at` timestamps. Badge notifications are created automatically on award.
 
 ## 7. Current feature set
 
@@ -278,7 +350,7 @@ Built/expected:
 - PIN/password entry
 - Flask-Login session handling
 - admin and standard user roles
-- default admin seeding for fresh installs has been added or is in progress
+- default admin seeded on fresh install (idempotent, only if zero users exist)
 - desired UX: selecting a user should automatically focus the PIN input
 - desired mobile UX: PIN field should show numeric keypad, not full keyboard
 
@@ -292,7 +364,9 @@ Role: admin
 Avatar: 🛡️
 ```
 
-Default admin seeding must be idempotent and only create the default admin if the database has zero users.
+This is a public first-login default for brand-new empty databases only. Change it immediately after first login.
+
+**Note:** Login PIN autofocus/numeric keypad is not yet implemented. The current `login.html` JS selects the user card and updates a hidden field, but does not focus the PIN input or add `inputmode="numeric"`. See section 10 for the implementation plan.
 
 ### User dashboard
 
@@ -302,6 +376,7 @@ Built/expected:
 - recent point activity
 - available task/reward/wishlist/group-goal navigation
 - HomeStack-style cards and layout
+- notifications surfaced from service layer
 
 ### Admin dashboard
 
@@ -337,7 +412,7 @@ user_profile.html
 
 Admin can create tasks, edit tasks, manage tasks, hide/delete tasks, configure persistent or one-time tasks, use Hot Tasks, and complete tasks on behalf of users.
 
-Users can view tasks, submit task completions, and view task history.
+Users can view tasks, submit task completions, cancel pending submissions, and view task history.
 
 Relevant templates:
 
@@ -366,9 +441,9 @@ reject_reward_purchase.html
 
 ### Reward shop
 
-Admin can create rewards, edit rewards, manage rewards, set cost/category/stock/visibility, and approve/reject purchases.
+Admin can create rewards, edit rewards, manage rewards, set cost/category/visibility, and approve/reject purchases.
 
-Users can browse the reward shop, request rewards, spend/reserve points, and view reward history.
+Users can browse the reward shop, request rewards, cancel pending requests, spend/reserve points, and view reward history.
 
 Relevant templates:
 
@@ -406,16 +481,46 @@ point_history.html
 /admin/users/<int:user_id>/adjust-points
 ```
 
+### Reports and CSV exports
+
+Four CSV exports are available via the admin reports page:
+
+```text
+/admin/reports/users.csv    — user list
+/admin/reports/points.csv   — point transaction history
+/admin/reports/tasks.csv    — task activity
+/admin/reports/rewards.csv  — reward requests
+```
+
+Relevant template:
+
+```text
+admin_reports.html
+```
+
+### Database backup
+
+A database download backup route exists:
+
+```text
+/admin/backup
+```
+
+Admin only. Downloads the SQLite database file as a timestamped `.db` attachment (e.g. `project-meridian-backup-20260618-123000.db`). This is the current backup mechanism for the local MVP.
+
 ### Wishlist
 
 Built/expected:
 
 - wishlist page
 - request wishlist item
+- cancel pending wishlist request
 - admin add wishlist item
 - approve/reject wishlist request
 - edit wishlist item
 - contribute to wishlist item
+- admin fulfil funded wishlist item (`/admin/wishlist/items/<id>/fulfil`)
+- admin remove wishlist item
 - wishlist archive
 - funded status based on saved points meeting item cost
 
@@ -441,6 +546,8 @@ Built/expected:
 - contribute to group goal
 - shared goal progress tracking
 - contribution point deductions
+- admin fulfil funded goal (`/group-goals/<id>/fulfil`) — marks goal as fulfilled
+- admin cancel goal (`/group-goals/<id>/cancel`)
 
 Relevant templates:
 
@@ -450,27 +557,26 @@ create_group_goal.html
 contribute_group_goal.html
 ```
 
-### Reports
+### Leaderboard
 
-Built/expected:
+A leaderboard page exists at `/leaderboard`. Shows rankings for active standard users by:
 
-- admin reports page
-- CSV exports
-- point transaction report
-- user/task/reward activity reporting
+- Current points (from point balance)
+- Total points earned (from positive earning transactions returned by `points_service.get_earning_transaction_types()`; spending does not reduce this score)
+- Tasks completed (from approved task completion records)
 
-Relevant template:
+### Request archive
 
-```text
-admin_reports.html
-```
+A unified request archive exists at `/requests/archive`. Shows completed/rejected/cancelled requests for all request types (task completions, reward requests, wishlist requests). Admins see all users; standard users see their own records.
 
 ### Categories
 
 Built/expected:
 
-- manage categories
+- manage task and reward categories separately
+- `TaskCategory` and `RewardCategory` are distinct models
 - categories apply to tasks and rewards
+- admin can add, restore, and remove categories
 - future filtering/grouping should be category-aware
 
 Relevant template:
@@ -481,13 +587,9 @@ manage_categories.html
 
 ### Badges
 
-A badge service exists.
+Badge awarding is fully implemented via the service layer.
 
-Known badge concepts:
-
-- saved toward wishlist item
-- contributed to group goal
-- total earned milestone
+Seven default badges are seeded automatically (see section 6 for codes). Badges are awarded when task approvals, wishlist contributions, group contributions, and point milestones are reached. A notification is created for the user on badge award.
 
 Relevant file:
 
@@ -527,13 +629,24 @@ Purpose: centralise household settings access and avoid repeated fallback/defaul
 
 Purpose: calculate point totals, format point-related text, and support current balance and total earned calculations.
 
+Current total-earned transaction types:
+
+```text
+task_approved
+manual_adjustment
+admin_adjustment
+point_adjustment
+```
+
+Only positive transactions of those types count toward total earned. Reward spending, wishlist saving, group-goal contributions, refunds, and negative adjustments should not reduce total earned.
+
 ### `notification_service.py`
 
 Purpose: centralise notification creation/handling.
 
 ### `badge_service.py`
 
-Purpose: badge award/evaluation logic.
+Purpose: badge award/evaluation logic. Includes `seed_badges()`, `award_badge()`, and `check_and_award_badges()`.
 
 ### `report_service.py`
 
@@ -597,7 +710,7 @@ UI refresh was applied in batches:
 
 ### Navbar dropdown layering fix
 
-A bug was found where navbar dropdowns appeared behind cards. Add/keep this patch at the bottom of `homestack.css`:
+A bug was found where navbar dropdowns appeared behind cards. This fix is committed. Keep this patch at the bottom of `homestack.css`:
 
 ```css
 /* =========================================================
@@ -624,9 +737,13 @@ If dropdowns still appear behind cards, check for parent stacking contexts from 
 
 ## 10. Login UX improvement to implement
 
+**Status: Not yet implemented.**
+
 Desired feature:
 
 When a user is selected at login, the cursor should automatically go to the PIN input. On mobile, tapping the user should bring up the numeric keypad instead of the full keyboard.
+
+Current state: `login.html` has JS that sets the hidden `selected_user_id` field and updates the selected-user display text when a card is clicked, but does not focus the PIN input and the password field does not yet have `inputmode="numeric"`.
 
 Implementation direction:
 
@@ -766,11 +883,21 @@ Recent major work completed:
 - Database indexes added for common queries.
 - HomeStack UI refresh ported across the app in batches.
 - Final CSS/mobile polish applied.
-- Navbar dropdown layering fix identified.
-- Dynamic wording cleanup for visible “points” labels.
-- Default admin seed feature planned/added to solve fresh-install lockout.
-- Login numeric PIN autofocus feature identified as the next UX improvement.
-- Economy baseline discussed.
+- Navbar dropdown layering fix committed.
+- Dynamic wording cleanup for visible "points" labels.
+- Default admin seed feature added — solves fresh-install lockout.
+- Database backup download route added (`/admin/backup`).
+- Four CSV export routes added (users, points, tasks, rewards).
+- Group goal fulfil and cancel admin routes added.
+- Wishlist item fulfil admin route added.
+- Badge system implemented with seven default badges.
+- Unified request archive page implemented.
+
+Repository hygiene:
+
+- Remove personal names, account URLs, secrets, database files, backups, and machine-specific paths from documentation before committing.
+- Keep `.env`, SQLite database files, backup files, generated exports, and runtime artifacts untracked.
+- After each completed code or documentation change, run the relevant checks, commit with a clear message, and push to GitHub.
 
 Recent tag context:
 
@@ -779,39 +906,30 @@ stable-service-layer
 stable-homestack-ui
 ```
 
-## 13. Features yet to implement or confirm
+## 13. Features yet to implement
 
-Priority items:
+The following items remain to be done. After each change, commit with a clear message and push to the repository.
 
-1. Confirm default admin seeding is committed and deployed.
-2. Confirm fresh database creates default admin:
-   - display name: Admin
-   - username: admin
-   - PIN/password: 1234
-   - role: admin
-3. Implement or confirm login user-card-to-PIN autofocus.
-4. Confirm mobile numeric keypad appears on login.
-5. Confirm navbar dropdown layering fix is committed.
-6. Populate starting task and reward economy.
-7. Smoke test mobile layout across all main pages.
-8. Add or improve backup/export tooling if not present.
-9. Continue gradual service-layer refactoring.
-10. Consider kiosk/touchscreen mode after core household use is stable.
+### Priority items
 
-Possible future features:
+1. **Login PIN autofocus and numeric keypad** — add `inputmode="numeric"`, `pattern`, `autocomplete`, `maxlength` to the PIN field in `login.html` and add JS to focus it when a user card is clicked. (See section 10.)
+2. **Populate the starting task and reward economy** — use the economy baseline in section 11. Create categories first, then tasks, then rewards.
+3. **Smoke test mobile layout** — test all main pages on a phone-sized viewport.
+4. **Continue service-layer refactoring** — gradually extract remaining inline logic from `routes.py` into service files. Avoid a risky full rewrite.
+
+### Possible future features
 
 - Kiosk/touchscreen mode for Raspberry Pi home hub.
-- More badges and milestone logic.
-- Better leaderboard options.
-- More group goal lifecycle states: active, funded, completed, archived.
+- More badges and milestone logic (e.g. streaks, 25/50-task milestones, higher earning tiers).
+- Better leaderboard options (weekly view, opt-out toggle).
+- More group goal lifecycle states (funded milestone notification).
 - More wishlist lifecycle states.
-- More reward stock handling.
-- More admin CSV/report exports.
-- Backup/restore page.
+- Reward stock/quantity handling if the household needs limited-availability rewards.
+- Backup/restore page (currently download-only; no restore UI).
 - More modular dashboard widgets.
 - More mobile-specific navigation improvements.
-- Reverse proxy/domain setup.
-- Optional household-specific points label such as stars or credits.
+- Reverse proxy/domain setup for local network access.
+- Optional household-specific points label such as stars or credits (partially supported via `points_label`).
 
 ## 14. Known issues and technical debt
 
@@ -819,7 +937,7 @@ Possible future features:
 
 `routes.py` is still large. Some logic has been moved into services, but more gradual extraction is warranted. Avoid a risky full rewrite.
 
-### Visible “points” wording
+### Visible "points" wording
 
 Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.
 
@@ -837,6 +955,10 @@ Points Label -> Balance Label
 ```
 
 Do not rename internal database fields casually.
+
+### Hardcoded SECRET_KEY fallback
+
+`config.py` contains `SECRET_KEY = "change-this-later"` and `app/__init__.py` has a fallback of `"dev-secret-key-change-later"`. Production deployments must set `SECRET_KEY` in `.env`. Never use the fallback value on a real install.
 
 ### Seed logic
 
@@ -856,13 +978,9 @@ Ctrl + F5
 
 or test in a private/incognito window.
 
-### Fresh install lockout
-
-Fresh installs without users were unusable. The default admin seed is intended to solve this.
-
 ## 15. Decisions already made
 
-Do not relitigate unless Nick explicitly asks:
+Do not relitigate unless the user explicitly asks:
 
 - The app is called Project Meridian for now.
 - It is a self-hosted household task/reward app.
@@ -883,9 +1001,9 @@ Do not relitigate unless Nick explicitly asks:
 - Default admin should only be seeded if the database has zero users.
 - Keep changes incremental, tested, and committed.
 
-## 16. Nick’s working preferences
+## 16. Working preferences
 
-Nick prefers:
+The developer prefers:
 
 - direct, practical guidance
 - copy-pasteable commands
@@ -909,7 +1027,7 @@ When continuing work, give exact files to edit, exact commands to run, and what 
 Start by checking the repo state:
 
 ```bash
-cd ~/Documents/project-meridian
+cd <local-project-meridian-directory>
 
 git status
 git log --oneline --decorate -8
@@ -947,13 +1065,12 @@ Before database-affecting work, back up the SQLite database.
 
 Continue work in this order:
 
-1. Confirm seed/default admin behaviour.
-2. Confirm login PIN autofocus/numeric keypad.
-3. Confirm dropdown layering fix.
-4. Add first stable task/reward economy.
-5. Smoke test mobile UI.
-6. Add backup/restore tooling.
-7. Continue service-layer cleanup.
+1. Implement login PIN autofocus and numeric keypad (section 10).
+2. Populate starting task and reward economy (section 11).
+3. Smoke test mobile UI across all main pages.
+4. Continue service-layer cleanup.
+
+After each change: commit with a clear message and push to the repository.
 
 ## 18. One-sentence product definition
 
