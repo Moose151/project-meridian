@@ -65,6 +65,7 @@ from app.services.reward_service import (
 from app.route_sections.admin_exports import register_admin_export_routes
 from app.route_sections.activity import register_activity_routes
 from app.route_sections.auth import register_auth_routes
+from app.route_sections.admin_home import register_admin_home_routes
 from app.route_sections.categories import register_category_routes
 from app.route_sections.dashboard import register_dashboard_routes
 from app.route_sections.group_goals import register_group_goal_routes
@@ -108,6 +109,7 @@ def admin_required():
 
 
 register_admin_export_routes(bp, admin_required)
+register_admin_home_routes(bp, admin_required)
 register_activity_routes(bp)
 register_auth_routes(bp)
 register_category_routes(bp, admin_required)
@@ -1659,28 +1661,6 @@ def edit_reward(reward_id):
         form=form,
         reward=reward
     )
-
-# =========================================================
-# ADMIN HOME PAGE
-# =========================================================
-
-@bp.route("/admin")
-@login_required
-def admin_home():
-    """
-    Admin home page.
-
-    This page acts as a central menu for admin tools.
-
-    Instead of putting every admin action in the top navbar,
-    we link to this one Admin page and put the admin tools there.
-    """
-
-    # Block non-admin users.
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    return render_template("admin_home.html")
 
 # =========================================================
 # USER CANCELLATION / RESCIND REQUESTS
