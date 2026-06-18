@@ -1014,6 +1014,26 @@ This module now owns:
 
 The existing `main.point_history`, `main.task_history`, `main.reward_history`, and `main.mark_notification_read` endpoint names were preserved.
 
+Third extraction completed:
+
+```text
+app/route_sections/categories.py
+```
+
+This module now owns:
+
+```text
+/admin/categories
+/admin/categories/task/add
+/admin/categories/reward/add
+/admin/categories/task/<id>/remove
+/admin/categories/reward/<id>/remove
+/admin/categories/task/<id>/restore
+/admin/categories/reward/<id>/restore
+```
+
+The existing `main.manage_categories`, `main.add_task_category`, `main.add_reward_category`, `main.remove_task_category`, `main.remove_reward_category`, `main.restore_task_category`, and `main.restore_reward_category` endpoint names were preserved.
+
 ### Visible "points" wording
 
 Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.
