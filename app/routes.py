@@ -9,18 +9,15 @@ from datetime import datetime, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 
 # Import Flask-Login helpers.
-# login_user logs a user in.
-# logout_user logs a user out.
 # login_required protects pages from users who are not logged in.
 # current_user represents the currently logged-in user.
-from flask_login import login_user, logout_user, login_required, current_user
+from flask_login import login_required, current_user
 
 # Import the database object so we can add, update, and delete records.
 from app import db
 
 # Import all forms used by the app.
 from app.forms import (
-    LoginForm,
     TaskForm,
     RewardForm,
     UserForm,
@@ -85,6 +82,7 @@ from app.services.reward_service import (
 
 from app.route_sections.admin_exports import register_admin_export_routes
 from app.route_sections.activity import register_activity_routes
+from app.route_sections.auth import register_auth_routes
 from app.route_sections.categories import register_category_routes
 
 # Create the main blueprint.
@@ -122,6 +120,7 @@ def admin_required():
 
 register_admin_export_routes(bp, admin_required)
 register_activity_routes(bp)
+register_auth_routes(bp)
 register_category_routes(bp, admin_required)
 
 
@@ -346,112 +345,6 @@ def task_import_choices():
 # =========================================================
 # BASIC ROUTES: HOME, LOGIN, LOGOUT, DASHBOARD
 # =========================================================
-
-@bp.route("/")
-def index():
-    """
-    Home route.
-
-    If already logged in, go to dashboard.
-    If not logged in, go to login.
-    """
-
-    if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
-
-    return redirect(url_for("main.login"))
-
-
-@bp.route("/login", methods=["GET", "POST"])
-def login():
-    """
-    Avatar login page.
-
-    Instead of typing a username:
-    - user selects their avatar
-    - user enters their PIN/password
-    - app logs in the selected user if the PIN/password is correct
-    """
-
-    # If someone already logged in visits /login, send them to dashboard.
-    if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
-
-    # Create the login form.
-    form = LoginForm()
-
-    # Get active users to display as avatar cards.
-    active_users = User.query.filter_by(
-        is_active_account=True
-    ).order_by(
-        User.role,
-        User.display_name
-    ).all()
-
-    # If the form was submitted and passed validation, process login.
-    if form.validate_on_submit():
-
-        # selected_user_id is stored as text in the hidden field.
-        # Convert it to an integer safely.
-        try:
-            selected_user_id = int(form.selected_user_id.data)
-        except ValueError:
-            flash("Please select a user.")
-            return render_template(
-                "login.html",
-                form=form,
-                users=active_users
-            )
-
-        # Look up the selected user.
-        user = db.session.get(User, selected_user_id)
-
-        # Stop if the selected user does not exist.
-        if not user:
-            flash("Selected user not found.")
-            return render_template(
-                "login.html",
-                form=form,
-                users=active_users
-            )
-
-        # Disabled users should not be able to log in.
-        if not user.is_active_account:
-            flash("This account has been disabled.")
-            return render_template(
-                "login.html",
-                form=form,
-                users=active_users
-            )
-
-        # Check PIN/password.
-        if user.check_password(form.password.data):
-            login_user(user)
-            flash("Logged in successfully.")
-            return redirect(url_for("main.dashboard"))
-
-        # Wrong PIN/password.
-        flash("Invalid PIN.")
-
-    return render_template(
-        "login.html",
-        form=form,
-        users=active_users
-    )
-
-
-@bp.route("/logout")
-@login_required
-def logout():
-    """
-    Logout route.
-
-    Clears the current login session.
-    """
-
-    logout_user()
-    flash("Logged out.")
-    return redirect(url_for("main.login"))
 
 @bp.route("/admin/settings", methods=["GET", "POST"])
 @login_required

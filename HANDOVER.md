@@ -1034,6 +1034,22 @@ This module now owns:
 
 The existing `main.manage_categories`, `main.add_task_category`, `main.add_reward_category`, `main.remove_task_category`, `main.remove_reward_category`, `main.restore_task_category`, and `main.restore_reward_category` endpoint names were preserved.
 
+Fourth extraction completed:
+
+```text
+app/route_sections/auth.py
+```
+
+This module now owns:
+
+```text
+/
+/login
+/logout
+```
+
+The existing `main.index`, `main.login`, and `main.logout` endpoint names were preserved.
+
 ### Visible "points" wording
 
 Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.
