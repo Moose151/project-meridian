@@ -914,10 +914,9 @@ The following items remain to be done. After each change, commit with a clear me
 
 ### Priority items
 
-1. **Login PIN autofocus and numeric keypad** — add `inputmode="numeric"`, `pattern`, `autocomplete`, `maxlength` to the PIN field in `login.html` and add JS to focus it when a user card is clicked. (See section 10.)
-2. **Populate the starting task and reward economy** — use the economy baseline in section 11. Create categories first, then tasks, then rewards.
-3. **Smoke test mobile layout** — test all main pages on a phone-sized viewport.
-4. **Continue service-layer refactoring** — gradually extract remaining inline logic from route section files into service files. Avoid a risky large rewrite.
+1. **Login PIN autofocus and numeric keypad** — add `inputmode="numeric"`, `pattern`, `autocomplete`, `maxlength` to the PIN field in `login.html` and add JS to focus it when a user card is clicked. (See section 10.) — **Done.**
+2. **Smoke test mobile layout** — test all main pages on a phone-sized viewport.
+3. **Continue service-layer refactoring** — gradually extract remaining inline logic from route section files into service files. Avoid a risky large rewrite.
 
 ### Possible future features
 
