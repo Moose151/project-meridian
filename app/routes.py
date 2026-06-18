@@ -1,21 +1,12 @@
-# Import datetime tools so we can record when approvals and reviews happen,
-# and so we can create timestamped backup filenames.
+# Import datetime tools so we can record when approvals and reviews happen.
 from datetime import datetime, timezone
-
-# os lets us build file paths and check whether the database file exists.
-import os
-
-# csv and StringIO are used for admin report exports.
-import csv
-from io import StringIO
 
 # Import Flask helpers.
 # Blueprint groups routes together.
 # render_template loads HTML templates.
 # redirect and url_for move users between pages.
 # flash shows short messages to the user.
-# send_file lets us send a downloadable file to the browser.
-from flask import Blueprint, render_template, redirect, url_for, flash, send_file, request, Response
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 
 # Import Flask-Login helpers.
 # login_user logs a user in.
@@ -81,13 +72,6 @@ from app.services.points_service import (
     format_points,
 )
 
-from app.services.report_service import (
-    build_users_report_rows,
-    build_points_report_rows,
-    build_tasks_report_rows,
-    build_rewards_report_rows,
-)
-
 from app.services.task_service import (
     approve_submitted_task_completion,
     admin_complete_task_for_user,
@@ -99,6 +83,9 @@ from app.services.reward_service import (
     reject_reward_purchase_request,
     cancel_reward_purchase_request,
 )
+
+from app.route_sections.admin_exports import register_admin_export_routes
+
 # Create the main blueprint.
 # All routes in this file are registered under this blueprint.
 bp = Blueprint("main", __name__)
@@ -130,6 +117,10 @@ def admin_required():
         return False
 
     return True
+
+
+register_admin_export_routes(bp, admin_required)
+
 
 def task_category_choices(include_current=None):
     """
@@ -239,29 +230,6 @@ def get_household_settings():
         db.session.commit()
 
     return settings
-
-def make_csv_response(filename, rows):
-    """
-    Create a downloadable CSV response.
-
-    rows should be a list of lists.
-    The first row should normally be the header row.
-    """
-
-    output = StringIO()
-    writer = csv.writer(output)
-
-    for row in rows:
-        writer.writerow(row)
-
-    response = Response(
-        output.getvalue(),
-        mimetype="text/csv"
-    )
-
-    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-
-    return response
 
 def create_notification(
     user_id,
@@ -513,80 +481,6 @@ def household_settings():
         "household_settings.html",
         form=form,
         settings=settings
-    )
-
-@bp.route("/admin/reports")
-@login_required
-def admin_reports():
-    """
-    Admin-only reports page.
-
-    Provides CSV exports for users, point history, task activity, and reward requests.
-    """
-
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    return render_template("admin_reports.html")
-
-@bp.route("/admin/reports/users.csv")
-@login_required
-def export_users_csv():
-    """
-    Export user summary data as CSV.
-    """
-
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    return make_csv_response(
-        "meridian_users_report.csv",
-        build_users_report_rows()
-    )
-
-@bp.route("/admin/reports/points.csv")
-@login_required
-def export_points_csv():
-    """
-    Export the full point transaction ledger as CSV.
-    """
-
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    return make_csv_response(
-        "meridian_point_history.csv",
-        build_points_report_rows()
-    )
-
-@bp.route("/admin/reports/tasks.csv")
-@login_required
-def export_tasks_csv():
-    """
-    Export task completion activity as CSV.
-    """
-
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    return make_csv_response(
-        "meridian_task_activity.csv",
-        build_tasks_report_rows()
-    )
-
-@bp.route("/admin/reports/rewards.csv")
-@login_required
-def export_rewards_csv():
-    """
-    Export reward request activity as CSV.
-    """
-
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    return make_csv_response(
-        "meridian_reward_requests.csv",
-        build_rewards_report_rows()
     )
 
 @bp.route("/dashboard")
@@ -1995,62 +1889,6 @@ def delete_reward(reward_id):
 
     flash("Unused reward deleted.")
     return redirect(url_for("main.manage_rewards"))
-
-
-# =========================================================
-# BACKUP / EXPORT
-# =========================================================
-
-@bp.route("/admin/backup")
-@login_required
-def backup_database():
-    """
-    Admin-only database backup route.
-
-    This sends the SQLite database file to the browser as a download.
-
-    The database file contains:
-    - users
-    - tasks
-    - task completions
-    - rewards
-    - reward purchases
-    - point transactions
-
-    For this local MVP, downloading the SQLite file is the simplest backup method.
-    """
-
-    # Block non-admin users from downloading the database.
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    # Build the path to the SQLite database.
-    # app.root_path points to the /app folder, so we move one folder up
-    # to the project folder, then into /instance/meridian.db.
-    db_path = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        "instance",
-        "meridian.db"
-    )
-
-    # If the database file does not exist, show an error instead of crashing.
-    if not os.path.exists(db_path):
-        flash("Database file not found.")
-        return redirect(url_for("main.dashboard"))
-
-    # Create a timestamp for the backup filename.
-    # Example: 20260529-231500
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-
-    # Create the filename the browser will download.
-    backup_filename = f"project-meridian-backup-{timestamp}.db"
-
-    # Send the database file to the browser as a downloadable attachment.
-    return send_file(
-        db_path,
-        as_attachment=True,
-        download_name=backup_filename
-    )
 
 
 # =========================================================

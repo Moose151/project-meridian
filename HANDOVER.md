@@ -937,6 +937,65 @@ The following items remain to be done. After each change, commit with a clear me
 
 `routes.py` is still large. Some logic has been moved into services, but more gradual extraction is warranted. Avoid a risky full rewrite.
 
+Refactor goal:
+
+```text
+Keep the existing main blueprint and main.<endpoint> URL names stable,
+but move route groups into smaller modules by feature area.
+```
+
+Preferred shape:
+
+```text
+app/routes.py
+app/route_sections/
+    __init__.py
+    admin_exports.py
+    auth.py
+    dashboard.py
+    tasks.py
+    rewards.py
+    users.py
+    points.py
+    categories.py
+    notifications.py
+    profiles.py
+    group_goals.py
+    wishlist.py
+    request_archive.py
+```
+
+Do not rename the existing `main` blueprint casually. Many templates call endpoints such as `url_for("main.dashboard")`, so the first phase should register smaller route modules against the existing blueprint instead of changing endpoint names.
+
+Refactor steps:
+
+1. Move low-risk, self-contained routes first: reports, CSV exports, database backup, notifications, points/history.
+2. Move simple admin CRUD groups next: categories, users, task/reward management pages.
+3. Move complex workflow groups last: task approval, reward reservation/refund, wishlist, and group goals.
+4. As each route group moves, keep behaviour unchanged, run syntax checks, smoke test affected pages, then commit and push.
+5. After route groups are separated, continue moving business logic into services so route files mostly validate input, call a service, flash a result, and redirect/render.
+
+Current first extraction target:
+
+```text
+app/route_sections/admin_exports.py
+```
+
+This module should own:
+
+```text
+/admin/reports
+/admin/reports/users.csv
+/admin/reports/points.csv
+/admin/reports/tasks.csv
+/admin/reports/rewards.csv
+/admin/backup
+```
+
+This keeps the report/backup code together and removes CSV/download concerns from the main route file.
+
+Status: initial extraction completed. `admin_exports.py` now owns the admin reports page, CSV report downloads, and database backup route while preserving the existing `main.admin_reports`, `main.export_*_csv`, and `main.backup_database` endpoint names.
+
 ### Visible "points" wording
 
 Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.
@@ -1065,10 +1124,11 @@ Before database-affecting work, back up the SQLite database.
 
 Continue work in this order:
 
-1. Implement login PIN autofocus and numeric keypad (section 10).
-2. Populate starting task and reward economy (section 11).
-3. Smoke test mobile UI across all main pages.
-4. Continue service-layer cleanup.
+1. Continue the `routes.py` modularisation in small route groups (section 14, Large `routes.py`).
+2. Implement login PIN autofocus and numeric keypad (section 10).
+3. Populate starting task and reward economy (section 11).
+4. Smoke test mobile UI across all main pages.
+5. Continue service-layer cleanup.
 
 After each change: commit with a clear message and push to the repository.
 
