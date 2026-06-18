@@ -25,7 +25,6 @@ from app.forms import (
     ChangePasswordForm,
     PointAdjustmentForm,
     AdminCompleteTaskForm,
-    RejectionReasonForm,
 )
 
 # Import all database models used by the routes.
@@ -46,26 +45,17 @@ from app.services.settings_service import (
     get_points_label,
 )
 
-from app.services.badge_service import check_and_award_badges
-
 from app.services.points_service import format_points
 
-from app.services.task_service import (
-    approve_submitted_task_completion,
-    admin_complete_task_for_user,
-)
+from app.services.task_service import admin_complete_task_for_user
 
-from app.services.reward_service import (
-    create_reward_reservation,
-    approve_reward_purchase_request,
-    reject_reward_purchase_request,
-    cancel_reward_purchase_request,
-)
+from app.services.reward_service import create_reward_reservation
 
 from app.route_sections.admin_exports import register_admin_export_routes
 from app.route_sections.activity import register_activity_routes
 from app.route_sections.auth import register_auth_routes
 from app.route_sections.admin_home import register_admin_home_routes
+from app.route_sections.approvals import register_approval_routes
 from app.route_sections.categories import register_category_routes
 from app.route_sections.dashboard import register_dashboard_routes
 from app.route_sections.group_goals import register_group_goal_routes
@@ -110,6 +100,7 @@ def admin_required():
 
 register_admin_export_routes(bp, admin_required)
 register_admin_home_routes(bp, admin_required)
+register_approval_routes(bp, admin_required)
 register_activity_routes(bp)
 register_auth_routes(bp)
 register_category_routes(bp, admin_required)
@@ -539,210 +530,6 @@ def submit_task(task_id):
 
     flash("Task submitted for approval.")
     return redirect(url_for("main.dashboard"))
-
-
-# =========================================================
-# ADMIN APPROVALS: TASKS AND REWARDS
-# =========================================================
-
-@bp.route("/admin/approvals")
-@login_required
-def admin_approvals():
-    """
-    Admin approval queue.
-
-    Shows:
-    - submitted task completions
-    - requested reward purchases
-    """
-
-    # Block non-admin users.
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    # Get task submissions waiting for review.
-    pending_tasks = TaskCompletion.query.filter_by(
-        status="submitted"
-    ).all()
-
-    # Get reward purchase requests waiting for review.
-    pending_purchases = RewardPurchase.query.filter_by(
-        status="requested"
-    ).all()
-
-    return render_template(
-        "admin_approvals.html",
-        pending_tasks=pending_tasks,
-        pending_purchases=pending_purchases
-    )
-
-
-@bp.route("/admin/tasks/<int:completion_id>/approve", methods=["POST"])
-@login_required
-def approve_task_completion(completion_id):
-    """
-    Approve a submitted task completion.
-
-    The task approval business logic is handled by task_service.
-    """
-
-    # Block non-admin users.
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    # Find the submitted task completion.
-    completion = db.session.get(TaskCompletion, completion_id)
-
-    # Stop if it does not exist or is not pending.
-    if not completion or completion.status != "submitted":
-        flash("Task completion request not found.")
-        return redirect(url_for("main.admin_approvals"))
-
-    # Approve the task, create the point transaction, notify the user,
-    # hide one-off tasks if needed, and check badge eligibility.
-    awarded_points = approve_submitted_task_completion(completion)
-
-    # Save approval, transaction, notifications, and badge updates.
-    db.session.commit()
-
-    flash(f"Task approved and {format_points(awarded_points)} awarded.")
-    return redirect(url_for("main.admin_approvals"))
-
-
-@bp.route("/admin/tasks/<int:completion_id>/reject", methods=["GET", "POST"])
-@login_required
-def reject_task_completion(completion_id):
-    """
-    Reject a submitted task completion.
-
-    New behaviour:
-    - Admin is shown a rejection form.
-    - Admin must enter a short rejection reason.
-    - Reason appears in Task History.
-    """
-
-    # Block non-admin users.
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    # Find the task completion.
-    completion = db.session.get(TaskCompletion, completion_id)
-
-    # Stop if it does not exist or is no longer waiting for review.
-    if not completion or completion.status != "submitted":
-        flash("Task completion request not found.")
-        return redirect(url_for("main.admin_approvals"))
-
-    # Create rejection form.
-    form = RejectionReasonForm()
-
-    # If the form was submitted and valid, reject the task.
-    if form.validate_on_submit():
-
-        completion.status = "rejected"
-        completion.reviewed_at = datetime.now(timezone.utc)
-        completion.reviewed_by_id = current_user.id
-        completion.rejection_reason = form.reason.data.strip()
-
-        # Notify the user that the task was rejected.
-        create_notification(
-            user_id=completion.user_id,
-            title="Task rejected",
-            message=f"Your task '{completion.task.title}' was rejected. Reason: {completion.rejection_reason}",
-            notification_type="danger"
-        )
-
-        db.session.commit()
-
-        flash("Task completion rejected.")
-        return redirect(url_for("main.admin_approvals"))
-
-    # Show rejection reason form.
-    return render_template(
-        "reject_task_completion.html",
-        form=form,
-        completion=completion
-    )
-
-
-@bp.route("/admin/rewards/<int:purchase_id>/approve", methods=["POST"])
-@login_required
-def approve_reward_purchase(purchase_id):
-    """
-    Approve a requested reward purchase.
-
-    The reward approval business logic is handled by reward_service.
-    """
-
-    # Block non-admin users.
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    # Find the purchase request.
-    purchase = db.session.get(RewardPurchase, purchase_id)
-
-    # Stop if it does not exist or is not pending.
-    if not purchase or purchase.status != "requested":
-        flash("Reward purchase request not found.")
-        return redirect(url_for("main.admin_approvals"))
-
-    # Approve the reward request.
-    # This returns False if a legacy unreserved request can no longer be afforded.
-    approved = approve_reward_purchase_request(purchase)
-
-    if not approved:
-        flash(f"User no longer has enough {get_points_label()} for this reward.")
-        return redirect(url_for("main.admin_approvals"))
-
-    db.session.commit()
-
-    flash("Reward approved.")
-    return redirect(url_for("main.admin_approvals"))
-
-
-@bp.route("/admin/rewards/<int:purchase_id>/reject", methods=["GET", "POST"])
-@login_required
-def reject_reward_purchase(purchase_id):
-    """
-    Reject a requested reward purchase.
-
-    The reward rejection and refund logic is handled by reward_service.
-    """
-
-    # Block non-admin users.
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    # Find the reward purchase request.
-    purchase = db.session.get(RewardPurchase, purchase_id)
-
-    # Stop if it does not exist or is no longer pending.
-    if not purchase or purchase.status != "requested":
-        flash("Reward purchase request not found.")
-        return redirect(url_for("main.admin_approvals"))
-
-    # Create rejection form.
-    form = RejectionReasonForm()
-
-    # If the form was submitted and valid, reject the reward request.
-    if form.validate_on_submit():
-
-        reject_reward_purchase_request(
-            purchase=purchase,
-            rejection_reason=form.reason.data.strip()
-        )
-
-        db.session.commit()
-
-        flash(f"Reward request rejected and reserved {get_points_label()} refunded.")
-        return redirect(url_for("main.admin_approvals"))
-
-    # Show rejection reason form.
-    return render_template(
-        "reject_reward_purchase.html",
-        form=form,
-        purchase=purchase
-    )
 
 
 # =========================================================

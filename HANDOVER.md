@@ -1205,6 +1205,24 @@ This module now owns:
 
 The existing `main.admin_home` endpoint name was preserved.
 
+Thirteenth extraction completed:
+
+```text
+app/route_sections/approvals.py
+```
+
+This module now owns:
+
+```text
+/admin/approvals
+/admin/tasks/<completion_id>/approve
+/admin/tasks/<completion_id>/reject
+/admin/rewards/<purchase_id>/approve
+/admin/rewards/<purchase_id>/reject
+```
+
+The existing `main.admin_approvals`, `main.approve_task_completion`, `main.reject_task_completion`, `main.approve_reward_purchase`, and `main.reject_reward_purchase` endpoint names were preserved.
+
 ### Visible "points" wording
 
 Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.
