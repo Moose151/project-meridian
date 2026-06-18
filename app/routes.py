@@ -84,6 +84,7 @@ from app.route_sections.admin_exports import register_admin_export_routes
 from app.route_sections.activity import register_activity_routes
 from app.route_sections.auth import register_auth_routes
 from app.route_sections.categories import register_category_routes
+from app.route_sections.dashboard import register_dashboard_routes
 
 # Create the main blueprint.
 # All routes in this file are registered under this blueprint.
@@ -122,6 +123,7 @@ register_admin_export_routes(bp, admin_required)
 register_activity_routes(bp)
 register_auth_routes(bp)
 register_category_routes(bp, admin_required)
+register_dashboard_routes(bp)
 
 
 def task_category_choices(include_current=None):
@@ -378,160 +380,6 @@ def household_settings():
         form=form,
         settings=settings
     )
-
-@bp.route("/dashboard")
-@login_required
-def dashboard():
-    """
-    Dashboard route.
-
-    The dashboard is the main overview page after login.
-
-    Admin users see:
-    - pending task approvals
-    - pending reward requests
-    - active standard user count
-    - quick admin links
-
-    Standard users see:
-    - current point balance
-    - pending task submissions
-    - pending reward requests
-    - available task count
-    - affordable reward count
-    - quick user links
-    """
-
-    # =====================================================
-    # ADMIN DASHBOARD
-    # =====================================================
-    if current_user.is_admin():
-
-        # Get all task submissions waiting for admin approval.
-        pending_tasks = TaskCompletion.query.filter_by(
-            status="submitted"
-        ).all()
-
-        # Get all reward purchase requests waiting for admin approval.
-        pending_purchases = RewardPurchase.query.filter_by(
-            status="requested"
-        ).all()
-
-        # Count active standard users.
-        # Admin users are not included in this count.
-        active_user_count = User.query.filter_by(
-            role="user",
-            is_active_account=True
-        ).count()
-
-        # Get unread dashboard notifications for this admin.
-        notifications = Notification.query.filter_by(
-            user_id=current_user.id,
-            is_read=False
-        ).order_by(
-            Notification.created_at.desc()
-        ).all()
-
-        # Recent system-wide point activity for admin dashboard.
-        recent_activity = PointTransaction.query.order_by(
-            PointTransaction.created_at.desc()
-        ).limit(8).all()
-
-        # Send admin dashboard data to the template.
-        return render_template(
-            "dashboard.html",
-            pending_tasks=pending_tasks,
-            pending_purchases=pending_purchases,
-            active_user_count=active_user_count,
-            notifications=notifications,
-            recent_activity=recent_activity
-        )
-
-    # =====================================================
-    # STANDARD USER DASHBOARD
-    # =====================================================
-
-    # Get this user's submitted tasks waiting for admin approval.
-    pending_user_tasks = TaskCompletion.query.filter_by(
-        user_id=current_user.id,
-        status="submitted"
-    ).all()
-
-    # Get this user's reward requests waiting for admin approval.
-    pending_user_purchases = RewardPurchase.query.filter_by(
-        user_id=current_user.id,
-        status="requested"
-    ).all()
-
-    # Count all currently active tasks.
-    available_task_count = Task.query.filter_by(
-        is_active=True
-    ).count()
-
-    # Get the user's current point balance.
-    current_balance = current_user.point_balance()
-
-    # Count this user's active wishlist items.
-    wishlist_item_count = WishlistItem.query.filter(
-        WishlistItem.user_id == current_user.id,
-        WishlistItem.status.in_(["active", "funded"]),
-        WishlistItem.is_active == True
-    ).count()
-
-    # Count funded wishlist items waiting for admin fulfilment.
-    funded_wishlist_count = WishlistItem.query.filter_by(
-        user_id=current_user.id,
-        status="funded"
-    ).count()
-
-    # Count total points saved across active wishlist items.
-    active_wishlist_items = WishlistItem.query.filter(
-        WishlistItem.user_id == current_user.id,
-        WishlistItem.status.in_(["active", "funded"]),
-        WishlistItem.is_active == True
-    ).all()
-
-    wishlist_points_saved = 0
-
-    for item in active_wishlist_items:
-        wishlist_points_saved += item.total_saved()
-
-    # Count rewards the user can currently afford.
-    affordable_reward_count = Reward.query.filter(
-        Reward.is_active == True,
-        Reward.point_cost <= current_balance
-    ).count()
-
-    # Get unread dashboard notifications for this user.
-    notifications = Notification.query.filter_by(
-        user_id=current_user.id,
-        is_read=False
-    ).order_by(
-        Notification.created_at.desc()
-    ).all()
-
-    # Recent point activity for this user.
-    recent_activity = PointTransaction.query.filter_by(
-        user_id=current_user.id
-    ).order_by(
-        PointTransaction.created_at.desc()
-    ).limit(6).all()
-
-    # Send standard user dashboard data to the template.
-    return render_template(
-        "dashboard.html",
-        pending_user_tasks=pending_user_tasks,
-        pending_user_purchases=pending_user_purchases,
-        available_task_count=available_task_count,
-        affordable_reward_count=affordable_reward_count,
-        current_balance=current_balance,
-        notifications=notifications,
-        wishlist_item_count=wishlist_item_count,
-        funded_wishlist_count=funded_wishlist_count,
-        wishlist_points_saved=wishlist_points_saved,
-        recent_activity=recent_activity
-    )
-
 
 # =========================================================
 # TASKS: CREATE, VIEW, SUBMIT
