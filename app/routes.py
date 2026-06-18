@@ -52,7 +52,6 @@ from app.models import (
     WishlistRequest,
     WishlistItem,
     WishlistContribution,
-    UserBadge,
     HouseholdSettings,
 )
 
@@ -85,6 +84,7 @@ from app.route_sections.activity import register_activity_routes
 from app.route_sections.auth import register_auth_routes
 from app.route_sections.categories import register_category_routes
 from app.route_sections.dashboard import register_dashboard_routes
+from app.route_sections.profiles import register_profile_routes
 
 # Create the main blueprint.
 # All routes in this file are registered under this blueprint.
@@ -124,6 +124,7 @@ register_activity_routes(bp)
 register_auth_routes(bp)
 register_category_routes(bp, admin_required)
 register_dashboard_routes(bp)
+register_profile_routes(bp)
 
 
 def task_category_choices(include_current=None):
@@ -2100,230 +2101,6 @@ def leaderboard():
         current_points_leaderboard=current_points_leaderboard,
         total_earned_leaderboard=total_earned_leaderboard,
         tasks_completed_leaderboard=tasks_completed_leaderboard
-    )
-
-# =========================================================
-# USER PROFILES
-# =========================================================
-
-@bp.route("/profile")
-@login_required
-def my_profile():
-    """
-    Redirect the current user to the full user profile page.
-
-    This avoids having two separate profile implementations.
-    """
-
-    return redirect(
-        url_for(
-            "main.user_profile",
-            user_id=current_user.id
-        )
-    )
-
-
-@bp.route("/users/<int:user_id>/profile")
-@login_required
-def user_profile(user_id):
-    """
-    User profile page.
-
-    Standard users:
-    - can only view their own profile.
-
-    Admin users:
-    - can view any user's profile.
-
-    The profile shows:
-    - point summary
-    - task summary
-    - reward summary
-    - group goal activity
-    - wishlist activity
-    - recent transactions
-    """
-
-    # Find the requested user.
-    user = db.session.get(User, user_id)
-
-    if not user:
-        flash("User not found.")
-        return redirect(url_for("main.dashboard"))
-
-    # Standard users can only view their own profile.
-    if not current_user.is_admin() and current_user.id != user.id:
-        flash("You can only view your own profile.")
-        return redirect(url_for("main.dashboard"))
-
-    # -----------------------------------------------------
-    # Core profile summary statistics
-    # -----------------------------------------------------
-
-    # Current point balance comes from the point transaction ledger.
-    current_points = user.point_balance()
-
-    # Total earned uses the same shared calculation as the leaderboard and reports.
-    total_earned = calculate_total_earned(user)
-
-    # Count approved task completions.
-    tasks_completed = TaskCompletion.query.filter_by(
-        user_id=user.id,
-        status="approved"
-    ).count()
-
-    # Count all reward requests made by this user.
-    rewards_requested = RewardPurchase.query.filter_by(
-        user_id=user.id
-    ).count()
-
-    # Count approved reward requests.
-    rewards_approved = RewardPurchase.query.filter_by(
-        user_id=user.id,
-        status="approved"
-    ).count()
-
-    # -----------------------------------------------------
-    # Group goal summary statistics
-    # -----------------------------------------------------
-
-    # Count active group goal contributions.
-    active_group_contributions = GroupGoalContribution.query.filter_by(
-        user_id=user.id,
-        status="active"
-    ).all()
-
-    # Total points contributed to active group goals.
-    total_group_contributed = 0
-
-    for contribution in active_group_contributions:
-        total_group_contributed += contribution.amount
-
-    # Count how many active group goal contribution records this user has.
-    active_group_goal_count = len(active_group_contributions)
-
-    # -----------------------------------------------------
-    # Wishlist summary statistics
-    # -----------------------------------------------------
-
-    # Get active wishlist items for this user.
-    active_wishlist_items = WishlistItem.query.filter_by(
-        user_id=user.id,
-        is_active=True
-    ).all()
-
-    # Count active wishlist items.
-    wishlist_item_count = len(active_wishlist_items)
-
-    # Count wishlist items that are fully funded but not yet fulfilled.
-    funded_wishlist_count = WishlistItem.query.filter_by(
-        user_id=user.id,
-        status="funded"
-    ).count()
-
-    # Count fulfilled wishlist items.
-    fulfilled_wishlist_count = WishlistItem.query.filter_by(
-        user_id=user.id,
-        status="fulfilled"
-    ).count()
-
-    # Count saved points across active wishlist items.
-    wishlist_points_saved = 0
-
-    for item in active_wishlist_items:
-        wishlist_points_saved += item.total_saved()
-
-    # Count all wishlist requests made by this user.
-    wishlist_request_count = WishlistRequest.query.filter_by(
-        user_id=user.id
-    ).count()
-
-    # -----------------------------------------------------
-    # Recent activity
-    # -----------------------------------------------------
-
-    # Recent task completions.
-    recent_task_completions = TaskCompletion.query.filter_by(
-        user_id=user.id
-    ).order_by(
-        TaskCompletion.submitted_at.desc()
-    ).limit(5).all()
-
-    # Recent reward purchases.
-    recent_reward_purchases = RewardPurchase.query.filter_by(
-        user_id=user.id
-    ).order_by(
-        RewardPurchase.requested_at.desc()
-    ).limit(5).all()
-
-    # Recent point transactions.
-    recent_point_transactions = PointTransaction.query.filter_by(
-        user_id=user.id
-    ).order_by(
-        PointTransaction.created_at.desc()
-    ).limit(5).all()
-
-    # Recent group goal contributions.
-    recent_group_contributions = GroupGoalContribution.query.filter_by(
-        user_id=user.id
-    ).order_by(
-        GroupGoalContribution.created_at.desc()
-    ).limit(5).all()
-
-    # Recent wishlist items.
-    recent_wishlist_items = WishlistItem.query.filter_by(
-        user_id=user.id
-    ).order_by(
-        WishlistItem.created_at.desc()
-    ).limit(5).all()
-
-    # Recent wishlist requests.
-    recent_wishlist_requests = WishlistRequest.query.filter_by(
-        user_id=user.id
-    ).order_by(
-        WishlistRequest.created_at.desc()
-    ).limit(5).all()
-
-    # Recent wishlist contributions.
-    recent_wishlist_contributions = WishlistContribution.query.filter_by(
-        user_id=user.id
-    ).order_by(
-        WishlistContribution.created_at.desc()
-    ).limit(5).all()
-
-    # Make sure badges are up to date when viewing the profile.
-    check_and_award_badges(user)
-    db.session.commit()
-
-    # Load badges earned by this user.
-    earned_badges = UserBadge.query.filter_by(
-        user_id=user.id
-    ).order_by(
-        UserBadge.earned_at.desc()
-    ).all()
-    return render_template(
-        "user_profile.html",
-        user=user,
-        current_points=current_points,
-        total_earned=total_earned,
-        tasks_completed=tasks_completed,
-        rewards_requested=rewards_requested,
-        rewards_approved=rewards_approved,
-        total_group_contributed=total_group_contributed,
-        active_group_goal_count=active_group_goal_count,
-        wishlist_item_count=wishlist_item_count,
-        funded_wishlist_count=funded_wishlist_count,
-        fulfilled_wishlist_count=fulfilled_wishlist_count,
-        wishlist_points_saved=wishlist_points_saved,
-        wishlist_request_count=wishlist_request_count,
-        recent_task_completions=recent_task_completions,
-        recent_reward_purchases=recent_reward_purchases,
-        recent_point_transactions=recent_point_transactions,
-        recent_group_contributions=recent_group_contributions,
-        recent_wishlist_items=recent_wishlist_items,
-        recent_wishlist_requests=recent_wishlist_requests,
-        recent_wishlist_contributions=recent_wishlist_contributions,
-        earned_badges=earned_badges,
     )
 
 # =========================================================

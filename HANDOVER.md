@@ -1064,6 +1064,21 @@ This module now owns:
 
 The existing `main.dashboard` endpoint name was preserved.
 
+Sixth extraction completed:
+
+```text
+app/route_sections/profiles.py
+```
+
+This module now owns:
+
+```text
+/profile
+/users/<id>/profile
+```
+
+The existing `main.my_profile` and `main.user_profile` endpoint names were preserved.
+
 ### Visible "points" wording
 
 Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.
