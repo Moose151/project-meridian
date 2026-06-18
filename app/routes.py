@@ -26,7 +26,6 @@ from app.forms import (
     PointAdjustmentForm,
     AdminCompleteTaskForm,
     RejectionReasonForm,
-    HouseholdSettingsForm,
 )
 
 # Import all database models used by the routes.
@@ -40,7 +39,6 @@ from app.models import (
     TaskCategory,
     RewardCategory,
     Notification,
-    HouseholdSettings,
 )
 
 from app.services.settings_service import (
@@ -73,6 +71,7 @@ from app.route_sections.group_goals import register_group_goal_routes
 from app.route_sections.leaderboard import register_leaderboard_routes
 from app.route_sections.profiles import register_profile_routes
 from app.route_sections.request_archive import register_request_archive_routes
+from app.route_sections.settings import register_settings_routes
 from app.route_sections.wishlist import register_wishlist_routes
 
 # Create the main blueprint.
@@ -117,6 +116,7 @@ register_group_goal_routes(bp, admin_required)
 register_leaderboard_routes(bp)
 register_profile_routes(bp)
 register_request_archive_routes(bp)
+register_settings_routes(bp, admin_required)
 register_wishlist_routes(bp, admin_required)
 
 
@@ -205,29 +205,6 @@ def reward_import_choices():
         )
 
     return choices
-
-def get_household_settings():
-    """
-    Return the household settings row.
-
-    If it does not exist, create it with defaults.
-    """
-
-    settings = HouseholdSettings.query.first()
-
-    if not settings:
-
-        settings = HouseholdSettings(
-            household_name="Project Meridian",
-            points_label="points",
-            wishlist_requests_enabled=True,
-            group_goals_enabled=True
-        )
-
-        db.session.add(settings)
-        db.session.commit()
-
-    return settings
 
 def create_notification(
     user_id,
@@ -337,43 +314,6 @@ def task_import_choices():
 
     return choices
 
-
-# =========================================================
-# BASIC ROUTES: HOME, LOGIN, LOGOUT, DASHBOARD
-# =========================================================
-
-@bp.route("/admin/settings", methods=["GET", "POST"])
-@login_required
-def household_settings():
-    """
-    Admin-only page for editing household-level app settings.
-    """
-
-    if not admin_required():
-        return redirect(url_for("main.dashboard"))
-
-    settings = get_household_settings()
-
-    form = HouseholdSettingsForm(obj=settings)
-
-    if form.validate_on_submit():
-
-        settings.household_name = form.household_name.data
-        settings.points_label = form.points_label.data
-        settings.wishlist_requests_enabled = form.wishlist_requests_enabled.data
-        settings.group_goals_enabled = form.group_goals_enabled.data
-        settings.updated_at = datetime.now(timezone.utc)
-
-        db.session.commit()
-
-        flash("Household settings updated.")
-        return redirect(url_for("main.household_settings"))
-
-    return render_template(
-        "household_settings.html",
-        form=form,
-        settings=settings
-    )
 
 # =========================================================
 # TASKS: CREATE, VIEW, SUBMIT

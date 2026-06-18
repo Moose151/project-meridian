@@ -1177,6 +1177,20 @@ This module now owns:
 
 The existing `main.request_archive` endpoint name was preserved.
 
+Eleventh extraction completed:
+
+```text
+app/route_sections/settings.py
+```
+
+This module now owns:
+
+```text
+/admin/settings
+```
+
+The existing `main.household_settings` endpoint name was preserved. The duplicate local `get_household_settings()` helper was removed from `routes.py`; route code now uses `app.services.settings_service.get_household_settings()`.
+
 ### Visible "points" wording
 
 Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.
