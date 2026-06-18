@@ -951,6 +951,7 @@ app/routes.py
 app/route_sections/
     __init__.py
     admin_exports.py
+    activity.py
     auth.py
     dashboard.py
     tasks.py
@@ -995,6 +996,23 @@ This module should own:
 This keeps the report/backup code together and removes CSV/download concerns from the main route file.
 
 Status: initial extraction completed. `admin_exports.py` now owns the admin reports page, CSV report downloads, and database backup route while preserving the existing `main.admin_reports`, `main.export_*_csv`, and `main.backup_database` endpoint names.
+
+Second extraction completed:
+
+```text
+app/route_sections/activity.py
+```
+
+This module now owns:
+
+```text
+/points
+/history/tasks
+/history/rewards
+/notifications/<id>/read
+```
+
+The existing `main.point_history`, `main.task_history`, `main.reward_history`, and `main.mark_notification_read` endpoint names were preserved.
 
 ### Visible "points" wording
 
