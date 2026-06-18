@@ -931,6 +931,34 @@ The following items remain to be done. After each change, commit with a clear me
 - Reverse proxy/domain setup for local network access.
 - Optional household-specific points label such as stars or credits (partially supported via `points_label`).
 
+### Future task customisation
+
+Recurring tasks should be more configurable. They may be always available, or only available during configured time windows such as morning, afternoon, evening, weekdays, weekends, or specific times of day.
+
+Recurring task completion scope needs to be configurable. Options to consider:
+
+- Once per recurrence for the whole household, then hidden until the next recurrence.
+- Once per assigned user for each recurrence.
+- Once per user for each recurrence, where completing it hides it only for that user.
+
+Tasks should support assignment to one user. Assigned tasks need a visibility setting so admins can choose whether the task is visible only to the assigned user, or visible to other users but only actionable by the assigned user.
+
+### Future admin participation mode
+
+Admins should be able to opt in or out of household participation at any time.
+
+When opted in, admins can act like standard users where appropriate: complete tasks, earn points, appear on leaderboards, create wishlist items, contribute to wishlist items, contribute to group goals, and otherwise participate in the household economy.
+
+When opted out, admins remain management-only. They should not earn task points, appear on normal user leaderboards, or distort household economy stats.
+
+### Future routines and habit tracking
+
+Add routines as a separate feature from tasks. Routines are repeated habits or personal-care flows created by admins for users, such as shower, brush teeth, or similar daily habits.
+
+Routines should grant small point amounts and track streaks, including how many days in a row the user completed the routine. Add milestone bonuses for streaks or consistency targets.
+
+Routines should have their own views and leaderboard options separate from general task and point leaderboards, so habit consistency can be celebrated without being mixed into normal chore/task rankings.
+
 ## 14. Known issues and technical debt
 
 ### Large `routes.py`
@@ -1191,7 +1219,7 @@ Do not relitigate unless the user explicitly asks:
 - Hot Tasks already exist.
 - Reward requests reserve points immediately.
 - Cancelled/rejected rewards refund reserved points.
-- Admins should not normally receive task points.
+- Admins should not receive task points by default. A future opt-in participation mode may allow admins to earn points and join user-facing leaderboards when explicitly enabled.
 - `household_settings.points_label` controls the visible points label where practical.
 - HomeStack-style UI is the chosen design direction.
 - Mobile compatibility matters.
