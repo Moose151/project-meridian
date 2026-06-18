@@ -985,6 +985,26 @@ Possible additions:
 - **Larger tap targets on task cards** — the submit button on task cards can be small on phones; increase padding or make the whole card tappable.
 - **PWA manifest** — add a `manifest.json` so the app can be added to a phone home screen and launched full-screen, useful for the kiosk/home-hub use case.
 
+### Future task customisation
+
+Recurring tasks should be more configurable. They may be always available, or only available during configured time windows such as morning, afternoon, evening, weekdays, weekends, or specific times of day.
+
+Recurring task completion scope needs to be configurable. Options to consider:
+
+- Once per recurrence for the whole household, then hidden until the next recurrence.
+- Once per assigned user for each recurrence.
+- Once per user for each recurrence, where completing it hides it only for that user.
+
+Tasks should support assignment to one user. Assigned tasks need a visibility setting so admins can choose whether the task is visible only to the assigned user, or visible to other users but only actionable by the assigned user.
+
+### Future routines and habit tracking
+
+Add routines as a separate feature from tasks. Routines are repeated habits or personal-care flows created by admins for users, such as shower, brush teeth, or similar daily habits.
+
+Routines should grant small point amounts and track streaks, including how many days in a row the user completed the routine. Add milestone bonuses for streaks or consistency targets.
+
+Routines should have their own views and leaderboard options separate from general task and point leaderboards, so habit consistency can be celebrated without being mixed into normal chore/task rankings.
+
 ## 14. Known issues and technical debt
 
 ### Hardcoded SECRET_KEY fallback
