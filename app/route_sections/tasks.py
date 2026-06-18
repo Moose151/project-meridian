@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from sqlalchemy import or_
+
 from app import db
 from app.forms import AdminCompleteTaskForm, TaskForm
 from app.models import PointTransaction, Task, TaskCategory, TaskCompletion, User
@@ -220,8 +222,8 @@ def register_task_routes(bp, admin_required):
         Points are not awarded until an admin approves it.
         """
 
-        if current_user.is_admin():
-            flash("Admins do not submit tasks.")
+        if not current_user.can_participate():
+            flash("Enable participation mode to submit tasks.")
             return redirect(url_for("main.tasks"))
 
         task = db.session.get(Task, task_id)
@@ -259,8 +261,8 @@ def register_task_routes(bp, admin_required):
         Allow a standard user to cancel their own pending task submission.
         """
 
-        if current_user.is_admin():
-            flash("Admins do not cancel task submissions.")
+        if not current_user.can_participate():
+            flash("Enable participation mode to manage task submissions.")
             return redirect(url_for("main.task_history"))
 
         completion = db.session.get(TaskCompletion, completion_id)
@@ -451,9 +453,13 @@ def register_task_routes(bp, admin_required):
 
         form = AdminCompleteTaskForm()
 
-        active_users = User.query.filter_by(
-            role="user",
-            is_active_account=True
+        # Include standard users and participating admins.
+        active_users = User.query.filter(
+            User.is_active_account == True,
+            or_(
+                User.role == "user",
+                (User.role == "admin") & (User.participation_enabled == True)
+            )
         ).order_by(
             User.display_name
         ).all()
@@ -482,8 +488,8 @@ def register_task_routes(bp, admin_required):
                 flash("Selected user or task not found.")
                 return redirect(url_for("main.admin_complete_task"))
 
-            if user.role != "user" or not user.is_active_account:
-                flash("Selected user is not an active standard user.")
+            if not user.can_participate() or not user.is_active_account:
+                flash("Selected user is not an active participating user.")
                 return redirect(url_for("main.admin_complete_task"))
 
             if not task.is_active:

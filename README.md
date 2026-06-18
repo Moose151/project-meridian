@@ -221,9 +221,17 @@ Always back up before pulling a new version or making database changes.
 - Any user can contribute points toward a group goal
 - Admin marks goals as fulfilled or cancelled
 
+### Admin participation mode
+
+- Admins can opt in to household participation via the Admin Centre
+- When enabled, an admin can submit tasks, earn points, request rewards, contribute to group goals and wishlist items, and appear on the leaderboard
+- Participation is per-admin and can be toggled on or off at any time
+- Participation is off by default — admins remain management-only until enabled
+
 ### Leaderboard
 
 - Rankings by current balance, total points earned, and tasks completed
+- Participating admins appear on the leaderboard alongside standard users
 - Total earned is not reduced by spending — it is a record of contribution
 
 ### Badges

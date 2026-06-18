@@ -79,8 +79,8 @@ def register_group_goal_routes(bp, admin_required):
         Allow a standard user to contribute points to a group goal.
         """
 
-        if current_user.is_admin():
-            flash("Admins do not contribute to group goals.")
+        if not current_user.can_participate():
+            flash("Enable participation mode to contribute to group goals.")
             return redirect(url_for("main.group_goals"))
 
         settings = get_household_settings()

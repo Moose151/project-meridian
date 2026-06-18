@@ -7,6 +7,7 @@ such as main.leaderboard stay unchanged.
 
 from flask import render_template
 from flask_login import login_required
+from sqlalchemy import or_
 
 from app.models import TaskCompletion, User
 from app.services.points_service import calculate_total_earned
@@ -24,9 +25,13 @@ def register_leaderboard_routes(bp):
         Leaderboard page.
         """
 
-        users = User.query.filter_by(
-            role="user",
-            is_active_account=True
+        # Include standard users and participating admins.
+        users = User.query.filter(
+            User.is_active_account == True,
+            or_(
+                User.role == "user",
+                (User.role == "admin") & (User.participation_enabled == True)
+            )
         ).order_by(
             User.display_name
         ).all()

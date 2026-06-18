@@ -24,7 +24,7 @@ from app.services.badge_service import check_and_award_badges
 from app.services.points_service import calculate_total_earned
 
 
-def register_profile_routes(bp):
+def register_profile_routes(bp, admin_required=None):
     """
     Register profile routes.
     """
@@ -190,3 +190,27 @@ def register_profile_routes(bp):
             recent_wishlist_contributions=recent_wishlist_contributions,
             earned_badges=earned_badges,
         )
+
+    @bp.route("/admin/participation/toggle", methods=["POST"])
+    @login_required
+    def toggle_participation():
+        """
+        Admin-only route to toggle the current admin's household participation mode.
+
+        When enabled, the admin can submit tasks, earn points, request rewards,
+        contribute to group goals and wishlist items, and appear on leaderboards.
+        """
+
+        if not current_user.is_admin():
+            flash("Only admins have a participation mode to toggle.")
+            return redirect(url_for("main.dashboard"))
+
+        current_user.participation_enabled = not current_user.participation_enabled
+        db.session.commit()
+
+        if current_user.participation_enabled:
+            flash("Participation mode enabled. You can now earn points and join leaderboards.")
+        else:
+            flash("Participation mode disabled. You are back to admin-only mode.")
+
+        return redirect(url_for("main.admin_home"))

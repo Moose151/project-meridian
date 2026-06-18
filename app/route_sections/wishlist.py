@@ -374,8 +374,8 @@ def register_wishlist_routes(bp, admin_required):
         items.
         """
 
-        if current_user.is_admin():
-            flash("Admins cannot contribute to wishlist items.")
+        if not current_user.can_participate():
+            flash("Enable participation mode to contribute to wishlist items.")
             return redirect(url_for("main.wishlist"))
 
         item = db.session.get(WishlistItem, item_id)

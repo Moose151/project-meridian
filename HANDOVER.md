@@ -892,6 +892,8 @@ Recent major work completed:
 - Wishlist item fulfil admin route added.
 - Badge system implemented with seven default badges.
 - Unified request archive page implemented.
+- `routes.py` modularised into `app/route_sections/` (13 route section modules). `routes.py` is now ~75 lines.
+- Admin participation mode implemented (see below).
 
 Repository hygiene:
 
@@ -915,7 +917,7 @@ The following items remain to be done. After each change, commit with a clear me
 1. **Login PIN autofocus and numeric keypad** — add `inputmode="numeric"`, `pattern`, `autocomplete`, `maxlength` to the PIN field in `login.html` and add JS to focus it when a user card is clicked. (See section 10.)
 2. **Populate the starting task and reward economy** — use the economy baseline in section 11. Create categories first, then tasks, then rewards.
 3. **Smoke test mobile layout** — test all main pages on a phone-sized viewport.
-4. **Continue service-layer refactoring** — gradually extract remaining inline logic from `routes.py` into service files. Avoid a risky full rewrite.
+4. **Continue service-layer refactoring** — gradually extract remaining inline logic from route section files into service files. Avoid a risky large rewrite.
 
 ### Possible future features
 
@@ -943,13 +945,30 @@ Recurring task completion scope needs to be configurable. Options to consider:
 
 Tasks should support assignment to one user. Assigned tasks need a visibility setting so admins can choose whether the task is visible only to the assigned user, or visible to other users but only actionable by the assigned user.
 
-### Future admin participation mode
+### Admin participation mode
 
-Admins should be able to opt in or out of household participation at any time.
+**Status: Implemented.**
 
-When opted in, admins can act like standard users where appropriate: complete tasks, earn points, appear on leaderboards, create wishlist items, contribute to wishlist items, contribute to group goals, and otherwise participate in the household economy.
+Admins can opt in or out of household participation at any time via the Admin Centre page.
 
-When opted out, admins remain management-only. They should not earn task points, appear on normal user leaderboards, or distort household economy stats.
+When opted in (`participation_enabled = True`), an admin can:
+- Submit task completions for approval.
+- Request rewards from the shop.
+- Cancel their own pending task and reward requests.
+- Contribute points to group goals.
+- Contribute points toward their own wishlist items.
+- Appear on the leaderboard alongside standard users.
+- Be selected as the recipient in the admin-complete-task flow.
+
+When opted out (the default), admins remain management-only and none of the above is available.
+
+The toggle button lives on the Admin Centre page under the Participation section. The `User.participation_enabled` boolean (default `False`) controls this. The `User.can_participate()` method returns `True` for all standard users and for admins with `participation_enabled = True`.
+
+Notes:
+- Participating admins use `/admin/wishlist/add` to create wishlist items for themselves (they are redirected there from `/wishlist/request`).
+- Participating admins still see all users' wishlist items and archived items (the admin view is preserved).
+- The admin dashboard is unchanged. Participating admins still manage approvals, users, tasks, rewards, and settings as normal.
+- Badges are awarded to participating admins on the same events as standard users.
 
 ### Future routines and habit tracking
 
@@ -961,48 +980,37 @@ Routines should have their own views and leaderboard options separate from gener
 
 ## 14. Known issues and technical debt
 
-### Large `routes.py`
+### `routes.py` modularisation
 
-`routes.py` is still large. Some logic has been moved into services, but more gradual extraction is warranted. Avoid a risky full rewrite.
+**Status: Complete.**
 
-Refactor goal:
+`routes.py` has been fully extracted into `app/route_sections/`. The file is now ~75 lines (blueprint, context processor, `admin_required` helper, and `register_*` calls). All endpoint names are unchanged.
 
-```text
-Keep the existing main blueprint and main.<endpoint> URL names stable,
-but move route groups into smaller modules by feature area.
-```
-
-Preferred shape:
+Final shape:
 
 ```text
-app/routes.py
+app/routes.py                  (~75 lines)
 app/route_sections/
     __init__.py
-    admin_exports.py
     activity.py
+    admin_exports.py
+    admin_home.py
+    approvals.py
     auth.py
-    dashboard.py
-    tasks.py
-    rewards.py
-    users.py
-    points.py
     categories.py
-    notifications.py
-    profiles.py
+    dashboard.py
     group_goals.py
-    wishlist.py
+    leaderboard.py
+    profiles.py
     request_archive.py
+    rewards.py
+    settings.py
+    tasks.py
+    users.py
+    wishlist.py
 ```
 
-Do not rename the existing `main` blueprint casually. Many templates call endpoints such as `url_for("main.dashboard")`, so the first phase should register smaller route modules against the existing blueprint instead of changing endpoint names.
-
-Refactor steps:
-
-1. Move low-risk, self-contained routes first: reports, CSV exports, database backup, notifications, points/history.
-2. Move simple admin CRUD groups next: categories, users, task/reward management pages.
-3. Move complex workflow groups last: task approval, reward reservation/refund, wishlist, and group goals.
-4. As each route group moves, keep behaviour unchanged, run syntax checks, smoke test affected pages, then commit and push.
-5. After route groups are separated, continue moving business logic into services so route files mostly validate input, call a service, flash a result, and redirect/render.
+Further service-layer extraction (moving business logic out of routes into service files) is still possible but not urgent.
 
 Current first extraction target:
 
@@ -1279,7 +1287,7 @@ Do not relitigate unless the user explicitly asks:
 - Hot Tasks already exist.
 - Reward requests reserve points immediately.
 - Cancelled/rejected rewards refund reserved points.
-- Admins should not receive task points by default. A future opt-in participation mode may allow admins to earn points and join user-facing leaderboards when explicitly enabled.
+- Admins do not receive task points or participate by default. `participation_enabled` on the User model controls opt-in. Toggle is on the Admin Centre page.
 - `household_settings.points_label` controls the visible points label where practical.
 - HomeStack-style UI is the chosen design direction.
 - Mobile compatibility matters.
@@ -1351,11 +1359,10 @@ Before database-affecting work, back up the SQLite database.
 
 Continue work in this order:
 
-1. Continue the `routes.py` modularisation in small route groups (section 14, Large `routes.py`).
-2. Implement login PIN autofocus and numeric keypad (section 10).
-3. Populate starting task and reward economy (section 11).
-4. Smoke test mobile UI across all main pages.
-5. Continue service-layer cleanup.
+1. Implement login PIN autofocus and numeric keypad (section 10).
+2. Populate starting task and reward economy (section 11).
+3. Smoke test mobile UI across all main pages.
+4. Continue service-layer cleanup (move inline logic from route sections into service files).
 
 After each change: commit with a clear message and push to the repository.
 

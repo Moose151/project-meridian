@@ -191,8 +191,8 @@ def register_reward_routes(bp, admin_required):
         If the request is approved, no further deduction is needed.
         """
 
-        if current_user.is_admin():
-            flash("Admins do not request rewards.")
+        if not current_user.can_participate():
+            flash("Enable participation mode to request rewards.")
             return redirect(url_for("main.shop"))
 
         reward = db.session.get(Reward, reward_id)
@@ -242,8 +242,8 @@ def register_reward_routes(bp, admin_required):
         If points were reserved, they are refunded.
         """
 
-        if current_user.is_admin():
-            flash("Admins do not cancel reward requests.")
+        if not current_user.can_participate():
+            flash("Enable participation mode to manage reward requests.")
             return redirect(url_for("main.reward_history"))
 
         purchase = db.session.get(RewardPurchase, purchase_id)

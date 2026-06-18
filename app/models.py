@@ -39,6 +39,11 @@ class User(UserMixin, db.Model):
 
     is_active_account = db.Column(db.Boolean, default=True, index=True)
 
+    # When True, this admin can submit tasks, earn points, request rewards,
+    # contribute to goals and wishlist items, and appear on leaderboards.
+    # Has no effect on standard users (they always participate).
+    participation_enabled = db.Column(db.Boolean, default=False, nullable=False)
+
     created_at = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc),
@@ -101,6 +106,19 @@ class User(UserMixin, db.Model):
         """
 
         return self.role == "admin"
+
+    def can_participate(self):
+        """
+        Return True if this user can act as a household participant.
+
+        Standard users always can. Admins only can when participation_enabled
+        is True.
+        """
+
+        if self.role == "user":
+            return True
+
+        return bool(self.participation_enabled)
 
     def point_balance(self):
         """
