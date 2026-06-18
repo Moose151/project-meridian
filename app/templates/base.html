@@ -113,8 +113,22 @@
                         </a>
                     </li>
 
+                    {% if current_user.can_participate() %}
+                        <li class="nav-item">
+                            <a
+                                class="nav-link {% if request.endpoint in [
+                                    'main.routines',
+                                    'main.routine_history'
+                                ] %}active{% endif %}"
+                                href="{{ url_for('main.routines') }}"
+                            >
+                                Routines
+                            </a>
+                        </li>
+                    {% endif %}
+
                     <li class="nav-item dropdown">
-                        <a
+                        <
                             class="nav-link dropdown-toggle {% if request.endpoint in [
                                 'main.my_profile',
                                 'main.user_profile',
@@ -173,14 +187,6 @@
                                     Group Goals
                                 </a>
                             </li>
-
-                            {% if current_user.can_participate() %}
-                                <li>
-                                    <a class="dropdown-item" href="{{ url_for('main.routines') }}">
-                                        Routines
-                                    </a>
-                                </li>
-                            {% endif %}
 
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('main.request_archive') }}">
