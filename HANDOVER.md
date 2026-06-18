@@ -1163,6 +1163,20 @@ This module now owns:
 
 The existing `main.wishlist`, `main.request_wishlist_item`, `main.cancel_wishlist_request`, `main.admin_add_wishlist_item`, `main.approve_wishlist_request`, `main.reject_wishlist_request`, `main.remove_wishlist_item`, `main.contribute_wishlist_item`, `main.fulfil_wishlist_item`, `main.edit_wishlist_item`, and `main.wishlist_archive` endpoint names were preserved.
 
+Tenth extraction completed:
+
+```text
+app/route_sections/request_archive.py
+```
+
+This module now owns:
+
+```text
+/requests/archive
+```
+
+The existing `main.request_archive` endpoint name was preserved.
+
 ### Visible "points" wording
 
 Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.

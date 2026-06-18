@@ -40,7 +40,6 @@ from app.models import (
     TaskCategory,
     RewardCategory,
     Notification,
-    WishlistRequest,
     HouseholdSettings,
 )
 
@@ -73,6 +72,7 @@ from app.route_sections.dashboard import register_dashboard_routes
 from app.route_sections.group_goals import register_group_goal_routes
 from app.route_sections.leaderboard import register_leaderboard_routes
 from app.route_sections.profiles import register_profile_routes
+from app.route_sections.request_archive import register_request_archive_routes
 from app.route_sections.wishlist import register_wishlist_routes
 
 # Create the main blueprint.
@@ -116,6 +116,7 @@ register_dashboard_routes(bp)
 register_group_goal_routes(bp, admin_required)
 register_leaderboard_routes(bp)
 register_profile_routes(bp)
+register_request_archive_routes(bp)
 register_wishlist_routes(bp, admin_required)
 
 
@@ -1992,97 +1993,4 @@ def admin_complete_task():
         form=form,
         active_users=active_users,
         active_tasks=active_tasks
-    )
-
-# =========================================================
-# REQUEST ARCHIVE
-# =========================================================
-
-@bp.route("/requests/archive")
-@login_required
-def request_archive():
-    """
-    Request archive page.
-
-    Standard users:
-    - see their own completed/rejected/cancelled task submissions
-    - see their own approved/rejected/cancelled reward requests
-    - see their own approved/rejected/cancelled wishlist requests
-
-    Admin users:
-    - see archived requests for all users
-
-    This keeps main task, reward, and wishlist pages focused on current/pending items.
-    """
-
-    # These are considered archived task completion statuses.
-    archived_task_statuses = [
-        "approved",
-        "rejected",
-        "cancelled"
-    ]
-
-    # These are considered archived reward request statuses.
-    archived_reward_statuses = [
-        "approved",
-        "rejected",
-        "cancelled",
-        "fulfilled"
-    ]
-
-    # These are considered archived wishlist request statuses.
-    archived_wishlist_statuses = [
-        "approved",
-        "rejected",
-        "cancelled"
-    ]
-
-    if current_user.is_admin():
-
-        archived_task_requests = TaskCompletion.query.filter(
-            TaskCompletion.status.in_(archived_task_statuses)
-        ).order_by(
-            TaskCompletion.submitted_at.desc()
-        ).limit(30).all()
-
-        archived_reward_requests = RewardPurchase.query.filter(
-            RewardPurchase.status.in_(archived_reward_statuses)
-        ).order_by(
-            RewardPurchase.requested_at.desc()
-        ).limit(30).all()
-
-        archived_wishlist_requests = WishlistRequest.query.filter(
-            WishlistRequest.status.in_(archived_wishlist_statuses)
-        ).order_by(
-            WishlistRequest.created_at.desc()
-        ).limit(30).all()
-
-    else:
-
-        archived_task_requests = TaskCompletion.query.filter(
-            TaskCompletion.user_id == current_user.id,
-            TaskCompletion.status.in_(archived_task_statuses)
-        ).order_by(
-            TaskCompletion.submitted_at.desc()
-        ).limit(20).all()
-
-        archived_reward_requests = RewardPurchase.query.filter(
-            RewardPurchase.user_id == current_user.id,
-            RewardPurchase.status.in_(archived_reward_statuses)
-        ).order_by(
-            RewardPurchase.requested_at.desc()
-        ).limit(20).all()
-
-        archived_wishlist_requests = WishlistRequest.query.filter(
-            WishlistRequest.user_id == current_user.id,
-            WishlistRequest.status.in_(archived_wishlist_statuses)
-        ).order_by(
-            WishlistRequest.created_at.desc()
-        ).limit(20).all()
-
-    return render_template(
-        "request_archive.html",
-        archived_task_requests=archived_task_requests,
-        archived_reward_requests=archived_reward_requests,
-        archived_wishlist_requests=archived_wishlist_requests
     )
