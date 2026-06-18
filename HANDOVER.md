@@ -910,72 +910,82 @@ stable-homestack-ui
 
 ## 13. Features yet to implement
 
-The following items remain to be done. After each change, commit with a clear message and push to the repository.
+After each change, commit with a clear message and push to the repository.
 
 ### Priority items
 
-1. **Login PIN autofocus and numeric keypad** — add `inputmode="numeric"`, `pattern`, `autocomplete`, `maxlength` to the PIN field in `login.html` and add JS to focus it when a user card is clicked. (See section 10.) — **Done.**
-2. **Smoke test mobile layout** — test all main pages on a phone-sized viewport.
-3. **Continue service-layer refactoring** — gradually extract remaining inline logic from route section files into service files. Avoid a risky large rewrite.
+1. **Login PIN autofocus and numeric keypad** — **Done.** `inputmode="numeric"`, `pattern`, `autocomplete`, `maxlength="4"` added to PIN field. JS focuses it on card selection.
+2. **Admin participation mode** — **Done.** Admins can opt in via the Admin Centre. See section 12 for full details.
+3. **Smoke test mobile layout** — test all main pages on a phone-sized viewport, especially login, dashboard, tasks, shop, wishlist, and group goals.
+4. **Continue service-layer refactoring** — gradually move inline business logic from route section files into service files. No risky large rewrites.
 
 ### Possible future features
 
-- Kiosk/touchscreen mode for Raspberry Pi home hub.
-- More badges and milestone logic (e.g. streaks, 25/50-task milestones, higher earning tiers).
-- Better leaderboard options (weekly view, opt-out toggle).
-- More group goal lifecycle states (funded milestone notification).
-- More wishlist lifecycle states.
-- Reward stock/quantity handling if the household needs limited-availability rewards.
-- Backup/restore page (currently download-only; no restore UI).
-- More modular dashboard widgets.
-- More mobile-specific navigation improvements.
-- Reverse proxy/domain setup for local network access.
-- Optional household-specific points label such as stars or credits (partially supported via `points_label`).
+#### More badges and milestone logic
 
-### Future task customisation
+Seven badges are seeded by default. Candidates for expansion:
 
-Recurring tasks should be more configurable. They may be always available, or only available during configured time windows such as morning, afternoon, evening, weekdays, weekends, or specific times of day.
+- **Streak badges** — complete tasks on consecutive days (3-day, 7-day, 30-day streaks). Requires tracking last-completion date per user.
+- **Task count milestones** — 25 tasks, 50 tasks, 100 tasks completed badges beyond the current first/five/ten.
+- **Earning tiers** — 500 total points earned, 1000 total points earned (extending the existing `hundred_points_earned` badge).
+- **Category specialist** — complete N tasks in the same category (e.g. Kitchen Champion, Garden Hero).
+- **Reward redeemer** — first approved reward, fifth approved reward.
+- **Group goal milestones** — contributed to N group goals.
+- **Wishlist funded count** — funded N wishlist items.
 
-Recurring task completion scope needs to be configurable. Options to consider:
+Badge logic lives in `app/services/badge_service.py`. New badges need a seed entry and a check in `check_and_award_badges()`.
 
-- Once per recurrence for the whole household, then hidden until the next recurrence.
-- Once per assigned user for each recurrence.
-- Once per user for each recurrence, where completing it hides it only for that user.
+#### Better leaderboard options
 
-Tasks should support assignment to one user. Assigned tasks need a visibility setting so admins can choose whether the task is visible only to the assigned user, or visible to other users but only actionable by the assigned user.
+Current leaderboard shows all-time current balance, total earned, and tasks completed. Possible additions:
 
-### Admin participation mode
+- **Weekly view** — points earned in the current week only. Requires filtering `PointTransaction.created_at` by week window.
+- **Rolling period toggle** — switch between all-time, this month, and this week without separate pages.
+- **Opt-out toggle** — a user setting to hide themselves from the leaderboard. Store as a boolean on User (`leaderboard_hidden`, default `False`).
+- **Tasks-this-week sub-board** — separate ranking for task completions in the current week, useful for encouraging consistent weekly effort.
 
-**Status: Implemented.**
+#### Group goal lifecycle states
 
-Admins can opt in or out of household participation at any time via the Admin Centre page.
+Current lifecycle: `active` → `completed` (auto on funding) → `fulfilled` or `cancelled`.
 
-When opted in (`participation_enabled = True`), an admin can:
-- Submit task completions for approval.
-- Request rewards from the shop.
-- Cancel their own pending task and reward requests.
-- Contribute points to group goals.
-- Contribute points toward their own wishlist items.
-- Appear on the leaderboard alongside standard users.
-- Be selected as the recipient in the admin-complete-task flow.
+Possible additions:
 
-When opted out (the default), admins remain management-only and none of the above is available.
+- **Funded notification** — when a goal reaches its target, notify all contributing users as well as admins. Currently only admins are notified.
+- **Progress milestone notifications** — notify contributors when the goal crosses 50% and 75% funded.
+- **Target date / deadline** — optional `due_date` field on `GroupGoal`. Surface deadline countdown in the UI and auto-cancel overdue unfunded goals if configured.
+- **Goal updates** — admin can post a short status update message on a goal (e.g. "Booked for next month") visible to contributors.
 
-The toggle button lives on the Admin Centre page under the Participation section. The `User.participation_enabled` boolean (default `False`) controls this. The `User.can_participate()` method returns `True` for all standard users and for admins with `participation_enabled = True`.
+#### Reward stock / quantity handling
 
-Notes:
-- Participating admins use `/admin/wishlist/add` to create wishlist items for themselves (they are redirected there from `/wishlist/request`).
-- Participating admins still see all users' wishlist items and archived items (the admin view is preserved).
-- The admin dashboard is unchanged. Participating admins still manage approvals, users, tasks, rewards, and settings as normal.
-- Badges are awarded to participating admins on the same events as standard users.
+Currently rewards are unlimited. A `stock` field on `Reward` (nullable integer, `None` = unlimited) would allow limited-availability rewards.
 
-### Future routines and habit tracking
+Behaviour when stock is set:
 
-Add routines as a separate feature from tasks. Routines are repeated habits or personal-care flows created by admins for users, such as shower, brush teeth, or similar daily habits.
+- Decrement stock by 1 on each approved purchase.
+- Automatically hide the reward (set `is_active = False`) when stock reaches 0.
+- Show remaining stock count in the shop UI.
+- Prevent new requests when stock is 0.
+- Admin can restock by editing the reward and setting a new stock value.
 
-Routines should grant small point amounts and track streaks, including how many days in a row the user completed the routine. Add milestone bonuses for streaks or consistency targets.
+Requires a database migration, changes to `reward_service.py` approval logic, and UI updates to `shop.html`, `create_reward.html`, and `edit_reward.html`.
 
-Routines should have their own views and leaderboard options separate from general task and point leaderboards, so habit consistency can be celebrated without being mixed into normal chore/task rankings.
+#### More dashboard widgets
+
+Current user dashboard: balance, pending tasks/purchases, affordable reward count, wishlist summary, notifications, recent activity.
+
+Possible additions:
+
+- **Leaderboard rank widget** — show the user's current rank without navigating to the leaderboard.
+- **Hot tasks widget** — surface hot tasks directly on the dashboard if any are active.
+- **Group goal progress summary** — show active goals and their funding percentage at a glance.
+- **Streak / activity summary** — show how many tasks completed this week vs last week.
+- **Badge recently earned** — surface the most recently earned badge on the dashboard.
+
+#### Mobile-specific navigation improvements
+
+- **Bottom navigation bar** — a fixed bottom bar on mobile with links to Dashboard, Tasks, Shop, and Wishlist. Common mobile pattern, avoids relying on the top navbar for primary navigation.
+- **Larger tap targets on task cards** — the submit button on task cards can be small on phones; increase padding or make the whole card tappable.
+- **PWA manifest** — add a `manifest.json` so the app can be added to a phone home screen and launched full-screen, useful for the kiosk/home-hub use case.
 
 ## 14. Known issues and technical debt
 
@@ -1009,226 +1019,7 @@ app/route_sections/
     wishlist.py
 ```
 
-Further service-layer extraction (moving business logic out of routes into service files) is still possible but not urgent.
-
-Current first extraction target:
-
-```text
-app/route_sections/admin_exports.py
-```
-
-This module should own:
-
-```text
-/admin/reports
-/admin/reports/users.csv
-/admin/reports/points.csv
-/admin/reports/tasks.csv
-/admin/reports/rewards.csv
-/admin/backup
-```
-
-This keeps the report/backup code together and removes CSV/download concerns from the main route file.
-
-Status: initial extraction completed. `admin_exports.py` now owns the admin reports page, CSV report downloads, and database backup route while preserving the existing `main.admin_reports`, `main.export_*_csv`, and `main.backup_database` endpoint names.
-
-Second extraction completed:
-
-```text
-app/route_sections/activity.py
-```
-
-This module now owns:
-
-```text
-/points
-/history/tasks
-/history/rewards
-/notifications/<id>/read
-```
-
-The existing `main.point_history`, `main.task_history`, `main.reward_history`, and `main.mark_notification_read` endpoint names were preserved.
-
-Third extraction completed:
-
-```text
-app/route_sections/categories.py
-```
-
-This module now owns:
-
-```text
-/admin/categories
-/admin/categories/task/add
-/admin/categories/reward/add
-/admin/categories/task/<id>/remove
-/admin/categories/reward/<id>/remove
-/admin/categories/task/<id>/restore
-/admin/categories/reward/<id>/restore
-```
-
-The existing `main.manage_categories`, `main.add_task_category`, `main.add_reward_category`, `main.remove_task_category`, `main.remove_reward_category`, `main.restore_task_category`, and `main.restore_reward_category` endpoint names were preserved.
-
-Fourth extraction completed:
-
-```text
-app/route_sections/auth.py
-```
-
-This module now owns:
-
-```text
-/
-/login
-/logout
-```
-
-The existing `main.index`, `main.login`, and `main.logout` endpoint names were preserved.
-
-Fifth extraction completed:
-
-```text
-app/route_sections/dashboard.py
-```
-
-This module now owns:
-
-```text
-/dashboard
-```
-
-The existing `main.dashboard` endpoint name was preserved.
-
-Sixth extraction completed:
-
-```text
-app/route_sections/profiles.py
-```
-
-This module now owns:
-
-```text
-/profile
-/users/<id>/profile
-```
-
-The existing `main.my_profile` and `main.user_profile` endpoint names were preserved.
-
-Seventh extraction completed:
-
-```text
-app/route_sections/group_goals.py
-```
-
-This module now owns:
-
-```text
-/group-goals
-/group-goals/create
-/group-goals/<id>/contribute
-/group-goals/<id>/fulfil
-/group-goals/<id>/cancel
-```
-
-The existing `main.group_goals`, `main.create_group_goal`, `main.contribute_group_goal`, `main.fulfil_group_goal`, and `main.cancel_group_goal` endpoint names were preserved.
-
-Eighth extraction completed:
-
-```text
-app/route_sections/leaderboard.py
-```
-
-This module now owns:
-
-```text
-/leaderboard
-```
-
-The existing `main.leaderboard` endpoint name was preserved.
-
-Ninth extraction completed:
-
-```text
-app/route_sections/wishlist.py
-```
-
-This module now owns:
-
-```text
-/wishlist
-/wishlist/request
-/wishlist/requests/<id>/cancel
-/admin/wishlist/add
-/admin/wishlist/requests/<id>/approve
-/admin/wishlist/requests/<id>/reject
-/admin/wishlist/items/<id>/remove
-/wishlist/items/<id>/contribute
-/admin/wishlist/items/<id>/fulfil
-/admin/wishlist/items/<id>/edit
-/wishlist/archive
-```
-
-The existing `main.wishlist`, `main.request_wishlist_item`, `main.cancel_wishlist_request`, `main.admin_add_wishlist_item`, `main.approve_wishlist_request`, `main.reject_wishlist_request`, `main.remove_wishlist_item`, `main.contribute_wishlist_item`, `main.fulfil_wishlist_item`, `main.edit_wishlist_item`, and `main.wishlist_archive` endpoint names were preserved.
-
-Tenth extraction completed:
-
-```text
-app/route_sections/request_archive.py
-```
-
-This module now owns:
-
-```text
-/requests/archive
-```
-
-The existing `main.request_archive` endpoint name was preserved.
-
-Eleventh extraction completed:
-
-```text
-app/route_sections/settings.py
-```
-
-This module now owns:
-
-```text
-/admin/settings
-```
-
-The existing `main.household_settings` endpoint name was preserved. The duplicate local `get_household_settings()` helper was removed from `routes.py`; route code now uses `app.services.settings_service.get_household_settings()`.
-
-Twelfth extraction completed:
-
-```text
-app/route_sections/admin_home.py
-```
-
-This module now owns:
-
-```text
-/admin
-```
-
-The existing `main.admin_home` endpoint name was preserved.
-
-Thirteenth extraction completed:
-
-```text
-app/route_sections/approvals.py
-```
-
-This module now owns:
-
-```text
-/admin/approvals
-/admin/tasks/<completion_id>/approve
-/admin/tasks/<completion_id>/reject
-/admin/rewards/<purchase_id>/approve
-/admin/rewards/<purchase_id>/reject
-```
-
-The existing `main.admin_approvals`, `main.approve_task_completion`, `main.reject_task_completion`, `main.approve_reward_purchase`, and `main.reject_reward_purchase` endpoint names were preserved.
+Further service-layer extraction (moving business logic out of route section files into service files) is still possible but not urgent.
 
 ### Visible "points" wording
 
