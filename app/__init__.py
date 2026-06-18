@@ -85,7 +85,8 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-        from app.services.seed_service import seed_default_data
+        from app.services.seed_service import run_column_migrations, seed_default_data
+        run_column_migrations()
         seed_default_data()
 
     return app
