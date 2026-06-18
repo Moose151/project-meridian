@@ -1111,6 +1111,30 @@ This module now owns:
 
 The existing `main.leaderboard` endpoint name was preserved.
 
+Ninth extraction completed:
+
+```text
+app/route_sections/wishlist.py
+```
+
+This module now owns:
+
+```text
+/wishlist
+/wishlist/request
+/wishlist/requests/<id>/cancel
+/admin/wishlist/add
+/admin/wishlist/requests/<id>/approve
+/admin/wishlist/requests/<id>/reject
+/admin/wishlist/items/<id>/remove
+/wishlist/items/<id>/contribute
+/admin/wishlist/items/<id>/fulfil
+/admin/wishlist/items/<id>/edit
+/wishlist/archive
+```
+
+The existing `main.wishlist`, `main.request_wishlist_item`, `main.cancel_wishlist_request`, `main.admin_add_wishlist_item`, `main.approve_wishlist_request`, `main.reject_wishlist_request`, `main.remove_wishlist_item`, `main.contribute_wishlist_item`, `main.fulfil_wishlist_item`, `main.edit_wishlist_item`, and `main.wishlist_archive` endpoint names were preserved.
+
 ### Visible "points" wording
 
 Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.
