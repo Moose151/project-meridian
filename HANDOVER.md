@@ -1079,6 +1079,24 @@ This module now owns:
 
 The existing `main.my_profile` and `main.user_profile` endpoint names were preserved.
 
+Seventh extraction completed:
+
+```text
+app/route_sections/group_goals.py
+```
+
+This module now owns:
+
+```text
+/group-goals
+/group-goals/create
+/group-goals/<id>/contribute
+/group-goals/<id>/fulfil
+/group-goals/<id>/cancel
+```
+
+The existing `main.group_goals`, `main.create_group_goal`, `main.contribute_group_goal`, `main.fulfil_group_goal`, and `main.cancel_group_goal` endpoint names were preserved.
+
 ### Visible "points" wording
 
 Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.
