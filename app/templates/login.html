@@ -66,7 +66,15 @@
 
                     <div class="mb-4">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control form-control-lg text-center", placeholder="Enter PIN") }}
+                        {{ form.password(
+                            class="form-control form-control-lg text-center",
+                            placeholder="Enter PIN",
+                            id="pin-input",
+                            inputmode="numeric",
+                            pattern="[0-9]*",
+                            autocomplete="one-time-code",
+                            maxlength="4"
+                        ) }}
                     </div>
 
                     {{ form.submit(class="btn btn-primary btn-lg w-100") }}
@@ -81,6 +89,7 @@
 <script>
     const selectedUserInput = document.getElementById("selected_user_id");
     const selectedUserDisplay = document.getElementById("selected-user-display");
+    const pinInput = document.getElementById("pin-input");
     const avatarCards = document.querySelectorAll(".avatar-login-card");
 
     avatarCards.forEach((card) => {
@@ -94,6 +103,8 @@
 
             const selectedName = card.querySelector(".avatar-login-name").textContent.trim();
             selectedUserDisplay.textContent = selectedName;
+
+            pinInput.focus();
         });
     });
 </script>
