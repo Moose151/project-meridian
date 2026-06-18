@@ -919,9 +919,7 @@ After each change, commit with a clear message and push to the repository.
 3. **Smoke test mobile layout** — test all main pages on a phone-sized viewport, especially login, dashboard, tasks, shop, wishlist, and group goals.
 4. **Continue service-layer refactoring** — gradually move inline business logic from route section files into service files. No risky large rewrites.
 
-### Possible future features
-
-#### More badges and milestone logic
+### More badges and milestone logic
 
 Seven badges are seeded by default. Candidates for expansion:
 
@@ -935,7 +933,7 @@ Seven badges are seeded by default. Candidates for expansion:
 
 Badge logic lives in `app/services/badge_service.py`. New badges need a seed entry and a check in `check_and_award_badges()`.
 
-#### Better leaderboard options
+### Better leaderboard options
 
 Current leaderboard shows all-time current balance, total earned, and tasks completed. Possible additions:
 
@@ -944,7 +942,7 @@ Current leaderboard shows all-time current balance, total earned, and tasks comp
 - **Opt-out toggle** — a user setting to hide themselves from the leaderboard. Store as a boolean on User (`leaderboard_hidden`, default `False`).
 - **Tasks-this-week sub-board** — separate ranking for task completions in the current week, useful for encouraging consistent weekly effort.
 
-#### Group goal lifecycle states
+### Group goal lifecycle states
 
 Current lifecycle: `active` → `completed` (auto on funding) → `fulfilled` or `cancelled`.
 
@@ -955,7 +953,7 @@ Possible additions:
 - **Target date / deadline** — optional `due_date` field on `GroupGoal`. Surface deadline countdown in the UI and auto-cancel overdue unfunded goals if configured.
 - **Goal updates** — admin can post a short status update message on a goal (e.g. "Booked for next month") visible to contributors.
 
-#### Reward stock / quantity handling
+### Reward stock / quantity handling
 
 Currently rewards are unlimited. A `stock` field on `Reward` (nullable integer, `None` = unlimited) would allow limited-availability rewards.
 
@@ -969,7 +967,7 @@ Behaviour when stock is set:
 
 Requires a database migration, changes to `reward_service.py` approval logic, and UI updates to `shop.html`, `create_reward.html`, and `edit_reward.html`.
 
-#### More dashboard widgets
+### More dashboard widgets
 
 Current user dashboard: balance, pending tasks/purchases, affordable reward count, wishlist summary, notifications, recent activity.
 
@@ -981,64 +979,13 @@ Possible additions:
 - **Streak / activity summary** — show how many tasks completed this week vs last week.
 - **Badge recently earned** — surface the most recently earned badge on the dashboard.
 
-#### Mobile-specific navigation improvements
+### Mobile-specific navigation improvements
 
 - **Bottom navigation bar** — a fixed bottom bar on mobile with links to Dashboard, Tasks, Shop, and Wishlist. Common mobile pattern, avoids relying on the top navbar for primary navigation.
 - **Larger tap targets on task cards** — the submit button on task cards can be small on phones; increase padding or make the whole card tappable.
 - **PWA manifest** — add a `manifest.json` so the app can be added to a phone home screen and launched full-screen, useful for the kiosk/home-hub use case.
 
 ## 14. Known issues and technical debt
-
-### `routes.py` modularisation
-
-**Status: Complete.**
-
-`routes.py` has been fully extracted into `app/route_sections/`. The file is now ~75 lines (blueprint, context processor, `admin_required` helper, and `register_*` calls). All endpoint names are unchanged.
-
-Final shape:
-
-```text
-app/routes.py                  (~75 lines)
-app/route_sections/
-    __init__.py
-    activity.py
-    admin_exports.py
-    admin_home.py
-    approvals.py
-    auth.py
-    categories.py
-    dashboard.py
-    group_goals.py
-    leaderboard.py
-    profiles.py
-    request_archive.py
-    rewards.py
-    settings.py
-    tasks.py
-    users.py
-    wishlist.py
-```
-
-Further service-layer extraction (moving business logic out of route section files into service files) is still possible but not urgent.
-
-### Visible "points" wording
-
-Some internal names still use `point`/`points`. This is acceptable for fields, routes, comments, docstrings, and services. Visible UI text should use the household label where practical.
-
-Visible wording already changed includes:
-
-```text
-Point Value -> Value
-Point Cost -> Cost
-Point Adjustment -> Balance Adjustment
-Target Points -> Target Amount
-Complete Task and Award Points -> Complete Task and Award
-Contribute Points -> Contribute
-Add Points to Wishlist Item -> Add to Wishlist Item
-Points Label -> Balance Label
-```
-
-Do not rename internal database fields casually.
 
 ### Hardcoded SECRET_KEY fallback
 
