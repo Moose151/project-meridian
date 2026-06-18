@@ -1,5 +1,5 @@
 # Import datetime tools so we can record when records are created or reviewed.
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 # UserMixin gives the User model the methods Flask-Login expects.
 from flask_login import UserMixin
@@ -166,6 +166,12 @@ class Task(db.Model):
 
     hot_label = db.Column(db.String(120))
 
+    # Task customisation fields
+    assigned_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), index=True)
+    assigned_visibility = db.Column(db.String(30), nullable=False, default="all")
+    availability_window = db.Column(db.String(30), nullable=False, default="always")
+    completion_scope = db.Column(db.String(30), nullable=False, default="per_user")
+
     created_at = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc),
@@ -189,6 +195,11 @@ class Task(db.Model):
     completions = db.relationship(
         "TaskCompletion",
         back_populates="task"
+    )
+
+    assigned_user = db.relationship(
+        "User",
+        foreign_keys=[assigned_user_id]
     )
 
 
@@ -953,3 +964,123 @@ class HouseholdSettings(db.Model):
         db.DateTime,
         default=lambda: datetime.now(timezone.utc)
     )
+
+
+class Routine(db.Model):
+    """
+    Stores habit routines created by admins.
+
+    Routines are repeated daily habits (e.g. shower, brush teeth).
+    Points are awarded immediately on completion — no approval needed.
+    Streak tracking is based on consecutive completion dates.
+    """
+
+    __tablename__ = "routines"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    title = db.Column(db.String(120), nullable=False, index=True)
+
+    description = db.Column(db.Text)
+
+    point_value = db.Column(db.Integer, nullable=False, default=1)
+
+    # If set, only this user sees and can complete the routine.
+    # If None, all users see the routine.
+    assigned_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        index=True
+    )
+
+    is_active = db.Column(db.Boolean, default=True, index=True)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
+
+    assigned_user = db.relationship(
+        "User",
+        foreign_keys=[assigned_user_id]
+    )
+
+    completions = db.relationship(
+        "RoutineCompletion",
+        back_populates="routine"
+    )
+
+    def completed_today_by_user(self, user_id):
+        """Return True if the user has already completed this routine today."""
+        today = date.today()
+        return any(
+            c.user_id == user_id and c.completed_date == today
+            for c in self.completions
+        )
+
+    def current_streak_for_user(self, user_id):
+        """Return the current consecutive-day streak count for a user."""
+        completion_dates = sorted(
+            {c.completed_date for c in self.completions if c.user_id == user_id},
+            reverse=True
+        )
+
+        if not completion_dates:
+            return 0
+
+        today = date.today()
+
+        # Streak is broken if the last completion was more than 1 day ago.
+        if completion_dates[0] < today - timedelta(days=1):
+            return 0
+
+        streak = 1
+        for i in range(1, len(completion_dates)):
+            if completion_dates[i] == completion_dates[i - 1] - timedelta(days=1):
+                streak += 1
+            else:
+                break
+
+        return streak
+
+
+class RoutineCompletion(db.Model):
+    """
+    Records each time a user completes a routine on a given day.
+
+    One record per user per routine per calendar date.
+    """
+
+    __tablename__ = "routine_completions"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    routine_id = db.Column(
+        db.Integer,
+        db.ForeignKey("routines.id"),
+        nullable=False,
+        index=True
+    )
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    completed_date = db.Column(db.Date, nullable=False, index=True)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
+
+    routine = db.relationship(
+        "Routine",
+        back_populates="completions"
+    )
+
+    user = db.relationship("User")

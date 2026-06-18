@@ -18,6 +18,56 @@ from app.services.notification_service import create_notification, notify_standa
 from app.services.points_service import format_points
 
 
+def _task_user_choices():
+    """
+    Build user dropdown choices for task assignment.
+
+    Returns a list starting with "No assignment" (value 0), followed by
+    all active users (standard and admin).
+    """
+
+    users = User.query.filter_by(
+        is_active_account=True
+    ).order_by(
+        User.display_name
+    ).all()
+
+    choices = [(0, "No assignment (anyone can complete)")]
+
+    for user in users:
+        choices.append((user.id, f"{user.avatar_emoji} {user.display_name}"))
+
+    return choices
+
+
+def _task_in_window(task):
+    """
+    Return True if the task is currently within its availability window.
+    """
+
+    window = task.availability_window or "always"
+
+    if window == "always":
+        return True
+
+    now = datetime.now()
+    hour = now.hour
+    weekday = now.weekday()  # 0=Mon, 6=Sun
+
+    if window == "morning":
+        return 5 <= hour < 12
+    elif window == "afternoon":
+        return 12 <= hour < 17
+    elif window == "evening":
+        return 17 <= hour < 22
+    elif window == "weekdays":
+        return weekday < 5
+    elif window == "weekends":
+        return weekday >= 5
+
+    return True
+
+
 def _task_category_choices(include_current=None):
     """
     Build dropdown choices for task categories.
@@ -106,6 +156,33 @@ def register_task_routes(bp, admin_required):
             Task.title
         ).all()
 
+        # Filter by availability window.
+        active_tasks = [t for t in active_tasks if _task_in_window(t)]
+
+        # Filter assigned tasks by visibility (non-admin users only).
+        if not current_user.is_admin():
+            def _visible_to_user(task):
+                if not task.assigned_user_id:
+                    return True
+                if task.assigned_user_id == current_user.id:
+                    return True
+                return (task.assigned_visibility or "all") == "all"
+            active_tasks = [t for t in active_tasks if _visible_to_user(t)]
+
+        # Filter household_once tasks: hide if any active submission exists.
+        household_once_ids = [
+            t.id for t in active_tasks
+            if (t.completion_scope or "per_user") == "household_once"
+        ]
+        if household_once_ids:
+            taken_ids = {
+                row[0] for row in db.session.query(TaskCompletion.task_id).filter(
+                    TaskCompletion.task_id.in_(household_once_ids),
+                    TaskCompletion.status.in_(["submitted", "approved"])
+                ).all()
+            }
+            active_tasks = [t for t in active_tasks if t.id not in taken_ids]
+
         categories = [
             category.name
             for category in TaskCategory.query.filter_by(
@@ -139,6 +216,7 @@ def register_task_routes(bp, admin_required):
         form = TaskForm()
         form.category.choices = _task_category_choices()
         form.import_task_id.choices = _task_import_choices()
+        form.assigned_user_id.choices = _task_user_choices()
 
         # Allow importing from a URL such as /tasks/create?import_task_id=3
         if request.method == "GET":
@@ -157,6 +235,10 @@ def register_task_routes(bp, admin_required):
                     form.is_hot.data = imported_task.is_hot
                     form.hot_bonus_points.data = imported_task.hot_bonus_points
                     form.hot_label.data = imported_task.hot_label
+                    form.assigned_user_id.data = imported_task.assigned_user_id or 0
+                    form.assigned_visibility.data = imported_task.assigned_visibility or "all"
+                    form.availability_window.data = imported_task.availability_window or "always"
+                    form.completion_scope.data = imported_task.completion_scope or "per_user"
 
                     flash("Task imported. Review the details, then save when ready.")
 
@@ -176,12 +258,20 @@ def register_task_routes(bp, admin_required):
             form.is_hot.data = imported_task.is_hot
             form.hot_bonus_points.data = imported_task.hot_bonus_points
             form.hot_label.data = imported_task.hot_label
+            form.assigned_user_id.data = imported_task.assigned_user_id or 0
+            form.assigned_visibility.data = imported_task.assigned_visibility or "all"
+            form.availability_window.data = imported_task.availability_window or "always"
+            form.completion_scope.data = imported_task.completion_scope or "per_user"
 
             flash("Task imported. Review the details, then save when ready.")
 
             return render_template("create_task.html", form=form)
 
         if form.validate_on_submit():
+            assigned_user_id = form.assigned_user_id.data or None
+            if assigned_user_id == 0:
+                assigned_user_id = None
+
             task = Task(
                 title=form.title.data,
                 description=form.description.data,
@@ -191,6 +281,10 @@ def register_task_routes(bp, admin_required):
                 is_hot=form.is_hot.data,
                 hot_bonus_points=form.hot_bonus_points.data or 0,
                 hot_label=form.hot_label.data or None,
+                assigned_user_id=assigned_user_id,
+                assigned_visibility=form.assigned_visibility.data or "all",
+                availability_window=form.availability_window.data or "always",
+                completion_scope=form.completion_scope.data or "per_user",
                 is_active=True
             )
 
@@ -232,6 +326,11 @@ def register_task_routes(bp, admin_required):
             flash("Task not found.")
             return redirect(url_for("main.tasks"))
 
+        # Validate task assignment.
+        if task.assigned_user_id and task.assigned_user_id != current_user.id:
+            flash("This task is assigned to another user.")
+            return redirect(url_for("main.tasks"))
+
         existing_submission = TaskCompletion.query.filter_by(
             task_id=task.id,
             user_id=current_user.id,
@@ -241,6 +340,17 @@ def register_task_routes(bp, admin_required):
         if existing_submission:
             flash("You already submitted this task and it is waiting for approval.")
             return redirect(url_for("main.tasks"))
+
+        # For household_once tasks, check if any user has already submitted.
+        if (task.completion_scope or "per_user") == "household_once":
+            household_submission = TaskCompletion.query.filter(
+                TaskCompletion.task_id == task.id,
+                TaskCompletion.status.in_(["submitted", "approved"])
+            ).first()
+
+            if household_submission:
+                flash("This task has already been submitted by another household member.")
+                return redirect(url_for("main.tasks"))
 
         completion = TaskCompletion(
             task_id=task.id,
@@ -329,9 +439,17 @@ def register_task_routes(bp, admin_required):
 
         form = TaskForm(obj=task)
         form.category.choices = _task_category_choices(task.category)
+        form.assigned_user_id.choices = _task_user_choices()
+
+        if request.method == "GET":
+            form.assigned_user_id.data = task.assigned_user_id or 0
 
         if form.validate_on_submit():
             was_hot = task.is_hot
+
+            assigned_user_id = form.assigned_user_id.data or None
+            if assigned_user_id == 0:
+                assigned_user_id = None
 
             task.title = form.title.data
             task.description = form.description.data
@@ -341,6 +459,10 @@ def register_task_routes(bp, admin_required):
             task.is_hot = form.is_hot.data
             task.hot_bonus_points = form.hot_bonus_points.data or 0
             task.hot_label = form.hot_label.data or None
+            task.assigned_user_id = assigned_user_id
+            task.assigned_visibility = form.assigned_visibility.data or "all"
+            task.availability_window = form.availability_window.data or "always"
+            task.completion_scope = form.completion_scope.data or "per_user"
 
             # Notify users only when a task becomes hot.
             if not was_hot and task.is_hot:

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+    <div>
+        <p class="text-muted-small mb-1">Admin · Routines</p>
+        <h1 class="mb-1">Manage Routines</h1>
+        <p class="text-muted-small mb-0">
+            Create and manage daily routines for household members.
+        </p>
+    </div>
+
+    <a class="btn btn-primary" href="{{ url_for('main.create_routine') }}">
+        New Routine
+    </a>
+</div>
+
+{% if routines %}
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Routine</th>
+                            <th>Assigned To</th>
+                            <th>{{ household_settings.points_label|capitalize }}</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for routine in routines %}
+                            <tr class="{% if not routine.is_active %}text-muted{% endif %}">
+                                <td>
+                                    <strong>{{ routine.title }}</strong>
+                                    {% if routine.description %}
+                                        <div class="text-muted-small mt-1">
+                                            {{ routine.description[:60] }}{% if routine.description|length > 60 %}…{% endif %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if routine.assigned_user %}
+                                        {{ routine.assigned_user.avatar_emoji }} {{ routine.assigned_user.display_name }}
+                                    {% else %}
+                                        <span class="text-muted-small">All users</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-primary">
+                                        {{ routine.point_value }} {{ household_settings.points_label }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {% if routine.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Hidden</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <a
+                                            class="btn btn-sm btn-outline-primary"
+                                            href="{{ url_for('main.edit_routine', routine_id=routine.id) }}"
+                                        >
+                                            Edit
+                                        </a>
+
+                                        {% if routine.is_active %}
+                                            <form
+                                                method="post"
+                                                action="{{ url_for('main.hide_routine', routine_id=routine.id) }}"
+                                            >
+                                                <button class="btn btn-sm btn-outline-secondary" type="submit">
+                                                    Hide
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form
+                                                method="post"
+                                                action="{{ url_for('main.restore_routine', routine_id=routine.id) }}"
+                                            >
+                                                <button class="btn btn-sm btn-outline-success" type="submit">
+                                                    Restore
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
+                                        <form
+                                            method="post"
+                                            action="{{ url_for('main.delete_routine', routine_id=routine.id) }}"
+                                            onsubmit="return confirm('Delete this routine? This cannot be undone.')"
+                                        >
+                                            <button class="btn btn-sm btn-outline-danger" type="submit">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% else %}
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h2>No routines yet</h2>
+
+            <p class="text-muted-small">
+                Create a routine to give household members a daily habit to complete for {{ household_settings.points_label }}.
+            </p>
+
+            <a class="btn btn-primary" href="{{ url_for('main.create_routine') }}">
+                New Routine
+            </a>
+        </div>
+    </section>
+{% endif %}
+
+{% endblock %}

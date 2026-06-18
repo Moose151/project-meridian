@@ -107,6 +107,18 @@
                                         </span>
                                     {% endif %}
 
+                                    {% if task.completion_scope == "household_once" %}
+                                        <span class="badge bg-info text-dark">
+                                            Household once
+                                        </span>
+                                    {% endif %}
+
+                                    {% if task.assigned_user_id %}
+                                        <span class="badge bg-light text-dark border">
+                                            Assigned: {{ task.assigned_user.display_name }}
+                                        </span>
+                                    {% endif %}
+
                                     {% if task.category %}
                                         <span class="badge bg-light text-dark border">
                                             {{ task.category }}
@@ -162,14 +174,20 @@
                             </div>
 
                             {% if not current_user.is_admin() %}
-                                <form
-                                    method="post"
-                                    action="{{ url_for('main.submit_task', task_id=task.id) }}"
-                                >
-                                    <button class="btn btn-success w-100" type="submit">
-                                        Submit as Complete
+                                {% if task.assigned_user_id and task.assigned_user_id != current_user.id %}
+                                    <button class="btn btn-secondary w-100" disabled>
+                                        Assigned to {{ task.assigned_user.display_name }}
                                     </button>
-                                </form>
+                                {% else %}
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('main.submit_task', task_id=task.id) }}"
+                                    >
+                                        <button class="btn btn-success w-100" type="submit">
+                                            Submit as Complete
+                                        </button>
+                                    </form>
+                                {% endif %}
                             {% else %}
                                 <a
                                     class="btn btn-outline-primary w-100"

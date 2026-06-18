@@ -152,6 +152,54 @@ class TaskForm(FlaskForm):
         ]
     )
 
+    # Task customisation fields.
+    # assigned_user_id choices are populated dynamically in routes.
+    assigned_user_id = SelectField(
+        "Assign To",
+        coerce=int,
+        choices=[],
+        validators=[
+            Optional()
+        ]
+    )
+
+    assigned_visibility = SelectField(
+        "Assignment Visibility",
+        choices=[
+            ("all", "Visible to everyone, but only the assigned user can complete it"),
+            ("assigned_only", "Only visible to the assigned user")
+        ],
+        validators=[
+            Optional()
+        ]
+    )
+
+    availability_window = SelectField(
+        "Availability Window",
+        choices=[
+            ("always", "Always available"),
+            ("morning", "Morning only (5am – 12pm)"),
+            ("afternoon", "Afternoon only (12pm – 5pm)"),
+            ("evening", "Evening only (5pm – 10pm)"),
+            ("weekdays", "Weekdays only (Mon – Fri)"),
+            ("weekends", "Weekends only (Sat – Sun)"),
+        ],
+        validators=[
+            DataRequired()
+        ]
+    )
+
+    completion_scope = SelectField(
+        "Completion Scope",
+        choices=[
+            ("per_user", "Each user can complete it independently"),
+            ("household_once", "Once per household — hides after any user submits it"),
+        ],
+        validators=[
+            DataRequired()
+        ]
+    )
+
     submit = SubmitField("Save Task")
 
 
@@ -630,6 +678,51 @@ class WishlistEditItemForm(FlaskForm):
     )
 
     submit = SubmitField("Save Wishlist Item")
+
+# =========================================================
+# ROUTINE FORM
+# =========================================================
+
+class RoutineForm(FlaskForm):
+    """
+    Form used by admins to create or edit a routine.
+    """
+
+    title = StringField(
+        "Routine Title",
+        validators=[
+            DataRequired(),
+            Length(max=120)
+        ]
+    )
+
+    description = TextAreaField(
+        "Description",
+        validators=[
+            Optional()
+        ]
+    )
+
+    point_value = IntegerField(
+        "Point Value",
+        validators=[
+            DataRequired(),
+            NumberRange(min=0)
+        ]
+    )
+
+    # Choices populated dynamically in routes.
+    assigned_user_id = SelectField(
+        "Assign To",
+        coerce=int,
+        choices=[],
+        validators=[
+            Optional()
+        ]
+    )
+
+    submit = SubmitField("Save Routine")
+
 
 class HouseholdSettingsForm(FlaskForm):
     """

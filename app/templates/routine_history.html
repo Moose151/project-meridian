@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+    <div>
+        <p class="text-muted-small mb-1">Routines</p>
+        <h1 class="mb-1">Routine History</h1>
+        <p class="text-muted-small mb-0">
+            Your routine completions over the last 90 days.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.routines') }}">
+        Back to Routines
+    </a>
+</div>
+
+{% if routines_with_streaks %}
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h2 class="mb-3">Current Streaks</h2>
+
+            <div class="row g-3">
+                {% for item in routines_with_streaks %}
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="card border-0 bg-light h-100">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h3 class="h6 mb-1">
+                                            {{ item.routine.title }}
+                                        </h3>
+
+                                        <p class="text-muted-small mb-0">
+                                            {{ item.total_completions }} completion{% if item.total_completions != 1 %}s{% endif %} in last 90 days
+                                        </p>
+                                    </div>
+
+                                    {% if item.streak > 0 %}
+                                        <span class="badge bg-warning text-dark">
+                                            🔥 {{ item.streak }}-day
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            No streak
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endif %}
+
+{% if completions %}
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="mb-3">Recent Completions</h2>
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Routine</th>
+                            <th>{{ household_settings.points_label|capitalize }} Earned</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for completion in completions %}
+                            <tr>
+                                <td>
+                                    <span class="status-note">
+                                        {{ completion.completed_date.strftime("%d %b %Y") }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ completion.routine.title }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">
+                                        +{{ completion.routine.point_value }} {{ household_settings.points_label }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% else %}
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h2>No completions yet</h2>
+
+            <p class="text-muted-small">
+                Your routine completions will appear here once you start marking them done each day.
+            </p>
+
+            <a class="btn btn-primary" href="{{ url_for('main.routines') }}">
+                View Routines
+            </a>
+        </div>
+    </section>
+{% endif %}
+
+{% endblock %}

@@ -16,6 +16,7 @@ from app.route_sections.leaderboard import register_leaderboard_routes
 from app.route_sections.profiles import register_profile_routes
 from app.route_sections.request_archive import register_request_archive_routes
 from app.route_sections.rewards import register_reward_routes
+from app.route_sections.routines import register_routine_routes
 from app.route_sections.settings import register_settings_routes
 from app.route_sections.tasks import register_task_routes
 from app.route_sections.users import register_user_routes
@@ -69,6 +70,7 @@ register_leaderboard_routes(bp)
 register_profile_routes(bp, admin_required)
 register_request_archive_routes(bp)
 register_reward_routes(bp, admin_required)
+register_routine_routes(bp, admin_required)
 register_settings_routes(bp, admin_required)
 register_task_routes(bp, admin_required)
 register_user_routes(bp, admin_required)

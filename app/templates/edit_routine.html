@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+    <div>
+        <p class="text-muted-small mb-1">Admin · Routines</p>
+        <h1 class="mb-1">Edit Routine</h1>
+        <p class="text-muted-small mb-0">
+            Editing <strong>{{ routine.title }}</strong>.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-primary" href="{{ url_for('main.manage_routines') }}">
+        Back to Manage Routines
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="3") }}
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            {{ form.point_value.label(class="form-label") }}
+                            {{ form.point_value(class="form-control") }}
+                            <div class="form-text">
+                                Changing this only affects future completions.
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            {{ form.assigned_user_id.label(class="form-label") }}
+                            {{ form.assigned_user_id(class="form-control") }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column flex-sm-row gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                        <a class="btn btn-secondary" href="{{ url_for('main.manage_routines') }}">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h2>Current Status</h2>
+
+                <p class="text-muted-small mb-1">Visibility</p>
+                {% if routine.is_active %}
+                    <span class="badge bg-success">Active</span>
+                {% else %}
+                    <span class="badge bg-secondary">Hidden</span>
+                {% endif %}
+
+                <p class="text-muted-small mt-3 mb-1">Assigned to</p>
+                {% if routine.assigned_user %}
+                    <span>{{ routine.assigned_user.avatar_emoji }} {{ routine.assigned_user.display_name }}</span>
+                {% else %}
+                    <span class="text-muted-small">All users</span>
+                {% endif %}
+
+                <p class="text-muted-small mt-3 mb-0">
+                    Editing a routine does not alter existing completion history.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

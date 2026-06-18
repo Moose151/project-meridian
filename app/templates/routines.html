@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+    <div>
+        <p class="text-muted-small mb-1">
+            Routines
+        </p>
+
+        <h1 class="mb-1">Daily Routines</h1>
+
+        <p class="text-muted-small mb-0">
+            Complete your routines each day to earn {{ household_settings.points_label }} and build streaks.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.routine_history') }}">
+        View History
+    </a>
+</section>
+
+{% if routine_data %}
+    <section class="row g-4">
+        {% for item in routine_data %}
+            {% set routine = item.routine %}
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card h-100 border-0 shadow-sm {% if item.completed_today %}border-success{% endif %}">
+                    <div class="card-body p-4 d-flex flex-column">
+
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                            <div>
+                                <h2 class="h4 mb-2">
+                                    {{ routine.title }}
+                                </h2>
+
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% if item.completed_today %}
+                                        <span class="badge bg-success">
+                                            Done today
+                                        </span>
+                                    {% endif %}
+
+                                    {% if item.streak > 0 %}
+                                        <span class="badge bg-warning text-dark">
+                                            🔥 {{ item.streak }}-day streak
+                                        </span>
+                                    {% endif %}
+
+                                    {% if routine.assigned_user_id %}
+                                        <span class="badge bg-light text-dark border">
+                                            Assigned
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if routine.description %}
+                            <p>
+                                {{ routine.description }}
+                            </p>
+                        {% else %}
+                            <p class="text-muted-small">
+                                No description provided.
+                            </p>
+                        {% endif %}
+
+                        <div class="mt-auto pt-3">
+                            <div class="mb-3">
+                                <span class="badge bg-primary">
+                                    {{ routine.point_value }} {{ household_settings.points_label }}
+                                </span>
+
+                                <div class="mt-2">
+                                    <span class="status-note">
+                                        Awarded immediately on completion
+                                    </span>
+                                </div>
+                            </div>
+
+                            {% if item.completed_today %}
+                                <button class="btn btn-outline-success w-100" disabled>
+                                    Completed today
+                                </button>
+                            {% else %}
+                                <form
+                                    method="post"
+                                    action="{{ url_for('main.complete_routine', routine_id=routine.id) }}"
+                                >
+                                    <button class="btn btn-success w-100" type="submit">
+                                        Mark Complete
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </section>
+{% else %}
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h2>No routines yet</h2>
+
+            <p class="text-muted-small">
+                No routines have been set up for you yet. Ask your admin to create some.
+            </p>
+        </div>
+    </section>
+{% endif %}
+
+{% endblock %}
