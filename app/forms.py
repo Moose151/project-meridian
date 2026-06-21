@@ -200,6 +200,24 @@ class TaskForm(FlaskForm):
         ]
     )
 
+    recurrence_days = SelectField(
+        "Recurrence",
+        choices=[
+            ("", "No recurrence"),
+            ("0,1,2,3,4,5,6", "Every day"),
+            ("0,1,2,3,4", "Weekdays (Mon–Fri)"),
+            ("5,6", "Weekends (Sat–Sun)"),
+            ("0", "Mondays only"),
+            ("1", "Tuesdays only"),
+            ("2", "Wednesdays only"),
+            ("3", "Thursdays only"),
+            ("4", "Fridays only"),
+            ("5", "Saturdays only"),
+            ("6", "Sundays only"),
+        ],
+        validators=[Optional()]
+    )
+
     submit = SubmitField("Save Task")
 
 
@@ -350,6 +368,31 @@ class EditUserForm(FlaskForm):
         validators=[
             DataRequired()
         ]
+    )
+
+    kiosk_pin_skip = BooleanField(
+        "Allow kiosk login without PIN (for young children)"
+    )
+
+    allowance_amount = IntegerField(
+        "Weekly allowance",
+        validators=[Optional(), NumberRange(min=0)],
+        default=0
+    )
+
+    allowance_day = SelectField(
+        "Allowance day",
+        choices=[
+            (-1, "Disabled"),
+            (0, "Monday"),
+            (1, "Tuesday"),
+            (2, "Wednesday"),
+            (3, "Thursday"),
+            (4, "Friday"),
+            (5, "Saturday"),
+            (6, "Sunday"),
+        ],
+        coerce=int
     )
 
     submit = SubmitField("Save Changes")

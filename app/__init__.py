@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 
 # Import Flask core.
-from flask import Flask
+from flask import Flask, jsonify, session
 
 # Import SQLAlchemy for database handling.
 from flask_sqlalchemy import SQLAlchemy
@@ -53,6 +53,9 @@ def create_app():
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+    # Max upload size for task evidence photos (8 MB).
+    app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
+
     # Connect database to app.
     db.init_app(app)
     migrate.init_app(app, db)
@@ -81,12 +84,38 @@ def create_app():
     from app.routes import bp
     app.register_blueprint(bp)
 
-    # Create database tables and seed required default data.
+    # Health check endpoint — useful for Docker / reverse proxy health checks.
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "ok"}), 200
+
+    # Context processor: inject kiosk unread notification count into every
+    # template so the nav bell can show a dot without each route passing it.
+    @bp.context_processor
+    def inject_kiosk_unread():
+        from app.models import Notification
+        user_id = session.get("kiosk_user_id")
+        if user_id:
+            count = Notification.query.filter_by(
+                user_id=user_id, is_read=False
+            ).count()
+            return {"kiosk_unread_count": count}
+        return {"kiosk_unread_count": 0}
+
+    # Create database tables, run column migrations, and seed default data.
     with app.app_context():
         db.create_all()
+
+        # Ensure the evidence photo upload directory exists.
+        upload_dir = os.path.join(app.root_path, "static", "uploads", "evidence")
+        os.makedirs(upload_dir, exist_ok=True)
 
         from app.services.seed_service import run_column_migrations, seed_default_data
         run_column_migrations()
         seed_default_data()
+
+    # Start background scheduler (DB backups, allowances).
+    from app.services.scheduler_service import start_scheduler
+    start_scheduler(app)
 
     return app

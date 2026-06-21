@@ -44,6 +44,15 @@ class User(UserMixin, db.Model):
     # Has no effect on standard users (they always participate).
     participation_enabled = db.Column(db.Boolean, default=False, nullable=False)
 
+    # When True, this user can log into the kiosk by tapping their card
+    # without entering a PIN. Intended for young children.
+    kiosk_pin_skip = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Automatic weekly allowance. allowance_day is the day of the week
+    # (0=Mon … 6=Sun) on which points are awarded. -1 = disabled.
+    allowance_amount = db.Column(db.Integer, default=0, nullable=False)
+    allowance_day = db.Column(db.Integer, default=-1, nullable=False)
+
     created_at = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc),
@@ -172,6 +181,11 @@ class Task(db.Model):
     availability_window = db.Column(db.String(30), nullable=False, default="always")
     completion_scope = db.Column(db.String(30), nullable=False, default="per_user")
 
+    # Comma-separated weekday numbers (0=Mon … 6=Sun) on which this task
+    # recurs. When set, completions older than 7 days are ignored so the
+    # task becomes available again each week. Empty string = no recurrence.
+    recurrence_days = db.Column(db.String(20), nullable=False, default="")
+
     created_at = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc),
@@ -248,6 +262,10 @@ class TaskCompletion(db.Model):
     )
 
     rejection_reason = db.Column(db.Text)
+
+    # Optional photo evidence uploaded by the user at submission time.
+    # Stores a relative path under app/static/uploads/evidence/.
+    evidence_photo = db.Column(db.String(255))
 
     task = db.relationship(
         "Task",

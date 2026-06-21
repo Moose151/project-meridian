@@ -893,7 +893,7 @@ Recent major work completed:
 - Badge system implemented with seven default badges.
 - Unified request archive page implemented.
 - `routes.py` modularised into `app/route_sections/` (13 route section modules). `routes.py` is now ~75 lines.
-- Admin participation mode implemented (see below).
+- Admin participation mode implemented.
 
 Repository hygiene:
 
@@ -907,6 +907,102 @@ Recent tag context:
 stable-service-layer
 stable-homestack-ui
 ```
+
+## 16. Kiosk mode and major feature additions
+
+### Kiosk mode (`/kiosk`)
+
+A touch-friendly kiosk interface was added for household hub use (e.g. Raspberry Pi touchscreen). Kiosk sessions are isolated from Flask-Login using a separate `session['kiosk_user_id']` key.
+
+**Landing and auth:**
+- `/kiosk` — user selection grid with large avatar cards
+- `/kiosk/user/<id>` — PIN entry; digits-only numpad with optional toggle button; keyboard input supported; `kiosk_pin_skip` flag bypasses PIN for young/small users
+
+**User pages:**
+- `/kiosk/dashboard` — balance, best streak, quick-complete routines, stat cards, action grid, mini leaderboard, pending approvals summary
+- `/kiosk/tasks` — task list with optional photo evidence upload (`evidence_photo` file field, saved to `static/uploads/evidence/`)
+- `/kiosk/routines` — routine list with streak badges, quick-complete buttons
+- `/kiosk/rewards` — reward shop with request flow
+- `/kiosk/wishlist` — personal wishlist items, contribute, request new
+- `/kiosk/goals` — group goals with contribute flow
+- `/kiosk/leaderboard` — four boards: current points, total earned, tasks done, routines done
+- `/kiosk/notifications` — notifications newest-first, marks all read on visit
+- `/kiosk/badges` — earned (prominent) and locked (dimmed) badges
+
+**Admin kiosk pages:**
+- `/kiosk/approvals` — approve/reject task completions and reward requests directly from the hub
+
+**UX features baked into `kiosk_base.html`:**
+- canvas-confetti celebration animation triggered by flash category `"celebrate"`
+- Inactivity overlay: shows at 7.5 minutes, 30-second countdown, redirects to `/kiosk` at 8 minutes; resets on any touch/click/keypress
+- Dark mode toggle (🌙/☀️) stored in `localStorage`
+- Unread notification dot on the Alerts nav item (count injected by blueprint context processor)
+
+**Mode switching:**
+- Normal app navbar has a 🖥 Kiosk button
+- Kiosk header has an "Exit Kiosk" button back to the normal dashboard
+
+### Routines / habit tracking
+
+`Routine` and `RoutineCompletion` models. Routines are repeating habits admins create for users. Completing a routine awards points immediately (no approval needed) and tracks a streak.
+
+- `Routine.current_streak_for_user(user_id)` — consecutive days including today
+- `Routine.completed_today_by_user(user_id)` — bool
+- Routines leaderboard added to both `/leaderboard` (normal app) and `/kiosk/leaderboard`
+- Participating admins see the Routines nav link
+
+### Task recurrence rules
+
+`Task.recurrence_days` — comma-separated weekday ints (0=Mon…6=Sun). When set:
+- Task only appears on configured weekdays
+- For `household_once` recurring tasks, completion blocking scopes to the current week (since Monday) rather than all-time
+
+### Task photo evidence
+
+`TaskCompletion.evidence_photo` — optional filename stored in `static/uploads/evidence/{completion_id}_{user_id}.{ext}`. Uploaded via kiosk tasks form. Visible in `admin_approvals.html` inline image.
+
+Max upload: 8 MB (`MAX_CONTENT_LENGTH`). Allowed: jpg, jpeg, png, gif, webp.
+
+### Admin reports with charts
+
+`admin_reports.html` now includes Chart.js 4.4.4 charts:
+- **Weekly bar+line chart** — last 12 weeks of points earned (bar), tasks approved (line), routines done (line)
+- **User balance doughnut** — current point balances per active user
+
+CSV exports unchanged.
+
+### Dark mode
+
+Both normal app and kiosk have dark mode toggles. State stored in `localStorage` (`app_dark_mode` / `kiosk_dark_mode`). Bootstrap 5.3.3 native dark mode via `data-bs-theme="dark"` on `<html>`. `homestack.css` has dark overrides for all custom classes.
+
+### Admin user settings (edit_user)
+
+Added to `EditUserForm` and `edit_user.html`:
+- **Kiosk PIN-skip** (`User.kiosk_pin_skip`) — auto-logs in on GET without PIN
+- **Weekly allowance** (`User.allowance_amount`, `User.allowance_day`) — points awarded automatically each week on the configured day
+
+### APScheduler background jobs
+
+`app/services/scheduler_service.py`:
+- **02:00 daily** — backs up SQLite DB to `instance/backups/`, keeps last 7
+- **06:00 daily** — awards allowance points to users whose `allowance_day` matches today's weekday
+- Skipped in `TESTING=True` or `SCHEDULER_ENABLED=False` environments
+
+### Health check
+
+`GET /health` returns `{"status": "ok"}` with HTTP 200. Useful for Docker health checks and uptime monitoring.
+
+### Column migrations
+
+`run_column_migrations()` in `seed_service.py` idempotently adds new columns on startup:
+- `users`: `kiosk_pin_skip`, `allowance_amount`, `allowance_day`
+- `tasks`: `recurrence_days`
+- `task_completions`: `evidence_photo`
+- `routines` / `routine_completions`: added in earlier migrations
+
+### New Python dependency
+
+`APScheduler==3.11.0` — added to `app/requirements.txt`.
 
 ## 13. Features yet to implement
 
@@ -1004,6 +1100,24 @@ Add routines as a separate feature from tasks. Routines are repeated habits or p
 Routines should grant small point amounts and track streaks, including how many days in a row the user completed the routine. Add milestone bonuses for streaks or consistency targets.
 
 Routines should have their own views and leaderboard options separate from general task and point leaderboards, so habit consistency can be celebrated without being mixed into normal chore/task rankings.
+
+### Weekly email digest (future work)
+
+Send a weekly summary email to each user every Monday morning with:
+- Points earned last week
+- Tasks approved last week
+- Routines streak summary
+- Current balance
+- Upcoming hot tasks or group goals nearing their target
+
+**Implementation approach:**
+- Add `User.email` field (nullable) to the model
+- Add SMTP settings to `HouseholdSettings` or `.env` (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`)
+- Add a weekly APScheduler job in `scheduler_service.py` (e.g. Monday 07:00)
+- Use Python's `smtplib` or `Flask-Mail` to send HTML emails rendered from a Jinja template
+- Admin UI to configure email settings and opt users in/out
+
+This feature was scoped out of the current session to keep scope manageable. Add it as a follow-up once email infrastructure is available on the server.
 
 ## 14. Known issues and technical debt
 

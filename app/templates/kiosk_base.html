@@ -33,6 +33,15 @@
         {% endif %}
 
         <div class="kiosk-header-actions">
+            <!-- Dark mode toggle -->
+            <button
+                type="button"
+                class="kiosk-dark-toggle"
+                id="kiosk-dark-toggle"
+                onclick="kioskToggleDark()"
+                aria-label="Toggle dark mode"
+            >🌙</button>
+
             <a href="{{ url_for('main.kiosk_switch') }}" class="kiosk-switch-btn">
                 {% if kiosk_user is defined and kiosk_user %}
                     Switch User
@@ -48,11 +57,15 @@
 </header>
 
 <!-- Flash messages -->
-<div class="kiosk-alerts">
-    {% with messages = get_flashed_messages() %}
+<div class="kiosk-alerts" id="kiosk-alerts">
+    {% with messages = get_flashed_messages(with_categories=True) %}
         {% if messages %}
-            {% for message in messages %}
-                <div class="kiosk-alert" id="kiosk-alert">
+            {% for category, message in messages %}
+                <div
+                    class="kiosk-alert"
+                    id="kiosk-alert"
+                    data-celebrate="{{ 'true' if category == 'celebrate' else 'false' }}"
+                >
                     {{ message }}
                 </div>
             {% endfor %}
@@ -119,8 +132,12 @@
     <a
         href="{{ url_for('main.kiosk_notifications') }}"
         class="kiosk-nav-item {% if request.endpoint == 'main.kiosk_notifications' %}active{% endif %}"
+        style="position:relative;"
     >
         <span class="kiosk-nav-icon">🔔</span>
+        {% if kiosk_unread_count > 0 %}
+            <span class="kiosk-unread-dot">{{ kiosk_unread_count }}</span>
+        {% endif %}
         <span class="kiosk-nav-label">Alerts</span>
     </a>
 
@@ -150,6 +167,16 @@
         <span class="kiosk-nav-label">Switch</span>
     </a>
 </nav>
+
+<!-- Inactivity warning overlay -->
+<div id="kiosk-inactivity-overlay" class="kiosk-inactivity-overlay" style="display:none;" onclick="resetInactivityTimer()">
+    <div class="kiosk-inactivity-box">
+        <div class="kiosk-inactivity-icon">👋</div>
+        <div class="kiosk-inactivity-msg">Still there?</div>
+        <div class="kiosk-inactivity-sub">Returning to home screen in <strong id="kiosk-countdown">30</strong>s</div>
+        <button type="button" class="kiosk-inactivity-btn" onclick="resetInactivityTimer()">Yes, I'm here!</button>
+    </div>
+</div>
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
@@ -157,10 +184,40 @@
     crossorigin="anonymous">
 </script>
 
+<!-- canvas-confetti for celebration animations -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
 <script>
-    // Auto-dismiss flash alerts after 4 seconds.
+    // ── Dark mode ────────────────────────────────────────────
+    const DARK_KEY = "kiosk_dark_mode";
+
+    function kioskApplyDark(dark) {
+        document.documentElement.setAttribute("data-bs-theme", dark ? "dark" : "light");
+        document.body.classList.toggle("kiosk-dark", dark);
+        const btn = document.getElementById("kiosk-dark-toggle");
+        if (btn) btn.textContent = dark ? "☀️" : "🌙";
+    }
+
+    function kioskToggleDark() {
+        const isDark = localStorage.getItem(DARK_KEY) === "1";
+        localStorage.setItem(DARK_KEY, isDark ? "0" : "1");
+        kioskApplyDark(!isDark);
+    }
+
+    // Apply on load.
+    kioskApplyDark(localStorage.getItem(DARK_KEY) === "1");
+
+    // ── Flash alerts ─────────────────────────────────────────
     const alert = document.getElementById("kiosk-alert");
     if (alert) {
+        // Trigger confetti if this was a celebration flash.
+        if (alert.dataset.celebrate === "true") {
+            confetti({
+                particleCount: 120,
+                spread: 80,
+                origin: { y: 0.6 },
+            });
+        }
         setTimeout(() => {
             alert.style.opacity = "0";
             alert.style.transition = "opacity 0.5s";
@@ -169,26 +226,45 @@
     }
 
     {% if kiosk_user is defined and kiosk_user %}
-    // Inactivity timeout: return to landing after 8 minutes of no interaction.
-    const INACTIVITY_MS = 8 * 60 * 1000;
+    // ── Inactivity timeout ───────────────────────────────────
+    const INACTIVITY_MS  = 8 * 60 * 1000;   // 8 minutes total
+    const WARNING_MS     = 7.5 * 60 * 1000; // show warning at 7:30
+    const COUNTDOWN_SEC  = 30;
+
     let inactivityTimer;
+    let countdownTimer;
+    let countdownValue = COUNTDOWN_SEC;
+    const overlay = document.getElementById("kiosk-inactivity-overlay");
+    const countdownEl = document.getElementById("kiosk-countdown");
+
+    function showInactivityWarning() {
+        if (!overlay) return;
+        countdownValue = COUNTDOWN_SEC;
+        if (countdownEl) countdownEl.textContent = countdownValue;
+        overlay.style.display = "flex";
+        countdownTimer = setInterval(() => {
+            countdownValue--;
+            if (countdownEl) countdownEl.textContent = countdownValue;
+            if (countdownValue <= 0) {
+                clearInterval(countdownTimer);
+                window.location.href = "{{ url_for('main.kiosk_landing') }}";
+            }
+        }, 1000);
+    }
 
     function resetInactivityTimer() {
         clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            window.location.href = "{{ url_for('main.kiosk_landing') }}";
-        }, INACTIVITY_MS);
+        clearInterval(countdownTimer);
+        if (overlay) overlay.style.display = "none";
+        inactivityTimer = setTimeout(showInactivityWarning, WARNING_MS);
     }
 
     ["touchstart", "touchmove", "click", "keypress", "pointerdown"].forEach((ev) => {
         document.addEventListener(ev, resetInactivityTimer, { passive: true });
     });
 
-    // Also reset on page visibility restore (screen wake).
     document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) {
-            resetInactivityTimer();
-        }
+        if (!document.hidden) resetInactivityTimer();
     });
 
     resetInactivityTimer();

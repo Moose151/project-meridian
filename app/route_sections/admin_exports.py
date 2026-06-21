@@ -6,13 +6,17 @@ such as main.admin_reports and main.backup_database stay unchanged.
 """
 
 import csv
-from datetime import datetime
+import json
+from datetime import datetime, timedelta
 from io import StringIO
 import os
 
 from flask import Response, flash, redirect, render_template, send_file, url_for
 from flask_login import login_required
+from sqlalchemy import func
 
+from app import db
+from app.models import PointTransaction, RoutineCompletion, TaskCompletion, User
 from app.services.report_service import (
     build_points_report_rows,
     build_rewards_report_rows,
@@ -60,7 +64,53 @@ def register_admin_export_routes(bp, admin_required):
         if not admin_required():
             return redirect(url_for("main.dashboard"))
 
-        return render_template("admin_reports.html")
+        # Build last-12-weeks chart data.
+        today = datetime.utcnow().date()
+        weeks = []
+        points_per_week = []
+        tasks_per_week = []
+        routines_per_week = []
+
+        for i in range(11, -1, -1):
+            week_start = today - timedelta(weeks=i, days=today.weekday())
+            week_end = week_start + timedelta(days=7)
+            label = week_start.strftime("%-d %b")
+            weeks.append(label)
+
+            pts = db.session.query(func.coalesce(func.sum(PointTransaction.amount), 0)).filter(
+                PointTransaction.amount > 0,
+                func.date(PointTransaction.created_at) >= week_start,
+                func.date(PointTransaction.created_at) < week_end,
+            ).scalar() or 0
+            points_per_week.append(int(pts))
+
+            tc = TaskCompletion.query.filter(
+                TaskCompletion.status == "approved",
+                func.date(TaskCompletion.reviewed_at) >= week_start,
+                func.date(TaskCompletion.reviewed_at) < week_end,
+            ).count()
+            tasks_per_week.append(tc)
+
+            rc = RoutineCompletion.query.filter(
+                RoutineCompletion.completed_date >= week_start,
+                RoutineCompletion.completed_date < week_end,
+            ).count()
+            routines_per_week.append(rc)
+
+        # Per-user points breakdown for a doughnut chart.
+        users = User.query.filter_by(is_active_account=True).all()
+        user_labels = [u.display_name for u in users]
+        user_balances = [max(u.point_balance(), 0) for u in users]
+
+        return render_template(
+            "admin_reports.html",
+            chart_weeks=json.dumps(weeks),
+            chart_points=json.dumps(points_per_week),
+            chart_tasks=json.dumps(tasks_per_week),
+            chart_routines=json.dumps(routines_per_week),
+            chart_user_labels=json.dumps(user_labels),
+            chart_user_balances=json.dumps(user_balances),
+        )
 
     @bp.route("/admin/reports/users.csv")
     @login_required

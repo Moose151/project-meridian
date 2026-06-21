@@ -14,6 +14,9 @@
                     <span class="kiosk-dash-balance-number">{{ current_balance }}</span>
                     <span class="kiosk-dash-balance-label">{{ household_settings.points_label }}</span>
                 </div>
+                {% if best_streak > 1 %}
+                    <div class="kiosk-dash-streak">🔥 Best streak: {{ best_streak }} days</div>
+                {% endif %}
             {% else %}
                 <div class="kiosk-dash-balance">
                     <span class="kiosk-dash-balance-label">Admin — participation not enabled</span>
@@ -108,6 +111,44 @@
             <span class="kiosk-action-text">Leaderboard</span>
         </a>
     </div>
+
+    <!-- Today's Routines quick-complete -->
+    {% if incomplete_routines %}
+        <div class="kiosk-section">
+            <div class="kiosk-section-header-row">
+                <h2 class="kiosk-section-title">Today's Routines</h2>
+                <a href="{{ url_for('main.kiosk_routines') }}" class="kiosk-section-link">All routines →</a>
+            </div>
+
+            <div class="kiosk-quick-routine-list">
+                {% for rd in incomplete_routines[:4] %}
+                    <div class="kiosk-quick-routine-row">
+                        <div class="kiosk-quick-routine-info">
+                            <span class="kiosk-quick-routine-title">{{ rd.routine.title }}</span>
+                            {% if rd.streak > 0 %}
+                                <span class="kiosk-streak-badge">🔥 {{ rd.streak }}d</span>
+                            {% endif %}
+                            {% if rd.routine.point_value > 0 %}
+                                <span class="kiosk-quick-routine-pts">+{{ rd.routine.point_value }}</span>
+                            {% endif %}
+                        </div>
+                        <form
+                            method="post"
+                            action="{{ url_for('main.kiosk_complete_routine', routine_id=rd.routine.id) }}"
+                            onsubmit="this.querySelector('button').disabled=true;"
+                        >
+                            <button type="submit" class="kiosk-quick-routine-btn">Done ✓</button>
+                        </form>
+                    </div>
+                {% endfor %}
+                {% if incomplete_routines|length > 4 %}
+                    <a href="{{ url_for('main.kiosk_routines') }}" class="kiosk-section-link" style="display:block; text-align:center; padding:0.5rem 0;">
+                        +{{ incomplete_routines|length - 4 }} more routines →
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
 
     <!-- Pending approvals -->
     {% if pending_task_completions or pending_reward_requests %}

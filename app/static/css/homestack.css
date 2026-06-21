@@ -2579,6 +2579,358 @@ textarea.form-control {
     }
 }
 
+/* ── Action grid (dashboard big buttons) ────────────────── */
+
+.kiosk-action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 575.98px) {
+    .kiosk-action-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.kiosk-action-routines {
+    background: linear-gradient(135deg, #6f42c1 0%, #5a329a 100%);
+}
+
+.kiosk-action-wishlist {
+    background: linear-gradient(135deg, var(--hs-warning) 0%, #a67230 100%);
+}
+
+.kiosk-action-goals {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a4dc4 100%);
+}
+
+.kiosk-action-leaderboard {
+    background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%);
+}
+
+/* ── Best-streak display on dashboard header ────────────── */
+
+.kiosk-dash-streak {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--hs-warning);
+    margin-top: 0.25rem;
+}
+
+/* ── Stat card colours ──────────────────────────────────── */
+
+.kiosk-stat-routines {
+    border-color: #6f42c1;
+    background: #f3effb;
+}
+
+.kiosk-stat-streak {
+    border-color: var(--hs-warning);
+    background: var(--hs-warning-soft);
+}
+
+/* ── Unread notification dot ────────────────────────────── */
+
+.kiosk-unread-dot {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.2rem;
+    background: var(--hs-danger);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 99px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.2rem;
+    pointer-events: none;
+    line-height: 1;
+}
+
+/* ── Dark mode toggle (kiosk header) ────────────────────── */
+
+.kiosk-dark-toggle {
+    background: none;
+    border: 1.5px solid var(--hs-border);
+    border-radius: var(--hs-radius-sm);
+    padding: 0.35rem 0.7rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background 0.15s;
+    line-height: 1;
+}
+
+.kiosk-dark-toggle:hover,
+.kiosk-dark-toggle:focus {
+    background: var(--hs-bg-soft);
+    outline: none;
+}
+
+/* ── Inactivity warning overlay ─────────────────────────── */
+
+.kiosk-inactivity-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    backdrop-filter: blur(4px);
+}
+
+.kiosk-inactivity-box {
+    background: var(--hs-surface-raised);
+    border-radius: var(--hs-radius-lg);
+    box-shadow: var(--hs-shadow);
+    padding: 2.5rem 2rem;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.kiosk-inactivity-icon {
+    font-size: 3.5rem;
+    line-height: 1;
+}
+
+.kiosk-inactivity-msg {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--hs-text);
+}
+
+.kiosk-inactivity-sub {
+    font-size: 1rem;
+    color: var(--hs-muted);
+}
+
+.kiosk-inactivity-btn {
+    margin-top: 0.5rem;
+    padding: 0.85rem 2rem;
+    background: var(--hs-primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--hs-radius);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.kiosk-inactivity-btn:hover,
+.kiosk-inactivity-btn:focus {
+    background: var(--hs-primary-hover);
+    outline: none;
+}
+
+.kiosk-inactivity-btn:active {
+    transform: scale(0.97);
+}
+
+/* ── Quick-complete routines on dashboard ───────────────── */
+
+.kiosk-quick-routine-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.kiosk-quick-routine-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--hs-bg-soft);
+    border-radius: var(--hs-radius-sm);
+}
+
+.kiosk-quick-routine-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.kiosk-quick-routine-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--hs-text);
+}
+
+.kiosk-quick-routine-pts {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--hs-primary);
+}
+
+.kiosk-quick-routine-btn {
+    flex-shrink: 0;
+    padding: 0.45rem 1rem;
+    background: var(--hs-success);
+    color: #fff;
+    border: none;
+    border-radius: var(--hs-radius-sm);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background 0.15s, transform 0.08s;
+}
+
+.kiosk-quick-routine-btn:hover,
+.kiosk-quick-routine-btn:focus {
+    background: #4a7259;
+    outline: none;
+}
+
+.kiosk-quick-routine-btn:active {
+    transform: scale(0.95);
+}
+
+.kiosk-quick-routine-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Evidence photo upload in kiosk tasks ───────────────── */
+
+.kiosk-evidence-wrap {
+    margin-bottom: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.kiosk-evidence-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--hs-muted-strong);
+    cursor: pointer;
+}
+
+.kiosk-evidence-input {
+    font-size: 0.9rem;
+    color: var(--hs-muted-strong);
+    border: 1.5px dashed var(--hs-border-strong);
+    border-radius: var(--hs-radius-sm);
+    padding: 0.5rem 0.75rem;
+    background: var(--hs-bg-soft);
+    width: 100%;
+    cursor: pointer;
+}
+
+/* ── Dark mode overrides ────────────────────────────────── */
+
+[data-bs-theme="dark"] {
+    --hs-bg: #1a1a1f;
+    --hs-bg-soft: #1e1e24;
+    --hs-surface: #23232a;
+    --hs-surface-raised: #2a2a32;
+    --hs-surface-muted: #202028;
+    --hs-border: #3a3a46;
+    --hs-border-strong: #4a4a58;
+
+    --hs-text: #ede8e0;
+    --hs-muted: #8a8590;
+    --hs-muted-strong: #b0adb5;
+
+    --hs-primary-soft: #1e203a;
+    --hs-success-soft: #1a2a22;
+    --hs-warning-soft: #2a2210;
+    --hs-danger-soft: #2a1818;
+
+    --bs-body-bg: var(--hs-bg);
+    --bs-body-color: var(--hs-text);
+    --bs-border-color: var(--hs-border);
+    --bs-secondary-color: var(--hs-muted);
+    --bs-tertiary-bg: var(--hs-surface-muted);
+}
+
+[data-bs-theme="dark"] body {
+    background:
+        radial-gradient(circle at top left, rgba(93, 63, 211, 0.06), transparent 24rem),
+        linear-gradient(180deg, #1e1e26 0%, var(--hs-bg) 18rem, var(--hs-bg) 100%);
+}
+
+[data-bs-theme="dark"] .kiosk-body {
+    background: var(--hs-bg);
+}
+
+[data-bs-theme="dark"] .kiosk-header {
+    background: var(--hs-surface-raised);
+    border-bottom-color: var(--hs-border);
+}
+
+[data-bs-theme="dark"] .kiosk-bottom-nav {
+    background: var(--hs-surface-raised);
+    border-top-color: var(--hs-border);
+}
+
+[data-bs-theme="dark"] .kiosk-task-card,
+[data-bs-theme="dark"] .kiosk-reward-card,
+[data-bs-theme="dark"] .kiosk-goal-card,
+[data-bs-theme="dark"] .kiosk-routine-card,
+[data-bs-theme="dark"] .kiosk-wishlist-card,
+[data-bs-theme="dark"] .kiosk-badge-card,
+[data-bs-theme="dark"] .kiosk-section,
+[data-bs-theme="dark"] .kiosk-stat-card,
+[data-bs-theme="dark"] .kiosk-dash-header,
+[data-bs-theme="dark"] .kiosk-inactivity-box,
+[data-bs-theme="dark"] .kiosk-user-card,
+[data-bs-theme="dark"] .kiosk-approval-card,
+[data-bs-theme="dark"] .kiosk-notif-card,
+[data-bs-theme="dark"] .kiosk-lb-board {
+    background: var(--hs-surface-raised);
+    border-color: var(--hs-border);
+    color: var(--hs-text);
+}
+
+[data-bs-theme="dark"] .kiosk-stat-routines {
+    background: #1e1a2e;
+}
+
+[data-bs-theme="dark"] .kiosk-quick-routine-row,
+[data-bs-theme="dark"] .kiosk-pending-item {
+    background: var(--hs-surface-muted);
+}
+
+[data-bs-theme="dark"] .kiosk-evidence-input {
+    background: var(--hs-surface-muted);
+    border-color: var(--hs-border-strong);
+    color: var(--hs-muted-strong);
+}
+
+[data-bs-theme="dark"] .navbar {
+    background: var(--hs-surface-raised) !important;
+    border-bottom-color: var(--hs-border) !important;
+}
+
+[data-bs-theme="dark"] .card {
+    background: var(--hs-surface-raised);
+    border-color: var(--hs-border);
+}
+
+[data-bs-theme="dark"] .card.bg-light,
+[data-bs-theme="dark"] .bg-light {
+    background: var(--hs-surface-muted) !important;
+}
+
 /* =========================================================
    Navbar / dropdown layering fix
    ========================================================= */

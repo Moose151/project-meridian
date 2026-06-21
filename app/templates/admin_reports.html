@@ -2,113 +2,173 @@
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HEADER
-     ========================================================= -->
-
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
     <div>
         <h1>Admin Reports</h1>
-
-        <p class="text-muted-small">
-            Export household activity reports as CSV files.
-        </p>
+        <p class="text-muted-small">Activity charts and CSV exports.</p>
     </div>
-
     <a class="btn btn-outline-primary" href="{{ url_for('main.admin_home') }}">
         Back to Admin Centre
     </a>
 </div>
 
+<!-- ── Activity charts ─────────────────────────────────── -->
 
-<!-- =========================================================
-     REPORT EXPORTS
-     ========================================================= -->
+<div class="row g-4 mb-4">
 
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="mb-1">Weekly Activity — last 12 weeks</h2>
+                <p class="text-muted-small mb-3">Points earned, tasks approved, and routines completed per week.</p>
+                <canvas id="weeklyChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="mb-1">Current Balances</h2>
+                <p class="text-muted-small mb-3">{{ household_settings.points_label|capitalize }} held per user right now.</p>
+                <canvas id="balanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── CSV exports ─────────────────────────────────────── -->
+
+<h2 class="mb-3">Export Reports</h2>
 <div class="row g-4 mb-4">
 
     <div class="col-md-6 mb-4">
         <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body p-4 d-flex flex-column">
+            <div class="card-body d-flex flex-column">
                 <h2>Users Report</h2>
-
-                <p class="text-muted-small">
-                    Export users, account status, current balance, total earned, approved tasks, reward requests, and wishlist savings.
-                </p>
-
-                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_users_csv') }}">
-                    Export Users CSV
-                </a>
+                <p class="text-muted-small">Users, account status, current balance, total earned, approved tasks, reward requests, and wishlist savings.</p>
+                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_users_csv') }}">Export Users CSV</a>
             </div>
         </div>
     </div>
 
-
     <div class="col-md-6 mb-4">
         <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body p-4 d-flex flex-column">
-                <h2>{{ household_settings.points_label|capitalize }} History Report</h2>
-
-                <p class="text-muted-small">
-                    Export the full {{ household_settings.points_label }} transaction ledger.
-                </p>
-
-                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_points_csv') }}">
-                    Export {{ household_settings.points_label|capitalize }} CSV
-                </a>
+            <div class="card-body d-flex flex-column">
+                <h2>{{ household_settings.points_label|capitalize }} History</h2>
+                <p class="text-muted-small">Full {{ household_settings.points_label }} transaction ledger.</p>
+                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_points_csv') }}">Export {{ household_settings.points_label|capitalize }} CSV</a>
             </div>
         </div>
     </div>
 
-
     <div class="col-md-6 mb-4">
         <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body p-4 d-flex flex-column">
-                <h2>Task Activity Report</h2>
-
-                <p class="text-muted-small">
-                    Export submitted, approved, rejected, and cancelled task completion records.
-                </p>
-
-                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_tasks_csv') }}">
-                    Export Tasks CSV
-                </a>
+            <div class="card-body d-flex flex-column">
+                <h2>Task Activity</h2>
+                <p class="text-muted-small">Submitted, approved, rejected, and cancelled task completions.</p>
+                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_tasks_csv') }}">Export Tasks CSV</a>
             </div>
         </div>
     </div>
 
-
     <div class="col-md-6 mb-4">
         <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body p-4 d-flex flex-column">
-                <h2>Reward Requests Report</h2>
-
-                <p class="text-muted-small">
-                    Export requested, approved, rejected, cancelled, and fulfilled reward records.
-                </p>
-
-                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_rewards_csv') }}">
-                    Export Rewards CSV
-                </a>
+            <div class="card-body d-flex flex-column">
+                <h2>Reward Requests</h2>
+                <p class="text-muted-small">Requested, approved, rejected, cancelled, and fulfilled reward records.</p>
+                <a class="btn btn-primary mt-auto" href="{{ url_for('main.export_rewards_csv') }}">Export Rewards CSV</a>
             </div>
         </div>
     </div>
 
 </div>
-
-
-<!-- =========================================================
-     NOTES
-     ========================================================= -->
 
 <div class="card border-0 shadow-sm">
-    <div class="card-body p-4">
-        <h2>Report Notes</h2>
-
-        <p class="text-muted-small mb-0">
-            CSV files can be opened in LibreOffice Calc, Microsoft Excel, Google Sheets, or any spreadsheet app.
-        </p>
+    <div class="card-body">
+        <p class="text-muted-small mb-0">CSV files can be opened in LibreOffice Calc, Microsoft Excel, Google Sheets, or any spreadsheet app.</p>
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+const WEEKS   = {{ chart_weeks | safe }};
+const POINTS  = {{ chart_points | safe }};
+const TASKS   = {{ chart_tasks | safe }};
+const ROUTINES= {{ chart_routines | safe }};
+const U_LABELS= {{ chart_user_labels | safe }};
+const U_BAL   = {{ chart_user_balances | safe }};
+
+// Weekly line/bar chart
+new Chart(document.getElementById("weeklyChart"), {
+    type: "bar",
+    data: {
+        labels: WEEKS,
+        datasets: [
+            {
+                label: "{{ household_settings.points_label|capitalize }} earned",
+                data: POINTS,
+                backgroundColor: "rgba(93, 63, 211, 0.7)",
+                borderColor: "rgba(93, 63, 211, 1)",
+                borderWidth: 1,
+                order: 1,
+            },
+            {
+                label: "Tasks approved",
+                data: TASKS,
+                type: "line",
+                borderColor: "#198754",
+                backgroundColor: "rgba(25, 135, 84, 0.15)",
+                tension: 0.3,
+                fill: false,
+                pointRadius: 4,
+                order: 0,
+                yAxisID: "y2",
+            },
+            {
+                label: "Routines done",
+                data: ROUTINES,
+                type: "line",
+                borderColor: "#ffc107",
+                backgroundColor: "rgba(255, 193, 7, 0.1)",
+                tension: 0.3,
+                fill: false,
+                pointRadius: 4,
+                order: 0,
+                yAxisID: "y2",
+            },
+        ]
+    },
+    options: {
+        responsive: true,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+            y:  { beginAtZero: true, title: { display: true, text: "{{ household_settings.points_label|capitalize }}" } },
+            y2: { beginAtZero: true, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Count" } },
+        }
+    }
+});
+
+// Balance doughnut
+new Chart(document.getElementById("balanceChart"), {
+    type: "doughnut",
+    data: {
+        labels: U_LABELS,
+        datasets: [{
+            data: U_BAL,
+            backgroundColor: [
+                "#5d3fd3","#198754","#ffc107","#0dcaf0","#dc3545","#6f42c1","#fd7e14"
+            ],
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } }
+    }
+});
+</script>
 {% endblock %}

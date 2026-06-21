@@ -113,6 +113,14 @@
                                 Whether each user can complete it, or only once per household.
                             </div>
                         </div>
+
+                        <div class="col-md-6">
+                            {{ form.recurrence_days.label(class="form-label") }}
+                            {{ form.recurrence_days(class="form-control") }}
+                            <div class="form-text">
+                                When set, the task resets each week so it can be completed again on those days.
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card mb-4 border-0 bg-light">

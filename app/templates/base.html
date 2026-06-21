@@ -315,6 +315,16 @@
                     </li>
 
                     <li class="nav-item me-lg-2">
+                        <button
+                            id="app-dark-toggle"
+                            class="btn btn-outline-secondary btn-sm"
+                            onclick="appToggleDark()"
+                            aria-label="Toggle dark mode"
+                            title="Toggle dark mode"
+                        >🌙</button>
+                    </li>
+
+                    <li class="nav-item me-lg-2">
                         <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.kiosk_landing') }}">
                             🖥 Kiosk
                         </a>
@@ -356,6 +366,26 @@
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous">
 </script>
+
+<script>
+    const APP_DARK_KEY = "app_dark_mode";
+
+    function appApplyDark(dark) {
+        document.documentElement.setAttribute("data-bs-theme", dark ? "dark" : "light");
+        const btn = document.getElementById("app-dark-toggle");
+        if (btn) btn.textContent = dark ? "☀️" : "🌙";
+    }
+
+    function appToggleDark() {
+        const isDark = localStorage.getItem(APP_DARK_KEY) === "1";
+        localStorage.setItem(APP_DARK_KEY, isDark ? "0" : "1");
+        appApplyDark(!isDark);
+    }
+
+    appApplyDark(localStorage.getItem(APP_DARK_KEY) === "1");
+</script>
+
+{% block extra_scripts %}{% endblock %}
 
 </body>
 </html>

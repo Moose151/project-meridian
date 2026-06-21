@@ -19,3 +19,4 @@ typing_extensions==4.15.0
 Werkzeug==3.1.8
 WTForms==3.2.2
 Flask-Migrate
+APScheduler==3.11.0

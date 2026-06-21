@@ -50,14 +50,53 @@ def run_column_migrations():
                 conn.execute(text(sql))
         conn.commit()
 
+    # ── tasks table (recurrence) ─────────────────────────────────────
+    # Refresh after first batch so new cols appear.
+    existing_task_cols = {col["name"] for col in inspector.get_columns("tasks")}
+
+    with db.engine.connect() as conn:
+        if "recurrence_days" not in existing_task_cols:
+            conn.execute(text(
+                "ALTER TABLE tasks ADD COLUMN recurrence_days VARCHAR(20) NOT NULL DEFAULT ''"
+            ))
+        conn.commit()
+
+    # ── task_completions table ───────────────────────────────────────
+    existing_tc_cols = {col["name"] for col in inspector.get_columns("task_completions")}
+
+    with db.engine.connect() as conn:
+        if "evidence_photo" not in existing_tc_cols:
+            conn.execute(text(
+                "ALTER TABLE task_completions ADD COLUMN evidence_photo VARCHAR(255)"
+            ))
+        conn.commit()
+
     # ── users table ──────────────────────────────────────────────────
     existing_user_cols = {col["name"] for col in inspector.get_columns("users")}
 
+    user_migrations = [
+        (
+            "participation_enabled",
+            "ALTER TABLE users ADD COLUMN participation_enabled BOOLEAN NOT NULL DEFAULT 0"
+        ),
+        (
+            "kiosk_pin_skip",
+            "ALTER TABLE users ADD COLUMN kiosk_pin_skip BOOLEAN NOT NULL DEFAULT 0"
+        ),
+        (
+            "allowance_amount",
+            "ALTER TABLE users ADD COLUMN allowance_amount INTEGER NOT NULL DEFAULT 0"
+        ),
+        (
+            "allowance_day",
+            "ALTER TABLE users ADD COLUMN allowance_day INTEGER NOT NULL DEFAULT -1"
+        ),
+    ]
+
     with db.engine.connect() as conn:
-        if "participation_enabled" not in existing_user_cols:
-            conn.execute(text(
-                "ALTER TABLE users ADD COLUMN participation_enabled BOOLEAN NOT NULL DEFAULT 0"
-            ))
+        for col_name, sql in user_migrations:
+            if col_name not in existing_user_cols:
+                conn.execute(text(sql))
         conn.commit()
 
 

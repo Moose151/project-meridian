@@ -285,6 +285,7 @@ def register_task_routes(bp, admin_required):
                 assigned_visibility=form.assigned_visibility.data or "all",
                 availability_window=form.availability_window.data or "always",
                 completion_scope=form.completion_scope.data or "per_user",
+                recurrence_days=form.recurrence_days.data or "",
                 is_active=True
             )
 
@@ -463,6 +464,7 @@ def register_task_routes(bp, admin_required):
             task.assigned_visibility = form.assigned_visibility.data or "all"
             task.availability_window = form.availability_window.data or "always"
             task.completion_scope = form.completion_scope.data or "per_user"
+            task.recurrence_days = form.recurrence_days.data or ""
 
             # Notify users only when a task becomes hot.
             if not was_hot and task.is_hot:

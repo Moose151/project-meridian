@@ -104,6 +104,9 @@ def register_user_routes(bp, admin_required):
             user.display_name = form.display_name.data
             user.avatar_emoji = form.avatar_emoji.data
             user.role = form.role.data
+            user.kiosk_pin_skip = form.kiosk_pin_skip.data
+            user.allowance_amount = form.allowance_amount.data or 0
+            user.allowance_day = form.allowance_day.data
 
             db.session.commit()
 

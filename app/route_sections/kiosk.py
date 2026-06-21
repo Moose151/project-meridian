@@ -6,9 +6,10 @@ Uses its own session key (kiosk_user_id) rather than Flask-Login, so the
 kiosk can switch users without affecting sessions on other devices.
 """
 
+import os
 from datetime import date, datetime
 
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import current_app, flash, redirect, render_template, request, session, url_for
 from sqlalchemy import or_
 
 from app import db
@@ -71,8 +72,23 @@ def _visible_to_user(task, user):
     return (task.assigned_visibility or "all") == "all"
 
 
+def _recurrence_days_set(task):
+    """Return the set of weekday ints from task.recurrence_days, or None."""
+    if not task.recurrence_days:
+        return None
+    try:
+        return {int(d) for d in task.recurrence_days.split(",") if d.strip()}
+    except ValueError:
+        return None
+
+
 def _get_available_tasks(user):
     """Return tasks available for the given kiosk user."""
+    from datetime import timedelta
+    today = date.today()
+    today_weekday = today.weekday()
+    week_start = today - timedelta(days=today_weekday)  # Monday of current week
+
     tasks = Task.query.filter_by(is_active=True).order_by(
         Task.is_hot.desc(),
         Task.category,
@@ -82,17 +98,46 @@ def _get_available_tasks(user):
     tasks = [t for t in tasks if _task_in_window(t)]
     tasks = [t for t in tasks if _visible_to_user(t, user)]
 
+    # Filter recurring tasks to only show on their designated weekdays.
+    filtered = []
+    for t in tasks:
+        days = _recurrence_days_set(t)
+        if days is not None and today_weekday not in days:
+            continue
+        filtered.append(t)
+    tasks = filtered
+
     household_once_ids = [
         t.id for t in tasks
         if (t.completion_scope or "per_user") == "household_once"
     ]
     if household_once_ids:
-        taken_ids = {
-            row[0] for row in db.session.query(TaskCompletion.task_id).filter(
-                TaskCompletion.task_id.in_(household_once_ids),
-                TaskCompletion.status.in_(["submitted", "approved"])
-            ).all()
+        # For recurring tasks, only block on completions from this week.
+        recurring_ids = {
+            t.id for t in tasks
+            if t.id in set(household_once_ids) and _recurrence_days_set(t) is not None
         }
+        non_recurring_once = [tid for tid in household_once_ids if tid not in recurring_ids]
+
+        taken_ids = set()
+
+        if non_recurring_once:
+            taken_ids |= {
+                row[0] for row in db.session.query(TaskCompletion.task_id).filter(
+                    TaskCompletion.task_id.in_(non_recurring_once),
+                    TaskCompletion.status.in_(["submitted", "approved"])
+                ).all()
+            }
+
+        if recurring_ids:
+            taken_ids |= {
+                row[0] for row in db.session.query(TaskCompletion.task_id).filter(
+                    TaskCompletion.task_id.in_(recurring_ids),
+                    TaskCompletion.status.in_(["submitted", "approved"]),
+                    TaskCompletion.submitted_at >= week_start
+                ).all()
+            }
+
         tasks = [t for t in tasks if t.id not in taken_ids]
 
     return tasks
@@ -129,11 +174,19 @@ def register_kiosk_routes(bp):
     def kiosk_pin(user_id):
         """
         PIN entry screen for a specific user.
+
+        If the user has kiosk_pin_skip enabled, a GET request auto-logs them
+        in immediately without requiring a PIN.
         """
         user = db.session.get(User, user_id)
 
         if not user or not user.is_active_account:
             return redirect(url_for("main.kiosk_landing"))
+
+        # PIN-skip: auto-login on GET for users with the flag set.
+        if request.method == "GET" and user.kiosk_pin_skip:
+            session["kiosk_user_id"] = user.id
+            return redirect(url_for("main.kiosk_dashboard"))
 
         error = None
 
@@ -210,8 +263,19 @@ def register_kiosk_routes(bp):
                 Routine.assigned_user_id == user.id
             )
         ).all()
+
+        routine_data_dash = [
+            {
+                "routine": r,
+                "streak": r.current_streak_for_user(user.id),
+                "done_today": r.completed_today_by_user(user.id),
+            }
+            for r in user_routines
+        ]
         total_routines = len(user_routines)
-        routines_done_today = sum(1 for r in user_routines if r.completed_today_by_user(user.id))
+        routines_done_today = sum(1 for rd in routine_data_dash if rd["done_today"])
+        best_streak = max((rd["streak"] for rd in routine_data_dash), default=0)
+        incomplete_routines = [rd for rd in routine_data_dash if not rd["done_today"]]
 
         # Admin approval counts (shown even for non-admin kiosk users as context).
         pending_task_count = TaskCompletion.query.filter_by(status="submitted").count()
@@ -240,7 +304,9 @@ def register_kiosk_routes(bp):
             current_balance=current_balance,
             affordable_count=affordable_count,
             total_routines=total_routines,
-            routines_done_today=routines_done_today
+            routines_done_today=routines_done_today,
+            best_streak=best_streak,
+            incomplete_routines=incomplete_routines,
         )
 
     # =========================================================
@@ -317,9 +383,25 @@ def register_kiosk_routes(bp):
             status="submitted"
         )
         db.session.add(completion)
+        db.session.flush()  # get completion.id before saving photo
+
+        # Optional photo evidence.
+        photo_file = request.files.get("evidence_photo")
+        if photo_file and photo_file.filename:
+            allowed = {"jpg", "jpeg", "png", "gif", "webp"}
+            ext = photo_file.filename.rsplit(".", 1)[-1].lower()
+            if ext in allowed:
+                upload_dir = os.path.join(
+                    current_app.root_path, "static", "uploads", "evidence"
+                )
+                os.makedirs(upload_dir, exist_ok=True)
+                filename = f"{completion.id}_{user.id}.{ext}"
+                photo_file.save(os.path.join(upload_dir, filename))
+                completion.evidence_photo = filename
+
         db.session.commit()
 
-        flash(f"'{task.title}' submitted for approval!")
+        flash(f"'{task.title}' submitted for approval!", "celebrate")
         return redirect(url_for("main.kiosk_tasks"))
 
     # =========================================================
@@ -847,7 +929,7 @@ def register_kiosk_routes(bp):
         if streak > 1:
             msg += f" {streak}-day streak! 🔥"
 
-        flash(msg)
+        flash(msg, "celebrate")
         return redirect(url_for("main.kiosk_routines"))
 
     # =========================================================
