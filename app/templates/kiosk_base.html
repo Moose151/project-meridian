@@ -32,13 +32,18 @@
             </div>
         {% endif %}
 
-        <a href="{{ url_for('main.kiosk_switch') }}" class="kiosk-switch-btn">
-            {% if kiosk_user is defined and kiosk_user %}
-                Switch User
-            {% else %}
-                Home
-            {% endif %}
-        </a>
+        <div class="kiosk-header-actions">
+            <a href="{{ url_for('main.kiosk_switch') }}" class="kiosk-switch-btn">
+                {% if kiosk_user is defined and kiosk_user %}
+                    Switch User
+                {% else %}
+                    Home
+                {% endif %}
+            </a>
+            <a href="{{ url_for('main.dashboard') }}" class="kiosk-exit-btn">
+                Exit Kiosk
+            </a>
+        </div>
     </div>
 </header>
 

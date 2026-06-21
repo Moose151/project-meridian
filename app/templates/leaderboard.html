@@ -7,8 +7,8 @@
         <p class="text-muted-small mb-1">Household progress</p>
         <h1 class="mb-2">Leaderboard</h1>
         <p class="text-muted-small mb-0">
-            Compare current {{ household_settings.points_label }}, total {{ household_settings.points_label }} earned,
-            and approved tasks completed.
+            Compare current {{ household_settings.points_label }}, total earned,
+            tasks completed, and routines completed.
         </p>
     </div>
 
@@ -18,18 +18,16 @@
 </section>
 
 <div class="row mb-4">
-    <div class="col-md-4 mb-4">
+    <div class="col-md-6 col-xl-3 mb-3">
         <div class="card h-100">
             <div class="card-body">
                 <h2>Current {{ household_settings.points_label|capitalize }}</h2>
-                <p class="text-muted-small mb-0">
-                    Current available {{ household_settings.points_label }} balance.
-                </p>
+                <p class="text-muted-small mb-0">Current available {{ household_settings.points_label }} balance.</p>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4 mb-4">
+    <div class="col-md-6 col-xl-3 mb-3">
         <div class="card h-100">
             <div class="card-body">
                 <h2>Total Earned</h2>
@@ -41,20 +39,28 @@
         </div>
     </div>
 
-    <div class="col-md-4 mb-4">
+    <div class="col-md-6 col-xl-3 mb-3">
         <div class="card h-100">
             <div class="card-body">
                 <h2>Tasks Completed</h2>
-                <p class="text-muted-small mb-0">
-                    Counts approved task completions for each user.
-                </p>
+                <p class="text-muted-small mb-0">Counts approved task completions for each user.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2>Routines Done</h2>
+                <p class="text-muted-small mb-0">Total routine completions across all time.</p>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-lg-4 mb-4">
+    <!-- Current points -->
+    <div class="col-md-6 col-xl-3 mb-4">
         <div class="card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -66,21 +72,14 @@
                     {% for entry in current_points_leaderboard %}
                         <div class="leaderboard-row">
                             <div class="leaderboard-rank">{{ loop.index }}</div>
-
                             <div class="leaderboard-user">
-                                <div class="leaderboard-avatar">
-                                    {{ entry.user.avatar_emoji }}
-                                </div>
-
+                                <div class="leaderboard-avatar">{{ entry.user.avatar_emoji }}</div>
                                 <div>
                                     <strong>{{ entry.user.display_name }}</strong>
                                     <div class="text-muted-small">Current balance</div>
                                 </div>
                             </div>
-
-                            <div class="leaderboard-score">
-                                {{ entry.score }}
-                            </div>
+                            <div class="leaderboard-score">{{ entry.score }}</div>
                         </div>
                     {% endfor %}
                 {% else %}
@@ -90,7 +89,8 @@
         </div>
     </div>
 
-    <div class="col-lg-4 mb-4">
+    <!-- Total earned -->
+    <div class="col-md-6 col-xl-3 mb-4">
         <div class="card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -102,21 +102,14 @@
                     {% for entry in total_earned_leaderboard %}
                         <div class="leaderboard-row">
                             <div class="leaderboard-rank">{{ loop.index }}</div>
-
                             <div class="leaderboard-user">
-                                <div class="leaderboard-avatar">
-                                    {{ entry.user.avatar_emoji }}
-                                </div>
-
+                                <div class="leaderboard-avatar">{{ entry.user.avatar_emoji }}</div>
                                 <div>
                                     <strong>{{ entry.user.display_name }}</strong>
                                     <div class="text-muted-small">From approved tasks</div>
                                 </div>
                             </div>
-
-                            <div class="leaderboard-score">
-                                {{ entry.score }}
-                            </div>
+                            <div class="leaderboard-score">{{ entry.score }}</div>
                         </div>
                     {% endfor %}
                 {% else %}
@@ -126,7 +119,8 @@
         </div>
     </div>
 
-    <div class="col-lg-4 mb-4">
+    <!-- Tasks completed -->
+    <div class="col-md-6 col-xl-3 mb-4">
         <div class="card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -138,21 +132,44 @@
                     {% for entry in tasks_completed_leaderboard %}
                         <div class="leaderboard-row">
                             <div class="leaderboard-rank">{{ loop.index }}</div>
-
                             <div class="leaderboard-user">
-                                <div class="leaderboard-avatar">
-                                    {{ entry.user.avatar_emoji }}
-                                </div>
-
+                                <div class="leaderboard-avatar">{{ entry.user.avatar_emoji }}</div>
                                 <div>
                                     <strong>{{ entry.user.display_name }}</strong>
                                     <div class="text-muted-small">Approved completions</div>
                                 </div>
                             </div>
+                            <div class="leaderboard-score">{{ entry.score }}</div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted-small mb-0">No active users found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-                            <div class="leaderboard-score">
-                                {{ entry.score }}
+    <!-- Routines completed -->
+    <div class="col-md-6 col-xl-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h2>Routines Done</h2>
+                    <span class="badge bg-info text-dark">Routines</span>
+                </div>
+
+                {% if routines_completed_leaderboard %}
+                    {% for entry in routines_completed_leaderboard %}
+                        <div class="leaderboard-row">
+                            <div class="leaderboard-rank">{{ loop.index }}</div>
+                            <div class="leaderboard-user">
+                                <div class="leaderboard-avatar">{{ entry.user.avatar_emoji }}</div>
+                                <div>
+                                    <strong>{{ entry.user.display_name }}</strong>
+                                    <div class="text-muted-small">Total completions</div>
+                                </div>
                             </div>
+                            <div class="leaderboard-score">{{ entry.score }}</div>
                         </div>
                     {% endfor %}
                 {% else %}

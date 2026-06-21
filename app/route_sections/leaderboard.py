@@ -9,7 +9,7 @@ from flask import render_template
 from flask_login import login_required
 from sqlalchemy import or_
 
-from app.models import TaskCompletion, User
+from app.models import RoutineCompletion, TaskCompletion, User
 from app.services.points_service import calculate_total_earned
 
 
@@ -85,9 +85,25 @@ def register_leaderboard_routes(bp):
             reverse=True
         )
 
+        routines_completed_leaderboard = []
+
+        for user in users:
+            count = RoutineCompletion.query.filter_by(user_id=user.id).count()
+            routines_completed_leaderboard.append({
+                "user": user,
+                "score": count
+            })
+
+        routines_completed_leaderboard = sorted(
+            routines_completed_leaderboard,
+            key=lambda item: item["score"],
+            reverse=True
+        )
+
         return render_template(
             "leaderboard.html",
             current_points_leaderboard=current_points_leaderboard,
             total_earned_leaderboard=total_earned_leaderboard,
-            tasks_completed_leaderboard=tasks_completed_leaderboard
+            tasks_completed_leaderboard=tasks_completed_leaderboard,
+            routines_completed_leaderboard=routines_completed_leaderboard
         )

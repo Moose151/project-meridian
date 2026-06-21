@@ -450,13 +450,20 @@ def register_kiosk_routes(bp):
             tasks_done.append({"user": u, "score": count})
         tasks_done = sorted(tasks_done, key=lambda x: x["score"], reverse=True)
 
+        routines_done = []
+        for u in participants:
+            count = RoutineCompletion.query.filter_by(user_id=u.id).count()
+            routines_done.append({"user": u, "score": count})
+        routines_done = sorted(routines_done, key=lambda x: x["score"], reverse=True)
+
         return render_template(
             "kiosk_leaderboard.html",
             user=user,
             kiosk_user=user,
             current_points=current_points,
             total_earned=total_earned,
-            tasks_done=tasks_done
+            tasks_done=tasks_done,
+            routines_done=routines_done,
         )
 
     # =========================================================

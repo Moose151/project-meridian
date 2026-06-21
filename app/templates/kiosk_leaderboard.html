@@ -86,6 +86,31 @@
             </div>
         </div>
 
+        <!-- Routines completed board -->
+        <div class="kiosk-lb-board">
+            <h2 class="kiosk-lb-board-title">🔁 Routines Done</h2>
+            <div class="kiosk-leaderboard kiosk-leaderboard-full">
+                {% for entry in routines_done %}
+                    <div class="kiosk-leaderboard-row {% if entry.user.id == user.id %}kiosk-leaderboard-you{% endif %}">
+                        <span class="kiosk-lb-rank">
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}{{ loop.index }}{% endif %}
+                        </span>
+                        <span class="kiosk-lb-avatar">{{ entry.user.avatar_emoji }}</span>
+                        <span class="kiosk-lb-name">
+                            {{ entry.user.display_name }}
+                            {% if entry.user.id == user.id %}<span class="kiosk-lb-you-tag">You</span>{% endif %}
+                        </span>
+                        <span class="kiosk-lb-balance">{{ entry.score }}</span>
+                    </div>
+                {% else %}
+                    <p class="kiosk-empty-inline">No data yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
     </div>
 
 </div>

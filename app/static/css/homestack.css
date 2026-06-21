@@ -817,6 +817,33 @@ textarea.form-control {
     font-size: 1.4rem;
 }
 
+.kiosk-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.kiosk-exit-btn {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--hs-muted);
+    text-decoration: none;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--hs-radius-sm);
+    border: 1px solid var(--hs-border);
+    background: transparent;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    touch-action: manipulation;
+}
+
+.kiosk-exit-btn:hover,
+.kiosk-exit-btn:focus {
+    background: var(--hs-bg-soft);
+    color: var(--hs-text);
+}
+
 .kiosk-switch-btn {
     background: var(--hs-primary-soft);
     color: var(--hs-primary);
