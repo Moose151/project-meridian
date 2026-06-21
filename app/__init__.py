@@ -82,15 +82,9 @@ def create_app():
 
     # Import and register routes.
     from app.routes import bp
-    app.register_blueprint(bp)
 
-    # Health check endpoint — useful for Docker / reverse proxy health checks.
-    @app.route("/health")
-    def health():
-        return jsonify({"status": "ok"}), 200
-
-    # Context processor: inject kiosk unread notification count into every
-    # template so the nav bell can show a dot without each route passing it.
+    # Context processor must be registered on the blueprint BEFORE
+    # app.register_blueprint() is called, otherwise Flask raises an error.
     @bp.context_processor
     def inject_kiosk_unread():
         from app.models import Notification
@@ -101,6 +95,13 @@ def create_app():
             ).count()
             return {"kiosk_unread_count": count}
         return {"kiosk_unread_count": 0}
+
+    app.register_blueprint(bp)
+
+    # Health check endpoint — useful for Docker / reverse proxy health checks.
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "ok"}), 200
 
     # Create database tables, run column migrations, and seed default data.
     with app.app_context():
