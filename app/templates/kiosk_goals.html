@@ -1,0 +1,80 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-page">
+
+    <div class="kiosk-page-header">
+        <h1 class="kiosk-page-title">Group Goals</h1>
+        <p class="kiosk-page-subtitle">Contribute {{ household_settings.points_label }} toward shared household goals.</p>
+    </div>
+
+    {% if not group_goals_enabled %}
+        <div class="kiosk-info-banner">
+            Group goal contributions are currently disabled by an admin.
+        </div>
+    {% endif %}
+
+    {% if goals %}
+        <div class="kiosk-card-list">
+            {% for goal in goals %}
+                <div class="kiosk-goal-card {% if goal.status == 'completed' %}kiosk-goal-funded{% endif %}">
+
+                    <div class="kiosk-goal-header">
+                        <div class="kiosk-goal-title-row">
+                            <h2 class="kiosk-goal-title">{{ goal.title }}</h2>
+                            {% if goal.status == "completed" %}
+                                <span class="kiosk-badge kiosk-badge-funded">🎉 Funded!</span>
+                            {% endif %}
+                        </div>
+                        <div class="kiosk-goal-target">
+                            <span class="kiosk-points-big">{{ goal.total_contributed() }}</span>
+                            <span class="kiosk-points-label">/ {{ goal.target_points }} {{ household_settings.points_label }}</span>
+                        </div>
+                    </div>
+
+                    {% if goal.description %}
+                        <p class="kiosk-goal-desc">{{ goal.description }}</p>
+                    {% endif %}
+
+                    <!-- Progress bar -->
+                    <div class="kiosk-progress-wrap">
+                        <div
+                            class="kiosk-progress-bar {% if goal.status == 'completed' %}kiosk-progress-complete{% endif %}"
+                            style="width: {{ [goal.progress_percentage(), 100] | min }}%"
+                        ></div>
+                    </div>
+                    <div class="kiosk-progress-labels">
+                        <span>{{ goal.progress_percentage() }}%</span>
+                        <span>{{ goal.remaining_points() }} {{ household_settings.points_label }} to go</span>
+                    </div>
+
+                    <div class="kiosk-goal-footer">
+                        {% if goal.status == "active" and group_goals_enabled and user.can_participate() %}
+                            <a
+                                href="{{ url_for('main.kiosk_contribute_goal', goal_id=goal.id) }}"
+                                class="kiosk-contribute-btn"
+                            >
+                                🎯 Contribute
+                            </a>
+                        {% elif goal.status == "completed" %}
+                            <div class="kiosk-funded-notice">
+                                Goal reached — waiting for fulfilment by an admin.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                </div>
+            {% endfor %}
+        </div>
+
+    {% else %}
+        <div class="kiosk-empty">
+            <div class="kiosk-empty-icon">🎯</div>
+            <p>No active group goals right now.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

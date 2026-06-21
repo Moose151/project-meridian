@@ -1,0 +1,64 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-page">
+
+    <div class="kiosk-page-header">
+        <h1 class="kiosk-page-title">Badges</h1>
+        {% if user_badges %}
+            <p class="kiosk-page-subtitle">
+                {{ user_badges | length }} badge{{ 's' if user_badges | length != 1 }} earned so far. Keep it up!
+            </p>
+        {% else %}
+            <p class="kiosk-page-subtitle">Complete tasks and routines to earn badges.</p>
+        {% endif %}
+    </div>
+
+    {% if all_badges %}
+
+        <!-- Earned badges -->
+        {% set earned = all_badges | selectattr('id', 'in', earned_badge_ids) | list %}
+        {% set locked = all_badges | rejectattr('id', 'in', earned_badge_ids) | list %}
+
+        {% if earned %}
+            <h2 class="kiosk-badges-group-title">Earned 🎉</h2>
+            <div class="kiosk-badges-grid">
+                {% for badge in earned %}
+                    {% set ub = user_badges | selectattr('badge_id', 'equalto', badge.id) | first %}
+                    <div class="kiosk-badge-card kiosk-badge-earned">
+                        <div class="kiosk-badge-icon">{{ badge.icon }}</div>
+                        <div class="kiosk-badge-name">{{ badge.name }}</div>
+                        <div class="kiosk-badge-desc">{{ badge.description }}</div>
+                        {% if ub %}
+                            <div class="kiosk-badge-date">{{ ub.earned_at.strftime('%d %b %Y') }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Locked badges -->
+        {% if locked %}
+            <h2 class="kiosk-badges-group-title kiosk-badges-group-locked">Still to unlock 🔒</h2>
+            <div class="kiosk-badges-grid">
+                {% for badge in locked %}
+                    <div class="kiosk-badge-card kiosk-badge-locked">
+                        <div class="kiosk-badge-icon kiosk-badge-icon-locked">🔒</div>
+                        <div class="kiosk-badge-name">{{ badge.name }}</div>
+                        <div class="kiosk-badge-desc">{{ badge.description }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+    {% else %}
+        <div class="kiosk-empty">
+            <div class="kiosk-empty-icon">🏅</div>
+            <p>No badges have been set up yet.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

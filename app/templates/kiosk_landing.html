@@ -1,0 +1,43 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-landing">
+
+    <div class="kiosk-page-header">
+        <h1 class="kiosk-page-title">Who's here?</h1>
+        <p class="kiosk-page-subtitle">Tap your avatar to get started.</p>
+    </div>
+
+    {% if users %}
+        <div class="kiosk-user-grid">
+            {% for user in users %}
+                <a
+                    href="{{ url_for('main.kiosk_pin', user_id=user.id) }}"
+                    class="kiosk-user-card"
+                    aria-label="Select {{ user.display_name }}"
+                >
+                    <div class="kiosk-user-emoji">
+                        {{ user.avatar_emoji }}
+                    </div>
+
+                    <div class="kiosk-user-name">
+                        {{ user.display_name }}
+                    </div>
+
+                    <div class="kiosk-user-balance">
+                        {{ user.point_balance() }}
+                        {{ household_settings.points_label }}
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="kiosk-empty">
+            <p>No active users yet. Ask an admin to create some accounts.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-pin-screen">
+
+    <a href="{{ url_for('main.kiosk_landing') }}" class="kiosk-back-link">
+        ← Back
+    </a>
+
+    <div class="kiosk-pin-user">
+        <div class="kiosk-pin-avatar">{{ user.avatar_emoji }}</div>
+        <div class="kiosk-pin-username">{{ user.display_name }}</div>
+        <p class="kiosk-pin-hint">Enter your 4-digit PIN</p>
+    </div>
+
+    {% if error %}
+        <div class="kiosk-pin-error">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    <!-- PIN dots display -->
+    <div class="kiosk-pin-dots" id="pin-dots" aria-label="PIN entry progress">
+        <span class="kiosk-pin-dot" id="dot-0"></span>
+        <span class="kiosk-pin-dot" id="dot-1"></span>
+        <span class="kiosk-pin-dot" id="dot-2"></span>
+        <span class="kiosk-pin-dot" id="dot-3"></span>
+    </div>
+
+    <!-- Hidden form that gets submitted by JS -->
+    <form
+        id="pin-form"
+        method="post"
+        action="{{ url_for('main.kiosk_pin', user_id=user.id) }}"
+    >
+        <input type="hidden" name="pin" id="pin-input">
+    </form>
+
+    <!-- Numpad toggle -->
+    <button
+        type="button"
+        class="kiosk-numpad-toggle"
+        id="numpad-toggle"
+        onclick="kpToggleNumpad()"
+        aria-expanded="true"
+    >
+        ⌨ Hide keypad
+    </button>
+
+    <!-- Custom number pad -->
+    <div class="kiosk-numpad" id="kiosk-numpad">
+        <button class="kiosk-numpad-key" type="button" onclick="kpAppend('1')">1</button>
+        <button class="kiosk-numpad-key" type="button" onclick="kpAppend('2')">2</button>
+        <button class="kiosk-numpad-key" type="button" onclick="kpAppend('3')">3</button>
+
+        <button class="kiosk-numpad-key" type="button" onclick="kpAppend('4')">4</button>
+        <button class="kiosk-numpad-key" type="button" onclick="kpAppend('5')">5</button>
+        <button class="kiosk-numpad-key" type="button" onclick="kpAppend('6')">6</button>
+
+        <button class="kiosk-numpad-key" type="button" onclick="kpAppend('7')">7</button>
+        <button class="kiosk-numpad-key" type="button" onclick="kpAppend('8')">8</button>
+        <button class="kiosk-numpad-key" type="button" onclick="kpAppend('9')">9</button>
+
+        <button class="kiosk-numpad-key kiosk-numpad-action" type="button" onclick="kpClear()">Clear</button>
+        <button class="kiosk-numpad-key" type="button" onclick="kpAppend('0')">0</button>
+        <button class="kiosk-numpad-key kiosk-numpad-action" type="button" onclick="kpBack()">⌫</button>
+    </div>
+
+    <a href="{{ url_for('main.kiosk_landing') }}" class="kiosk-pin-cancel">
+        Cancel
+    </a>
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const NUMPAD_PREF_KEY = "kiosk_numpad_visible";
+    let kpPin = "";
+
+    // ── Dot display ─────────────────────────────────────────
+    function kpUpdateDots() {
+        for (let i = 0; i < 4; i++) {
+            document.getElementById("dot-" + i)
+                    .classList.toggle("filled", i < kpPin.length);
+        }
+    }
+
+    function kpAppend(digit) {
+        if (kpPin.length >= 4) return;
+        kpPin += digit;
+        kpUpdateDots();
+        if (kpPin.length === 4) {
+            document.getElementById("pin-input").value = kpPin;
+            // Short delay so the last dot is visible before submit.
+            setTimeout(() => document.getElementById("pin-form").submit(), 120);
+        }
+    }
+
+    function kpClear() { kpPin = ""; kpUpdateDots(); }
+    function kpBack()  { kpPin = kpPin.slice(0, -1); kpUpdateDots(); }
+
+    // ── Keyboard input ───────────────────────────────────────
+    document.addEventListener("keydown", function (e) {
+        if (e.key >= "0" && e.key <= "9") { kpAppend(e.key); return; }
+        if (e.key === "Backspace")          { kpBack();        return; }
+        if (e.key === "Escape")             { kpClear();       return; }
+    });
+
+    // ── Numpad toggle ────────────────────────────────────────
+    const numpad = document.getElementById("kiosk-numpad");
+    const toggle = document.getElementById("numpad-toggle");
+
+    function kpSetNumpadVisible(visible) {
+        numpad.style.display = visible ? "" : "none";
+        toggle.textContent   = visible ? "⌨ Hide keypad" : "⌨ Show keypad";
+        toggle.setAttribute("aria-expanded", String(visible));
+        localStorage.setItem(NUMPAD_PREF_KEY, visible ? "1" : "0");
+    }
+
+    function kpToggleNumpad() {
+        kpSetNumpadVisible(numpad.style.display === "none");
+    }
+
+    // On load: restore saved preference, default to visible.
+    (function () {
+        const saved = localStorage.getItem(NUMPAD_PREF_KEY);
+        // If user has a saved "0" keep it hidden; otherwise show.
+        kpSetNumpadVisible(saved !== "0");
+    })();
+</script>
+{% endblock %}

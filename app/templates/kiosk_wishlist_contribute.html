@@ -1,0 +1,98 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-contribute-screen">
+
+    <a href="{{ url_for('main.kiosk_wishlist') }}" class="kiosk-back-link">← Back to Wishlist</a>
+
+    <div class="kiosk-contribute-header">
+        <div class="kiosk-contribute-icon">⭐</div>
+        <h1 class="kiosk-contribute-title">{{ item.name }}</h1>
+
+        <div class="kiosk-contribute-progress">
+            <div class="kiosk-progress-wrap">
+                <div
+                    class="kiosk-progress-bar"
+                    style="width: {{ [item.progress_percentage(), 100] | min }}%"
+                ></div>
+            </div>
+            <p class="kiosk-contribute-meta">
+                {{ item.total_saved() }} / {{ item.target_points }} {{ household_settings.points_label }}
+                — {{ item.remaining_points() }} to go
+            </p>
+        </div>
+    </div>
+
+    <div class="kiosk-contribute-balance">
+        Your balance: <strong>{{ current_balance }} {{ household_settings.points_label }}</strong>
+    </div>
+
+    {% if error %}
+        <div class="kiosk-pin-error">{{ error }}</div>
+    {% endif %}
+
+    <form
+        method="post"
+        action="{{ url_for('main.kiosk_contribute_wishlist', item_id=item.id) }}"
+        class="kiosk-contribute-form"
+        onsubmit="return kioskConfirmContribute(this);"
+    >
+        <label class="kiosk-contribute-label" for="amount">
+            How much do you want to save?
+        </label>
+
+        <input
+            type="number"
+            id="amount"
+            name="amount"
+            class="kiosk-contribute-input"
+            min="1"
+            max="{{ [current_balance, item.remaining_points()] | min }}"
+            placeholder="Enter amount"
+            inputmode="numeric"
+            autofocus
+        >
+
+        <div class="kiosk-contribute-quick">
+            {% set max_amt = [current_balance, item.remaining_points()] | min %}
+            {% if max_amt >= 5 %}
+                <button type="button" class="kiosk-quick-btn" onclick="setAmount(5)">5</button>
+            {% endif %}
+            {% if max_amt >= 10 %}
+                <button type="button" class="kiosk-quick-btn" onclick="setAmount(10)">10</button>
+            {% endif %}
+            {% if max_amt >= 25 %}
+                <button type="button" class="kiosk-quick-btn" onclick="setAmount(25)">25</button>
+            {% endif %}
+            {% if max_amt >= 50 %}
+                <button type="button" class="kiosk-quick-btn" onclick="setAmount(50)">50</button>
+            {% endif %}
+            <button type="button" class="kiosk-quick-btn kiosk-quick-max" onclick="setAmount({{ max_amt }})">Max ({{ max_amt }})</button>
+        </div>
+
+        <button type="submit" class="kiosk-contribute-submit">
+            ⭐ Save toward this
+        </button>
+    </form>
+
+    <a href="{{ url_for('main.kiosk_wishlist') }}" class="kiosk-pin-cancel">Cancel</a>
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function setAmount(v) {
+        document.getElementById("amount").value = v;
+    }
+    function kioskConfirmContribute(form) {
+        const btn = form.querySelector("button[type=submit]");
+        if (btn.disabled) return false;
+        btn.disabled = true;
+        btn.textContent = "Saving…";
+        return true;
+    }
+</script>
+{% endblock %}

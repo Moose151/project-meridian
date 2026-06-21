@@ -1,0 +1,80 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-page">
+
+    <div class="kiosk-page-header">
+        <h1 class="kiosk-page-title">Routines</h1>
+        <p class="kiosk-page-subtitle">Daily habits — tap to mark done for today.</p>
+    </div>
+
+    {% if routine_data %}
+        <div class="kiosk-card-list">
+            {% for item in routine_data %}
+                {% set routine = item.routine %}
+                <div class="kiosk-routine-card {% if item.completed_today %}kiosk-routine-done{% endif %}">
+
+                    <div class="kiosk-routine-top">
+                        <div class="kiosk-routine-info">
+                            <h2 class="kiosk-routine-title">
+                                {% if item.completed_today %}✅{% endif %}
+                                {{ routine.title }}
+                            </h2>
+
+                            {% if routine.point_value > 0 %}
+                                <span class="kiosk-points-badge">+{{ routine.point_value }} {{ household_settings.points_label }}</span>
+                            {% endif %}
+
+                            {% if item.streak > 0 %}
+                                <span class="kiosk-streak-badge">
+                                    🔥 {{ item.streak }}-day streak
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        {% if item.completed_today %}
+                            <div class="kiosk-routine-check">✓ Done today</div>
+                        {% else %}
+                            <form
+                                method="post"
+                                action="{{ url_for('main.kiosk_complete_routine', routine_id=routine.id) }}"
+                                onsubmit="return kioskConfirmRoutine(this);"
+                            >
+                                <button type="submit" class="kiosk-complete-btn kiosk-routine-btn">
+                                    Mark Done
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+
+                    {% if routine.description %}
+                        <p class="kiosk-routine-desc">{{ routine.description }}</p>
+                    {% endif %}
+
+                </div>
+            {% endfor %}
+        </div>
+
+    {% else %}
+        <div class="kiosk-empty">
+            <div class="kiosk-empty-icon">🔁</div>
+            <p>No routines set up yet. Ask an admin to add some!</p>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function kioskConfirmRoutine(form) {
+        const btn = form.querySelector("button[type=submit]");
+        if (btn.disabled) return false;
+        btn.disabled = true;
+        btn.textContent = "Saving…";
+        return true;
+    }
+</script>
+{% endblock %}

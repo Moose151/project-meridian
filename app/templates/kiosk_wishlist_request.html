@@ -1,0 +1,72 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-contribute-screen">
+
+    <a href="{{ url_for('main.kiosk_wishlist') }}" class="kiosk-back-link">← Back to Wishlist</a>
+
+    <div class="kiosk-contribute-header">
+        <div class="kiosk-contribute-icon">✏️</div>
+        <h1 class="kiosk-contribute-title">Request a Wishlist Item</h1>
+        <p class="kiosk-contribute-meta">An admin will review your request and add it to your wishlist.</p>
+    </div>
+
+    {% if error %}
+        <div class="kiosk-pin-error">{{ error }}</div>
+    {% endif %}
+
+    <form
+        method="post"
+        action="{{ url_for('main.kiosk_request_wishlist') }}"
+        class="kiosk-contribute-form kiosk-request-form"
+        onsubmit="return kioskConfirmRequest(this);"
+    >
+        <label class="kiosk-contribute-label" for="requested_name">
+            What do you want?
+        </label>
+        <input
+            type="text"
+            id="requested_name"
+            name="requested_name"
+            class="kiosk-contribute-input kiosk-text-input"
+            maxlength="120"
+            placeholder="Item name"
+            autocomplete="off"
+            autofocus
+        >
+
+        <label class="kiosk-contribute-label" for="requested_description">
+            Description (optional)
+        </label>
+        <textarea
+            id="requested_description"
+            name="requested_description"
+            class="kiosk-contribute-input kiosk-textarea"
+            maxlength="500"
+            placeholder="Any extra details…"
+            rows="3"
+        ></textarea>
+
+        <button type="submit" class="kiosk-contribute-submit">
+            ✏️ Send Request
+        </button>
+    </form>
+
+    <a href="{{ url_for('main.kiosk_wishlist') }}" class="kiosk-pin-cancel">Cancel</a>
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function kioskConfirmRequest(form) {
+        const btn = form.querySelector("button[type=submit]");
+        if (btn.disabled) return false;
+        btn.disabled = true;
+        btn.textContent = "Sending…";
+        return true;
+    }
+</script>
+{% endblock %}

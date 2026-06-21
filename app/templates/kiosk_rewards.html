@@ -1,0 +1,95 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-page">
+
+    <div class="kiosk-page-header">
+        <h1 class="kiosk-page-title">Reward Shop</h1>
+        <p class="kiosk-page-subtitle">
+            You have <strong>{{ current_balance }}</strong> {{ household_settings.points_label }}.
+            Tap Request to spend them.
+        </p>
+    </div>
+
+    {% if rewards %}
+        <div class="kiosk-card-list">
+            {% for reward in rewards %}
+                {% set is_requested = reward.id in requested_reward_ids %}
+                {% set can_afford = current_balance >= reward.point_cost %}
+
+                <div class="kiosk-reward-card {% if not can_afford %}kiosk-reward-unaffordable{% endif %}">
+
+                    <div class="kiosk-reward-header">
+                        <div>
+                            <h2 class="kiosk-reward-title">{{ reward.name }}</h2>
+
+                            {% if reward.category %}
+                                <span class="kiosk-tag">{{ reward.category }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="kiosk-reward-cost">
+                            <span class="kiosk-points-big">{{ reward.point_cost }}</span>
+                            <span class="kiosk-points-label">{{ household_settings.points_label }}</span>
+                        </div>
+                    </div>
+
+                    {% if reward.description %}
+                        <p class="kiosk-reward-desc">{{ reward.description }}</p>
+                    {% endif %}
+
+                    <div class="kiosk-reward-footer">
+
+                        {% if is_requested %}
+                            <div class="kiosk-submitted-notice">
+                                <span class="kiosk-submitted-icon">⏳</span>
+                                Requested — waiting for approval
+                            </div>
+
+                        {% elif not can_afford %}
+                            <div class="kiosk-cannot-afford">
+                                Need {{ reward.point_cost - current_balance }} more
+                                {{ household_settings.points_label }}
+                            </div>
+
+                        {% else %}
+                            <form
+                                method="post"
+                                action="{{ url_for('main.kiosk_request_reward', reward_id=reward.id) }}"
+                                onsubmit="return kioskConfirmReward(this);"
+                            >
+                                <button type="submit" class="kiosk-request-btn">
+                                    🎁 Request
+                                </button>
+                            </form>
+                        {% endif %}
+
+                    </div>
+
+                </div>
+            {% endfor %}
+        </div>
+
+    {% else %}
+        <div class="kiosk-empty">
+            <div class="kiosk-empty-icon">🎁</div>
+            <p>No rewards available right now. Check back later!</p>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function kioskConfirmReward(form) {
+        const btn = form.querySelector("button[type=submit]");
+        if (btn.disabled) return false;
+        btn.disabled = true;
+        btn.textContent = "Requesting…";
+        return true;
+    }
+</script>
+{% endblock %}

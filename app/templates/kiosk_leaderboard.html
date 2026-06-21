@@ -1,0 +1,93 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-page">
+
+    <div class="kiosk-page-header">
+        <h1 class="kiosk-page-title">Leaderboard</h1>
+        <p class="kiosk-page-subtitle">See how everyone stacks up.</p>
+    </div>
+
+    <div class="kiosk-lb-boards">
+
+        <!-- Current balance board -->
+        <div class="kiosk-lb-board">
+            <h2 class="kiosk-lb-board-title">Current {{ household_settings.points_label|capitalize }}</h2>
+            <div class="kiosk-leaderboard kiosk-leaderboard-full">
+                {% for entry in current_points %}
+                    <div class="kiosk-leaderboard-row {% if entry.user.id == user.id %}kiosk-leaderboard-you{% endif %}">
+                        <span class="kiosk-lb-rank">
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}{{ loop.index }}{% endif %}
+                        </span>
+                        <span class="kiosk-lb-avatar">{{ entry.user.avatar_emoji }}</span>
+                        <span class="kiosk-lb-name">
+                            {{ entry.user.display_name }}
+                            {% if entry.user.id == user.id %}<span class="kiosk-lb-you-tag">You</span>{% endif %}
+                        </span>
+                        <span class="kiosk-lb-balance">{{ entry.score }}</span>
+                    </div>
+                {% else %}
+                    <p class="kiosk-empty-inline">No data yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Total earned board -->
+        <div class="kiosk-lb-board">
+            <h2 class="kiosk-lb-board-title">Total Earned</h2>
+            <div class="kiosk-leaderboard kiosk-leaderboard-full">
+                {% for entry in total_earned %}
+                    <div class="kiosk-leaderboard-row {% if entry.user.id == user.id %}kiosk-leaderboard-you{% endif %}">
+                        <span class="kiosk-lb-rank">
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}{{ loop.index }}{% endif %}
+                        </span>
+                        <span class="kiosk-lb-avatar">{{ entry.user.avatar_emoji }}</span>
+                        <span class="kiosk-lb-name">
+                            {{ entry.user.display_name }}
+                            {% if entry.user.id == user.id %}<span class="kiosk-lb-you-tag">You</span>{% endif %}
+                        </span>
+                        <span class="kiosk-lb-balance">{{ entry.score }}</span>
+                    </div>
+                {% else %}
+                    <p class="kiosk-empty-inline">No data yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Tasks completed board -->
+        <div class="kiosk-lb-board">
+            <h2 class="kiosk-lb-board-title">Tasks Completed</h2>
+            <div class="kiosk-leaderboard kiosk-leaderboard-full">
+                {% for entry in tasks_done %}
+                    <div class="kiosk-leaderboard-row {% if entry.user.id == user.id %}kiosk-leaderboard-you{% endif %}">
+                        <span class="kiosk-lb-rank">
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}{{ loop.index }}{% endif %}
+                        </span>
+                        <span class="kiosk-lb-avatar">{{ entry.user.avatar_emoji }}</span>
+                        <span class="kiosk-lb-name">
+                            {{ entry.user.display_name }}
+                            {% if entry.user.id == user.id %}<span class="kiosk-lb-you-tag">You</span>{% endif %}
+                        </span>
+                        <span class="kiosk-lb-balance">{{ entry.score }}</span>
+                    </div>
+                {% else %}
+                    <p class="kiosk-empty-inline">No data yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

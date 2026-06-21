@@ -1,0 +1,138 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-page">
+
+    <div class="kiosk-page-header">
+        <h1 class="kiosk-page-title">Approvals</h1>
+        <p class="kiosk-page-subtitle">Review pending tasks and reward requests.</p>
+    </div>
+
+    <!-- Pending task completions -->
+    <div class="kiosk-section">
+        <h2 class="kiosk-section-title">Task Completions</h2>
+
+        {% if pending_tasks %}
+            <div class="kiosk-approvals-list">
+                {% for completion in pending_tasks %}
+                    <div class="kiosk-approval-card">
+
+                        <div class="kiosk-approval-info">
+                            <div class="kiosk-approval-who">
+                                <span class="kiosk-approval-avatar">{{ completion.user.avatar_emoji }}</span>
+                                <span class="kiosk-approval-name">{{ completion.user.display_name }}</span>
+                            </div>
+                            <div class="kiosk-approval-what">
+                                <strong>{{ completion.task.title }}</strong>
+                                {% if completion.task.category %}
+                                    <span class="kiosk-category-tag">{{ completion.task.category }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="kiosk-approval-meta">
+                                +{{ completion.task.total_point_value() }} {{ household_settings.points_label }}
+                                · submitted {{ completion.submitted_at.strftime('%d %b, %H:%M') }}
+                            </div>
+                        </div>
+
+                        <div class="kiosk-approval-actions">
+                            <form
+                                method="post"
+                                action="{{ url_for('main.kiosk_approve_task', completion_id=completion.id) }}"
+                                onsubmit="return kioskConfirmAction(this, 'Approving…');"
+                                style="display:inline;"
+                            >
+                                <button type="submit" class="kiosk-approve-btn">✅ Approve</button>
+                            </form>
+                            <form
+                                method="post"
+                                action="{{ url_for('main.kiosk_reject_task', completion_id=completion.id) }}"
+                                onsubmit="return kioskConfirmAction(this, 'Rejecting…');"
+                                style="display:inline;"
+                            >
+                                <button type="submit" class="kiosk-reject-btn">✗ Reject</button>
+                            </form>
+                        </div>
+
+                    </div>
+                {% endfor %}
+            </div>
+
+        {% else %}
+            <div class="kiosk-empty-inline">No task completions waiting.</div>
+        {% endif %}
+    </div>
+
+    <!-- Pending reward requests -->
+    <div class="kiosk-section">
+        <h2 class="kiosk-section-title">Reward Requests</h2>
+
+        {% if pending_rewards %}
+            <div class="kiosk-approvals-list">
+                {% for purchase in pending_rewards %}
+                    <div class="kiosk-approval-card">
+
+                        <div class="kiosk-approval-info">
+                            <div class="kiosk-approval-who">
+                                <span class="kiosk-approval-avatar">{{ purchase.user.avatar_emoji }}</span>
+                                <span class="kiosk-approval-name">{{ purchase.user.display_name }}</span>
+                            </div>
+                            <div class="kiosk-approval-what">
+                                <strong>{{ purchase.reward.name }}</strong>
+                                {% if purchase.reward.category %}
+                                    <span class="kiosk-category-tag">{{ purchase.reward.category }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="kiosk-approval-meta">
+                                {{ purchase.reward.point_cost }} {{ household_settings.points_label }}
+                                · requested {{ purchase.requested_at.strftime('%d %b, %H:%M') }}
+                            </div>
+                        </div>
+
+                        <div class="kiosk-approval-actions">
+                            <form
+                                method="post"
+                                action="{{ url_for('main.kiosk_approve_reward', purchase_id=purchase.id) }}"
+                                onsubmit="return kioskConfirmAction(this, 'Approving…');"
+                                style="display:inline;"
+                            >
+                                <button type="submit" class="kiosk-approve-btn">✅ Approve</button>
+                            </form>
+                            <form
+                                method="post"
+                                action="{{ url_for('main.kiosk_reject_reward', purchase_id=purchase.id) }}"
+                                onsubmit="return kioskConfirmAction(this, 'Rejecting…');"
+                                style="display:inline;"
+                            >
+                                <button type="submit" class="kiosk-reject-btn">✗ Reject</button>
+                            </form>
+                        </div>
+
+                    </div>
+                {% endfor %}
+            </div>
+
+        {% else %}
+            <div class="kiosk-empty-inline">No reward requests waiting.</div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function kioskConfirmAction(form, label) {
+        const btn = form.querySelector("button[type=submit]");
+        if (btn.disabled) return false;
+        // Disable all action buttons on this card to prevent double-submit.
+        const card = form.closest(".kiosk-approval-card");
+        if (card) {
+            card.querySelectorAll("button").forEach(b => { b.disabled = true; });
+        }
+        btn.textContent = label;
+        return true;
+    }
+</script>
+{% endblock %}

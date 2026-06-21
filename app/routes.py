@@ -12,6 +12,7 @@ from app.route_sections.auth import register_auth_routes
 from app.route_sections.categories import register_category_routes
 from app.route_sections.dashboard import register_dashboard_routes
 from app.route_sections.group_goals import register_group_goal_routes
+from app.route_sections.kiosk import register_kiosk_routes
 from app.route_sections.leaderboard import register_leaderboard_routes
 from app.route_sections.profiles import register_profile_routes
 from app.route_sections.request_archive import register_request_archive_routes
@@ -66,6 +67,7 @@ register_auth_routes(bp)
 register_category_routes(bp, admin_required)
 register_dashboard_routes(bp)
 register_group_goal_routes(bp, admin_required)
+register_kiosk_routes(bp)
 register_leaderboard_routes(bp)
 register_profile_routes(bp, admin_required)
 register_request_archive_routes(bp)

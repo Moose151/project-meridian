@@ -1,0 +1,173 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-dashboard">
+
+    <!-- User welcome header -->
+    <div class="kiosk-dash-header">
+        <div class="kiosk-dash-avatar">{{ user.avatar_emoji }}</div>
+        <div class="kiosk-dash-user-info">
+            <h1 class="kiosk-dash-name">{{ user.display_name }}</h1>
+            {% if user.can_participate() %}
+                <div class="kiosk-dash-balance">
+                    <span class="kiosk-dash-balance-number">{{ current_balance }}</span>
+                    <span class="kiosk-dash-balance-label">{{ household_settings.points_label }}</span>
+                </div>
+            {% else %}
+                <div class="kiosk-dash-balance">
+                    <span class="kiosk-dash-balance-label">Admin — participation not enabled</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if user.is_admin() %}
+    <!-- Admin approvals card -->
+    <a href="{{ url_for('main.kiosk_approvals') }}" class="kiosk-admin-approvals-card">
+        <div class="kiosk-admin-approvals-inner">
+            <span class="kiosk-admin-approvals-icon">📋</span>
+            <div>
+                <div class="kiosk-admin-approvals-title">Approvals</div>
+                <div class="kiosk-admin-approvals-sub">
+                    {{ pending_task_count }} task{{ 's' if pending_task_count != 1 }} ·
+                    {{ pending_reward_count }} reward{{ 's' if pending_reward_count != 1 }} waiting
+                </div>
+            </div>
+            <span class="kiosk-admin-approvals-arrow">→</span>
+        </div>
+    </a>
+    {% endif %}
+
+    {% if user.can_participate() %}
+
+    <!-- Quick stats row -->
+    <div class="kiosk-stats-row">
+
+        <a href="{{ url_for('main.kiosk_tasks') }}" class="kiosk-stat-card kiosk-stat-tasks">
+            <div class="kiosk-stat-number">{{ ready_task_count }}</div>
+            <div class="kiosk-stat-label">Tasks Ready</div>
+        </a>
+
+        {% if hot_task_count > 0 %}
+            <a href="{{ url_for('main.kiosk_tasks') }}" class="kiosk-stat-card kiosk-stat-hot">
+                <div class="kiosk-stat-number">🔥 {{ hot_task_count }}</div>
+                <div class="kiosk-stat-label">Hot Tasks</div>
+            </a>
+        {% endif %}
+
+        <a href="{{ url_for('main.kiosk_routines') }}" class="kiosk-stat-card kiosk-stat-routines">
+            <div class="kiosk-stat-number">{{ routines_done_today }}/{{ total_routines }}</div>
+            <div class="kiosk-stat-label">Routines Today</div>
+        </a>
+
+        <a href="{{ url_for('main.kiosk_rewards') }}" class="kiosk-stat-card kiosk-stat-rewards">
+            <div class="kiosk-stat-number">{{ affordable_count }}</div>
+            <div class="kiosk-stat-label">Affordable Rewards</div>
+        </a>
+
+        {% set total_pending = (pending_task_completions | length) + (pending_reward_requests | length) %}
+        {% if total_pending > 0 %}
+            <div class="kiosk-stat-card kiosk-stat-pending">
+                <div class="kiosk-stat-number">{{ total_pending }}</div>
+                <div class="kiosk-stat-label">Pending Approvals</div>
+            </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Big action buttons grid -->
+    <div class="kiosk-action-grid">
+        <a href="{{ url_for('main.kiosk_tasks') }}" class="kiosk-action-btn kiosk-action-tasks">
+            <span class="kiosk-action-icon">✅</span>
+            <span class="kiosk-action-text">Tasks</span>
+        </a>
+
+        <a href="{{ url_for('main.kiosk_routines') }}" class="kiosk-action-btn kiosk-action-routines">
+            <span class="kiosk-action-icon">🔁</span>
+            <span class="kiosk-action-text">Routines</span>
+        </a>
+
+        <a href="{{ url_for('main.kiosk_rewards') }}" class="kiosk-action-btn kiosk-action-rewards">
+            <span class="kiosk-action-icon">🎁</span>
+            <span class="kiosk-action-text">Rewards</span>
+        </a>
+
+        <a href="{{ url_for('main.kiosk_wishlist') }}" class="kiosk-action-btn kiosk-action-wishlist">
+            <span class="kiosk-action-icon">⭐</span>
+            <span class="kiosk-action-text">Wishlist</span>
+        </a>
+
+        <a href="{{ url_for('main.kiosk_goals') }}" class="kiosk-action-btn kiosk-action-goals">
+            <span class="kiosk-action-icon">🎯</span>
+            <span class="kiosk-action-text">Group Goals</span>
+        </a>
+
+        <a href="{{ url_for('main.kiosk_leaderboard') }}" class="kiosk-action-btn kiosk-action-leaderboard">
+            <span class="kiosk-action-icon">🏆</span>
+            <span class="kiosk-action-text">Leaderboard</span>
+        </a>
+    </div>
+
+    <!-- Pending approvals -->
+    {% if pending_task_completions or pending_reward_requests %}
+        <div class="kiosk-section">
+            <h2 class="kiosk-section-title">Waiting for Approval</h2>
+
+            <div class="kiosk-pending-list">
+                {% for completion in pending_task_completions %}
+                    <div class="kiosk-pending-item">
+                        <span class="kiosk-pending-icon">✅</span>
+                        <div class="kiosk-pending-info">
+                            <strong>{{ completion.task.title }}</strong>
+                            <span class="kiosk-pending-sub">Task submitted</span>
+                        </div>
+                        <span class="kiosk-badge kiosk-badge-waiting">Awaiting review</span>
+                    </div>
+                {% endfor %}
+
+                {% for purchase in pending_reward_requests %}
+                    <div class="kiosk-pending-item">
+                        <span class="kiosk-pending-icon">🎁</span>
+                        <div class="kiosk-pending-info">
+                            <strong>{{ purchase.reward.name }}</strong>
+                            <span class="kiosk-pending-sub">{{ purchase.reward.point_cost }} {{ household_settings.points_label }} reserved</span>
+                        </div>
+                        <span class="kiosk-badge kiosk-badge-waiting">Awaiting review</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% endif %}{# end can_participate #}
+
+    <!-- Leaderboard -->
+    {% if leaderboard %}
+        <div class="kiosk-section">
+            <div class="kiosk-section-header-row">
+                <h2 class="kiosk-section-title">Leaderboard</h2>
+                <a href="{{ url_for('main.kiosk_leaderboard') }}" class="kiosk-section-link">Full leaderboard →</a>
+            </div>
+
+            <div class="kiosk-leaderboard">
+                {% for lb_user, lb_balance in leaderboard %}
+                    <div class="kiosk-leaderboard-row {% if lb_user.id == user.id %}kiosk-leaderboard-you{% endif %}">
+                        <span class="kiosk-lb-rank">{{ loop.index }}</span>
+                        <span class="kiosk-lb-avatar">{{ lb_user.avatar_emoji }}</span>
+                        <span class="kiosk-lb-name">
+                            {{ lb_user.display_name }}
+                            {% if lb_user.id == user.id %}
+                                <span class="kiosk-lb-you-tag">You</span>
+                            {% endif %}
+                        </span>
+                        <span class="kiosk-lb-balance">{{ lb_balance }} {{ household_settings.points_label }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-page">
+
+    <div class="kiosk-page-header">
+        <h1 class="kiosk-page-title">Tasks</h1>
+        <p class="kiosk-page-subtitle">
+            Tap Complete when you've done a task — it goes to the admin for approval.
+        </p>
+    </div>
+
+    {% if tasks %}
+        <div class="kiosk-card-list">
+            {% for task in tasks %}
+                {% set is_submitted = task.id in submitted_task_ids %}
+
+                <div class="kiosk-task-card {% if task.is_hot %}kiosk-task-hot{% endif %}">
+
+                    <div class="kiosk-task-header">
+                        <div class="kiosk-task-title-row">
+                            {% if task.is_hot %}
+                                <span class="kiosk-hot-badge">
+                                    🔥 {{ task.hot_label or "Hot Task" }}
+                                </span>
+                            {% endif %}
+
+                            <h2 class="kiosk-task-title">{{ task.title }}</h2>
+
+                            {% if task.category %}
+                                <span class="kiosk-tag">{{ task.category }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="kiosk-task-value">
+                            <span class="kiosk-points-big">{{ task.total_point_value() }}</span>
+                            <span class="kiosk-points-label">{{ household_settings.points_label }}</span>
+                            {% if task.is_hot and task.hot_bonus_points %}
+                                <span class="kiosk-hot-bonus">+{{ task.hot_bonus_points }} bonus</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if task.description %}
+                        <p class="kiosk-task-desc">{{ task.description }}</p>
+                    {% endif %}
+
+                    <div class="kiosk-task-footer">
+                        {% if is_submitted %}
+                            <div class="kiosk-submitted-notice">
+                                <span class="kiosk-submitted-icon">⏳</span>
+                                Submitted — waiting for approval
+                            </div>
+                        {% else %}
+                            <form
+                                method="post"
+                                action="{{ url_for('main.kiosk_complete_task', task_id=task.id) }}"
+                                onsubmit="return kioskConfirmTask(this);"
+                            >
+                                <button type="submit" class="kiosk-complete-btn">
+                                    ✓ Complete
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+
+                </div>
+            {% endfor %}
+        </div>
+
+    {% else %}
+        <div class="kiosk-empty">
+            <div class="kiosk-empty-icon">✅</div>
+            <p>No tasks available right now. Check back later!</p>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function kioskConfirmTask(form) {
+        const btn = form.querySelector("button[type=submit]");
+        if (btn.disabled) return false;
+        btn.disabled = true;
+        btn.textContent = "Submitting…";
+        return true;
+    }
+</script>
+{% endblock %}
