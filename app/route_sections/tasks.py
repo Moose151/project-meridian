@@ -156,10 +156,13 @@ def register_task_routes(bp, admin_required):
             Task.title
         ).all()
 
-        # Filter by availability window.
-        active_tasks = [t for t in active_tasks if _task_in_window(t)]
+        # Compute which tasks are currently within their availability window.
+        # Tasks outside their window are shown greyed-out rather than hidden,
+        # so users know they exist and can plan accordingly.
+        task_in_window = {t.id: _task_in_window(t) for t in active_tasks}
 
         # Filter assigned tasks by visibility (non-admin users only).
+        # Tasks with assigned_only visibility are fully hidden from other users.
         if not current_user.is_admin():
             def _visible_to_user(task):
                 if not task.assigned_user_id:
@@ -195,6 +198,7 @@ def register_task_routes(bp, admin_required):
         return render_template(
             "tasks.html",
             tasks=active_tasks,
+            task_in_window=task_in_window,
             categories=categories,
             selected_category=selected_category,
             selected_filter=selected_filter
@@ -441,6 +445,7 @@ def register_task_routes(bp, admin_required):
         form = TaskForm(obj=task)
         form.category.choices = _task_category_choices(task.category)
         form.assigned_user_id.choices = _task_user_choices()
+        form.import_task_id.choices = [(0, "—")]
 
         if request.method == "GET":
             form.assigned_user_id.data = task.assigned_user_id or 0

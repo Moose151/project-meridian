@@ -77,11 +77,20 @@
     </div>
 </section>
 
+{% set window_label_map = {
+    "morning": "Morning only (5am–12pm)",
+    "afternoon": "Afternoon only (12pm–5pm)",
+    "evening": "Evening only (5pm–10pm)",
+    "weekdays": "Weekdays only (Mon–Fri)",
+    "weekends": "Weekends only (Sat–Sun)"
+} %}
+
 {% if tasks %}
     <section class="row g-4">
         {% for task in tasks %}
+            {% set currently_available = task_in_window.get(task.id, true) %}
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 border-0 shadow-sm {% if task.is_hot %}border-danger{% endif %}">
+                <div class="card h-100 border-0 shadow-sm {% if task.is_hot and currently_available %}border-danger{% endif %}" {% if not currently_available and not current_user.is_admin() %}style="opacity: 0.65;"{% endif %}>
                     <div class="card-body p-4 d-flex flex-column">
 
                         <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
@@ -110,6 +119,12 @@
                                     {% if task.completion_scope == "household_once" %}
                                         <span class="badge bg-info text-dark">
                                             Household once
+                                        </span>
+                                    {% endif %}
+
+                                    {% if task.availability_window and task.availability_window != "always" %}
+                                        <span class="badge {% if currently_available %}bg-primary{% else %}bg-secondary{% endif %}">
+                                            {{ window_label_map.get(task.availability_window, task.availability_window) }}
                                         </span>
                                     {% endif %}
 
@@ -174,7 +189,11 @@
                             </div>
 
                             {% if not current_user.is_admin() %}
-                                {% if task.assigned_user_id and task.assigned_user_id != current_user.id %}
+                                {% if not currently_available %}
+                                    <button class="btn btn-secondary w-100" disabled>
+                                        Available: {{ window_label_map.get(task.availability_window, "later") }}
+                                    </button>
+                                {% elif task.assigned_user_id and task.assigned_user_id != current_user.id %}
                                     <button class="btn btn-secondary w-100" disabled>
                                         Assigned to {{ task.assigned_user.display_name }}
                                     </button>
