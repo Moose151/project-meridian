@@ -209,11 +209,56 @@
                                 {% endif %}
                             {% else %}
                                 <a
-                                    class="btn btn-outline-primary w-100"
+                                    class="btn btn-outline-primary w-100 mb-2"
                                     href="{{ url_for('main.edit_task', task_id=task.id) }}"
                                 >
                                     Edit Task
                                 </a>
+
+                                {% if participating_users %}
+                                    <div class="dropdown">
+                                        <button
+                                            class="btn btn-outline-secondary w-100 dropdown-toggle"
+                                            type="button"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                        >
+                                            Mark Complete For…
+                                        </button>
+
+                                        <ul class="dropdown-menu w-100">
+                                            {% if current_user.can_participate() %}
+                                                <li>
+                                                    <form method="post" action="{{ url_for('main.quick_complete_task', task_id=task.id) }}">
+                                                        <input type="hidden" name="user_id" value="{{ current_user.id }}">
+                                                        <button type="submit" class="dropdown-item">
+                                                            {{ current_user.avatar_emoji }} {{ current_user.display_name }} (me)
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                {% set other_users = participating_users | selectattr("id", "ne", current_user.id) | list %}
+                                                {% if other_users %}
+                                                    <li><hr class="dropdown-divider"></li>
+                                                {% endif %}
+                                            {% else %}
+                                                {% set other_users = participating_users %}
+                                            {% endif %}
+
+                                            {% for u in participating_users %}
+                                                {% if u.id != current_user.id %}
+                                                    <li>
+                                                        <form method="post" action="{{ url_for('main.quick_complete_task', task_id=task.id) }}">
+                                                            <input type="hidden" name="user_id" value="{{ u.id }}">
+                                                            <button type="submit" class="dropdown-item">
+                                                                {{ u.avatar_emoji }} {{ u.display_name }}
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
                             {% endif %}
                         </div>
 

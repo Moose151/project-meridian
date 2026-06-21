@@ -195,10 +195,22 @@ def register_task_routes(bp, admin_required):
             ).all()
         ]
 
+        # Participating users for admin quick-complete dropdowns.
+        participating_users = []
+        if current_user.is_admin():
+            participating_users = User.query.filter(
+                User.is_active_account == True,
+                or_(
+                    User.role == "user",
+                    (User.role == "admin") & (User.participation_enabled == True)
+                )
+            ).order_by(User.display_name).all()
+
         return render_template(
             "tasks.html",
             tasks=active_tasks,
             task_in_window=task_in_window,
+            participating_users=participating_users,
             categories=categories,
             selected_category=selected_category,
             selected_filter=selected_filter
@@ -368,6 +380,77 @@ def register_task_routes(bp, admin_required):
 
         flash("Task submitted for approval.")
         return redirect(url_for("main.dashboard"))
+
+    @bp.route("/admin/tasks/<int:task_id>/complete-for", methods=["POST"])
+    @login_required
+    def quick_complete_task(task_id):
+        """
+        Admin shortcut to mark a task complete for any participating user
+        directly from the task board, bypassing the submit-then-approve flow.
+        """
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        task = db.session.get(Task, task_id)
+
+        if not task or not task.is_active:
+            flash("Task not found or no longer active.")
+            return redirect(url_for("main.tasks"))
+
+        user_id = request.form.get("user_id", type=int)
+
+        if not user_id:
+            flash("No user selected.")
+            return redirect(url_for("main.tasks"))
+
+        user = db.session.get(User, user_id)
+
+        if not user or not user.is_active_account or not user.can_participate():
+            flash("Selected user cannot participate.")
+            return redirect(url_for("main.tasks"))
+
+        completion = TaskCompletion(
+            task_id=task.id,
+            user_id=user.id,
+            status="approved",
+            reviewed_at=datetime.now(timezone.utc),
+            reviewed_by_id=current_user.id
+        )
+
+        db.session.add(completion)
+        db.session.flush()
+
+        awarded_points = task.total_point_value()
+
+        transaction = PointTransaction(
+            user_id=user.id,
+            amount=awarded_points,
+            transaction_type="task_approved",
+            reason=f"Admin completed task: {task.title}",
+            related_task_completion_id=completion.id,
+            created_by_id=current_user.id
+        )
+
+        db.session.add(transaction)
+
+        if task.completion_behavior == "hide_after_approval":
+            task.is_active = False
+
+        create_notification(
+            user_id=user.id,
+            title="Task completed by admin",
+            message=f"'{task.title}' was marked complete for you. You earned {format_points(awarded_points)}.",
+            notification_type="success"
+        )
+
+        db.session.commit()
+
+        flash(
+            f"'{task.title}' marked complete for {user.display_name}. "
+            f"{format_points(awarded_points)} awarded."
+        )
+        return redirect(url_for("main.tasks"))
 
     @bp.route("/tasks/submissions/<int:completion_id>/cancel", methods=["POST"])
     @login_required
