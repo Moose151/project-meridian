@@ -735,47 +735,11 @@ A bug was found where navbar dropdowns appeared behind cards. This fix is commit
 
 If dropdowns still appear behind cards, check for parent stacking contexts from `transform`, `filter`, `opacity`, or `overflow`.
 
-## 10. Login UX improvement to implement
+## 10. Login UX improvement
 
-**Status: Not yet implemented.**
+**Status: Done.**
 
-Desired feature:
-
-When a user is selected at login, the cursor should automatically go to the PIN input. On mobile, tapping the user should bring up the numeric keypad instead of the full keyboard.
-
-Current state: `login.html` has JS that sets the hidden `selected_user_id` field and updates the selected-user display text when a card is clicked, but does not focus the PIN input and the password field does not yet have `inputmode="numeric"`.
-
-Implementation direction:
-
-In `login.html`, the PIN/password field should include:
-
-```html
-inputmode="numeric"
-pattern="[0-9]*"
-autocomplete="one-time-code"
-maxlength="4"
-```
-
-WTForms/Jinja example:
-
-```jinja
-{{ form.password(
-    class="form-control",
-    id="pin-input",
-    inputmode="numeric",
-    pattern="[0-9]*",
-    autocomplete="one-time-code",
-    maxlength="4"
-) }}
-```
-
-Then add JavaScript to focus `#pin-input` when the user radio/card changes or is clicked.
-
-Suggested commit message:
-
-```text
-Focus PIN input after user selection
-```
+PIN input field has `inputmode="numeric"`, `pattern="[0-9]*"`, `autocomplete="one-time-code"`, and `maxlength="4"`. JavaScript in `login.html` focuses `#pin-input` automatically when a user card is selected, and brings up the numeric keypad on mobile.
 
 ## 11. Economy design baseline
 
@@ -873,9 +837,9 @@ Adjustment rule after two weeks:
 - If users are stuck and never redeem anything, add more small rewards around 100–150.
 - If one task is being farmed, reduce its value, limit it, or make it one-time/hidden.
 
-## 12. Features added recently
+## 12. Features added (complete history)
 
-Recent major work completed:
+### Earlier work
 
 - Repository cleanup and `.gitignore` hardening.
 - Sensitive/local runtime files removed from Git history.
@@ -892,10 +856,43 @@ Recent major work completed:
 - Wishlist item fulfil admin route added.
 - Badge system implemented with seven default badges.
 - Unified request archive page implemented.
-- `routes.py` modularised into `app/route_sections/` (13 route section modules). `routes.py` is now ~75 lines.
+- `routes.py` modularised into `app/route_sections/` (20 route section modules).
 - Admin participation mode implemented.
+- Login PIN autofocus + numeric keypad.
 
-Repository hygiene:
+### Task customisation (all implemented)
+
+Tasks gained four additional fields with full UI in create/edit forms:
+
+- **`assigned_user_id` / `assigned_visibility`** — optionally assign a task to one user. Visibility can be `"all"` (task visible to everyone but only the assigned user can submit) or `"assigned_only"` (task hidden from everyone else entirely).
+- **`availability_window`** — controls when the task appears: `"always"` (default), `"morning"` (5am–12pm), `"afternoon"` (12pm–5pm), `"evening"` (5pm–10pm), `"weekdays"` (Mon–Fri), `"weekends"` (Sat–Sun). Tasks outside their window are shown greyed-out with a disabled button rather than hidden, so users can plan ahead.
+- **`completion_scope`** — `"per_user"` (default; each user completes independently) or `"household_once"` (first submission hides the task for everyone).
+- **`recurrence_days`** — comma-separated weekday ints (0=Mon…6=Sun). When set, the task resets each week and only appears on the configured days (kiosk) or shows its recurrence label (regular board).
+
+Column migrations in `run_column_migrations()` add these columns to existing databases on startup.
+
+### Routines / habit tracking (implemented)
+
+`Routine` and `RoutineCompletion` models. Routines are daily habits admins create for users. Completing a routine awards points immediately (no approval needed) and builds a streak.
+
+- `/routines` — user view with streak display and complete buttons
+- `/routines/history` — per-user completion history
+- `/admin/routines` and CRUD routes
+- `Routine.current_streak_for_user(user_id)` / `Routine.completed_today_by_user(user_id)`
+- Routines leaderboard on `/leaderboard` and `/kiosk/leaderboard`
+- Participating admins see the Routines nav link
+
+### Kiosk mode (implemented)
+
+See section 16 for full kiosk details.
+
+### Admin quick-complete on task board (implemented)
+
+Each task card in the admin task board view now has a **"Mark Complete For…"** dropdown alongside the Edit button. Selecting a user immediately creates an approved completion and awards points — bypassing the submit-then-approve flow. Works for all participating users including the admin themselves if participation is enabled.
+
+New route: `POST /admin/tasks/<id>/complete-for`
+
+### Repository hygiene rules
 
 - Remove personal names, account URLs, secrets, database files, backups, and machine-specific paths from documentation before committing.
 - Keep `.env`, SQLite database files, backup files, generated exports, and runtime artifacts untracked.
@@ -1010,10 +1007,9 @@ After each change, commit with a clear message and push to the repository.
 
 ### Priority items
 
-1. **Login PIN autofocus and numeric keypad** — **Done.** `inputmode="numeric"`, `pattern`, `autocomplete`, `maxlength="4"` added to PIN field. JS focuses it on card selection.
-2. **Admin participation mode** — **Done.** Admins can opt in via the Admin Centre. See section 12 for full details.
-3. **Smoke test mobile layout** — test all main pages on a phone-sized viewport, especially login, dashboard, tasks, shop, wishlist, and group goals.
-4. **Continue service-layer refactoring** — gradually move inline business logic from route section files into service files. No risky large rewrites.
+1. **Smoke test mobile layout** — test all main pages on a phone-sized viewport, especially login, dashboard, tasks, shop, wishlist, and group goals.
+2. **Continue service-layer refactoring** — gradually move inline business logic from route section files into service files. No risky large rewrites.
+3. **Recurrence filter on the regular task board** — `recurrence_days` filtering is applied in the kiosk (`_get_available_tasks`) but NOT in the standard `tasks.py` route. Tasks with `recurrence_days` set appear every day on the regular board, only filtered on the kiosk. Fix `tasks()` in `tasks.py` to apply the same filter as `_get_available_tasks` in `kiosk.py`.
 
 ### More badges and milestone logic
 
@@ -1081,26 +1077,6 @@ Possible additions:
 - **Larger tap targets on task cards** — the submit button on task cards can be small on phones; increase padding or make the whole card tappable.
 - **PWA manifest** — add a `manifest.json` so the app can be added to a phone home screen and launched full-screen, useful for the kiosk/home-hub use case.
 
-### Future task customisation
-
-Recurring tasks should be more configurable. They may be always available, or only available during configured time windows such as morning, afternoon, evening, weekdays, weekends, or specific times of day.
-
-Recurring task completion scope needs to be configurable. Options to consider:
-
-- Once per recurrence for the whole household, then hidden until the next recurrence.
-- Once per assigned user for each recurrence.
-- Once per user for each recurrence, where completing it hides it only for that user.
-
-Tasks should support assignment to one user. Assigned tasks need a visibility setting so admins can choose whether the task is visible only to the assigned user, or visible to other users but only actionable by the assigned user.
-
-### Future routines and habit tracking
-
-Add routines as a separate feature from tasks. Routines are repeated habits or personal-care flows created by admins for users, such as shower, brush teeth, or similar daily habits.
-
-Routines should grant small point amounts and track streaks, including how many days in a row the user completed the routine. Add milestone bonuses for streaks or consistency targets.
-
-Routines should have their own views and leaderboard options separate from general task and point leaderboards, so habit consistency can be celebrated without being mixed into normal chore/task rankings.
-
 ### Weekly email digest (future work)
 
 Send a weekly summary email to each user every Monday morning with:
@@ -1125,9 +1101,21 @@ This feature was scoped out of the current session to keep scope manageable. Add
 
 `config.py` contains `SECRET_KEY = "change-this-later"` and `app/__init__.py` has a fallback of `"dev-secret-key-change-later"`. Production deployments must set `SECRET_KEY` in `.env`. Never use the fallback value on a real install.
 
+### Recurrence filter inconsistency
+
+`recurrence_days` filtering is implemented in the kiosk (`kiosk.py` → `_get_available_tasks`) but NOT in the regular task board (`tasks.py` → `tasks()`). A task set to "Tuesdays only" will be hidden on other days in the kiosk but visible every day on the regular `/tasks` board. Fix: apply the same `_recurrence_days_set` check in `tasks.py`. See section 13 priority item 3.
+
+### Dashboard task count is unfiltered
+
+`dashboard.py` shows `available_task_count = Task.query.filter_by(is_active=True).count()` which counts ALL active tasks regardless of availability window, assignment visibility, or `household_once` completion state. The number shown on the dashboard can be higher than the number of tasks a user can actually act on when they visit the task board.
+
 ### Seed logic
 
 Default seed logic must remain idempotent and must run inside an app context.
+
+### CSRF on raw POST routes
+
+Routes that use `request.form` directly (rather than a WTForms `FlaskForm`) are not CSRF-protected. This includes `submit_task`, `quick_complete_task`, and the kiosk completion routes. This is acceptable for a private household app on a local network but should be noted for any future internet-facing deployment. Fix: initialise `CSRFProtect(app)` in `__init__.py` and add `{{ csrf_token() }}` as a hidden input in those forms, or switch them to WTForms.
 
 ### SQLite
 
@@ -1186,12 +1174,52 @@ Before database-affecting work, back up the SQLite database.
 
 Continue work in this order:
 
-1. Implement login PIN autofocus and numeric keypad (section 10).
-2. Populate starting task and reward economy (section 11).
+1. Fix recurrence filter inconsistency between kiosk and regular task board (section 13 priority item 3 / section 14).
+2. Populate starting task and reward economy if not already done (section 11).
 3. Smoke test mobile UI across all main pages.
 4. Continue service-layer cleanup (move inline logic from route sections into service files).
 
 After each change: commit with a clear message and push to the repository.
+
+## 17. Improvement recommendations
+
+These are considered but not yet planned. Prioritise based on what the household actually needs rather than building speculatively.
+
+### High value / low effort
+
+**Task submission notes** — Let users add a short optional note when submitting a task ("done the bathroom too"). Requires a `note` column on `TaskCompletion` and a textarea in the submit form. The note appears in the approvals queue so the admin has context before approving.
+
+**Approval with a message** — When an admin approves or rejects, let them add a short "well done" or "not quite" note. Requires a `review_note` column on `TaskCompletion`. Display it in the user's task history.
+
+**Photo evidence on the regular task board** — Evidence photo upload is currently kiosk-only (`/kiosk/tasks`). Adding a simple file upload to the standard `submit_task` form would let browser users also attach proof. Same `evidence_photo` column and upload directory already exist.
+
+**Leaderboard time filter** — The leaderboard currently shows all-time stats. Adding a "This week" toggle (filtering `PointTransaction.created_at` to the current Mon–Sun window) would make the competition feel fresh and encourage consistent weekly effort. Small change — no schema change needed.
+
+**Hot task dashboard widget** — Surface any currently active hot tasks on the user dashboard so users see them without navigating away. Low effort Jinja change in `dashboard.html` using existing data.
+
+### Medium effort
+
+**PWA manifest** — Add `app/static/manifest.json` and a `<link rel="manifest">` in `base.html`. This allows the app to be pinned to a phone or tablet home screen and launched full-screen — valuable for the kiosk/home-hub use case without dedicated Raspberry Pi hardware. No backend changes needed.
+
+**Bottom navigation bar on mobile** — A fixed bottom bar with Dashboard, Tasks, Shop, and Routines links is a common mobile pattern and avoids the collapsed hamburger menu. Implemented as a Bootstrap-aware CSS addition in `homestack.css` that only shows on small viewports (`d-lg-none`). Medium CSS work.
+
+**Streak badges** — The badge system (`badge_service.py`) is easy to extend. Adding streak milestones (3-day, 7-day, 30-day routine streak) and task-count milestones (25, 50, 100 tasks) would give users something to chase. Each badge needs a `seed_badges()` entry and a check in `check_and_award_badges()`.
+
+**Reward stock / quantity** — Add a nullable `stock` integer to `Reward`. When set, decrement on each approved purchase and auto-hide at zero. Useful for limited treats ("movie night voucher — 2 available"). Requires a column migration, changes to `reward_service.py`, and UI updates to `shop.html` and the reward create/edit forms.
+
+**Weekly summary widget on user dashboard** — Show "this week: X tasks completed, Y points earned" vs last week. Adds a sense of momentum. Requires two aggregation queries on `TaskCompletion` and `PointTransaction` filtered by the current and previous week window.
+
+### Larger features
+
+**Weekly email digest** — See section 13. Requires a `User.email` field, SMTP config in `.env`, a Jinja email template, and a Monday 07:00 APScheduler job. The APScheduler infrastructure already exists. Useful for keeping users engaged without needing to open the app.
+
+**Group goal deadline and progress notifications** — Add an optional `due_date` field to `GroupGoal`. Surface a countdown in the UI. Send notifications to contributors at 50% and 75% funded, and notify admins if a goal passes its deadline unfunded. Requires a column migration and additions to the APScheduler daily job.
+
+**Browser push notifications** — The Web Push API (via a service worker and the `pywebpush` library) could deliver real-time notifications when a task is approved, a hot task appears, or a goal is nearing its target. Significant infrastructure work (service worker, push subscription storage, vapid key management) but high engagement value for a household that leaves the app running on a shared device.
+
+**Leaderboard opt-out** — Add `User.leaderboard_hidden` (boolean, default False). Users who find the leaderboard stressful or demotivating can hide themselves from it. One-line change to the leaderboard query, plus a toggle in the user's profile or settings.
+
+**Multi-household support** — The current design assumes a single household per install. If ever needed (e.g. two families on the same server), this would require a `Household` model and foreign keys on most tables. Not worth building speculatively — the Docker-based deployment makes it easy to run separate instances per household instead.
 
 ## 18. One-sentence product definition
 
