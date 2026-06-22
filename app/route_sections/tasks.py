@@ -4,7 +4,7 @@ Task routes: task board, creation, submission, management, and admin completion.
 Registered onto the existing main blueprint to preserve all endpoint names.
 """
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -172,18 +172,59 @@ def register_task_routes(bp, admin_required):
                 return (task.assigned_visibility or "all") == "all"
             active_tasks = [t for t in active_tasks if _visible_to_user(t)]
 
+        # Filter tasks with recurrence_days to only show on their designated weekdays.
+        # Tasks not in their recurrence window are shown greyed-out (same as
+        # availability_window) rather than hidden entirely, so users can see them.
+        today_weekday = date.today().weekday()
+
+        def _recurrence_days_set(task):
+            if not task.recurrence_days:
+                return None
+            try:
+                return {int(d) for d in task.recurrence_days.split(",") if d.strip()}
+            except ValueError:
+                return None
+
+        for t in active_tasks:
+            days = _recurrence_days_set(t)
+            if days is not None and today_weekday not in days:
+                task_in_window[t.id] = False
+
         # Filter household_once tasks: hide if any active submission exists.
+        # For recurring household_once tasks, scope the check to the current week.
+        today = date.today()
+        week_start = today - timedelta(days=today_weekday)
+
         household_once_ids = [
             t.id for t in active_tasks
             if (t.completion_scope or "per_user") == "household_once"
         ]
         if household_once_ids:
-            taken_ids = {
-                row[0] for row in db.session.query(TaskCompletion.task_id).filter(
-                    TaskCompletion.task_id.in_(household_once_ids),
-                    TaskCompletion.status.in_(["submitted", "approved"])
-                ).all()
+            recurring_ids = {
+                t.id for t in active_tasks
+                if t.id in set(household_once_ids) and _recurrence_days_set(t) is not None
             }
+            non_recurring_once = [tid for tid in household_once_ids if tid not in recurring_ids]
+
+            taken_ids = set()
+
+            if non_recurring_once:
+                taken_ids |= {
+                    row[0] for row in db.session.query(TaskCompletion.task_id).filter(
+                        TaskCompletion.task_id.in_(non_recurring_once),
+                        TaskCompletion.status.in_(["submitted", "approved"])
+                    ).all()
+                }
+
+            if recurring_ids:
+                taken_ids |= {
+                    row[0] for row in db.session.query(TaskCompletion.task_id).filter(
+                        TaskCompletion.task_id.in_(recurring_ids),
+                        TaskCompletion.status.in_(["submitted", "approved"]),
+                        TaskCompletion.submitted_at >= week_start
+                    ).all()
+                }
+
             active_tasks = [t for t in active_tasks if t.id not in taken_ids]
 
         categories = [

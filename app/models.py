@@ -263,6 +263,9 @@ class TaskCompletion(db.Model):
 
     rejection_reason = db.Column(db.Text)
 
+    # Optional note left by the admin when approving or rejecting.
+    review_note = db.Column(db.Text)
+
     # Optional photo evidence uploaded by the user at submission time.
     # Stores a relative path under app/static/uploads/evidence/.
     evidence_photo = db.Column(db.String(255))

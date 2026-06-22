@@ -64,11 +64,21 @@ def run_column_migrations():
     # ── task_completions table ───────────────────────────────────────
     existing_tc_cols = {col["name"] for col in inspector.get_columns("task_completions")}
 
+    tc_migrations = [
+        (
+            "evidence_photo",
+            "ALTER TABLE task_completions ADD COLUMN evidence_photo VARCHAR(255)"
+        ),
+        (
+            "review_note",
+            "ALTER TABLE task_completions ADD COLUMN review_note TEXT"
+        ),
+    ]
+
     with db.engine.connect() as conn:
-        if "evidence_photo" not in existing_tc_cols:
-            conn.execute(text(
-                "ALTER TABLE task_completions ADD COLUMN evidence_photo VARCHAR(255)"
-            ))
+        for col_name, sql in tc_migrations:
+            if col_name not in existing_tc_cols:
+                conn.execute(text(sql))
         conn.commit()
 
     # ── users table ──────────────────────────────────────────────────

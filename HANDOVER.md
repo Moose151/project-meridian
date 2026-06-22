@@ -1018,7 +1018,7 @@ Added to `EditUserForm` and `edit_user.html`:
 `run_column_migrations()` in `seed_service.py` idempotently adds new columns on startup:
 - `users`: `kiosk_pin_skip`, `allowance_amount`, `allowance_day`
 - `tasks`: `recurrence_days`
-- `task_completions`: `evidence_photo`
+- `task_completions`: `evidence_photo`, `review_note`
 - `routines` / `routine_completions`: added in earlier migrations
 
 ### New Python dependency
@@ -1033,7 +1033,14 @@ After each change, commit with a clear message and push to the repository.
 
 1. **Smoke test mobile layout** — test all main pages on a phone-sized viewport, especially login, dashboard, tasks, shop, wishlist, and group goals.
 2. **Continue service-layer refactoring** — gradually move inline business logic from route section files into service files. No risky large rewrites.
-3. **Recurrence filter on the regular task board** — `recurrence_days` filtering is applied in the kiosk (`_get_available_tasks`) but NOT in the standard `tasks.py` route. Tasks with `recurrence_days` set appear every day on the regular board, only filtered on the kiosk. Fix `tasks()` in `tasks.py` to apply the same filter as `_get_available_tasks` in `kiosk.py`.
+3. ~~**Recurrence filter on the regular task board**~~ — **Done.** `tasks.py` now applies the same `recurrence_days` weekday filter as `_get_available_tasks` in `kiosk.py`. Recurring tasks outside their weekday window are shown greyed-out (like unavailability windows) rather than hidden. Recurring `household_once` tasks are also scoped to the current week.
+
+### Recently implemented (this session)
+
+- **Recurrence filter in regular task board** — fixed the inconsistency between kiosk and standard task board. See priority item 3.
+- **Admin review note on task approval** — admins can add an optional note when approving a task via the approvals queue. The note appears in the user's Task History as a green "Note from admin" alert. Stored in `TaskCompletion.review_note` (column migration added). Rejection reason is also stored as `review_note` for consistency.
+- **Hot tasks dashboard widget** — when any hot tasks are active, a prominent orange-bordered section appears on the user dashboard listing them with their bonus points. Links to the hot filter on the task board. Shown for standard users only.
+- **PWA manifest** — `app/static/manifest.json` created and linked in `base.html`. Allows the app to be pinned to a phone or tablet home screen and launched full-screen (standalone mode). Icons at `app/static/icons/icon-192.png` and `app/static/icons/icon-512.png` need to be added for full PWA support — the manifest references them but the image files are not yet created.
 
 ### Potential future additions (deliberately removed features)
 
@@ -1248,6 +1255,14 @@ These are considered but not yet planned. Prioritise based on what the household
 **Browser push notifications** — The Web Push API (via a service worker and the `pywebpush` library) could deliver real-time notifications when a task is approved, a hot task appears, or a goal is nearing its target. Significant infrastructure work (service worker, push subscription storage, vapid key management) but high engagement value for a household that leaves the app running on a shared device.
 
 **Leaderboard opt-out** — Add `User.leaderboard_hidden` (boolean, default False). Users who find the leaderboard stressful or demotivating can hide themselves from it. One-line change to the leaderboard query, plus a toggle in the user's profile or settings.
+
+**PWA icons** — `manifest.json` is in place and linked in `base.html`. To complete full PWA support (reliable home screen pinning with a proper icon), add `app/static/icons/icon-192.png` and `app/static/icons/icon-512.png`. Without these, browsers fall back to a generated favicon-based icon, which still allows "Add to Home Screen" on most platforms.
+
+**Leaderboard weekly toggle** — The leaderboard currently shows all-time stats. A "This week" tab (filtering `PointTransaction.created_at` to the current Mon–Sun window) would make the competition feel fresh each week. No schema change needed — just a query filter and a tab toggle in `leaderboard.html`.
+
+**Reward stock / quantity** — Already noted in section 13. Add a nullable `stock` integer to `Reward`. When set, decrement on each approved purchase and auto-hide at zero. Useful for limited treats ("movie night voucher — 2 available").
+
+**Task submission notes (user)** — Let users add a short optional note when submitting a task ("I also cleaned the grout"). Requires a `submission_note` column on `TaskCompletion` and a textarea in the submit form. The note would appear on the approval card so admins have context. Different from `review_note` (which is admin → user). Low effort, high value for the approval workflow.
 
 **Multi-household support** — The current design assumes a single household per install. If ever needed (e.g. two families on the same server), this would require a `Household` model and foreign keys on most tables. Not worth building speculatively — the Docker-based deployment makes it easy to run separate instances per household instead.
 

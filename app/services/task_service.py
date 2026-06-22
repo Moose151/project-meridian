@@ -18,15 +18,16 @@ from app.services.notification_service import create_notification
 from app.services.points_service import format_points
 
 
-def approve_submitted_task_completion(completion):
+def approve_submitted_task_completion(completion, review_note=None):
     """
     Approve a submitted task completion.
 
     This:
     - marks the completion as approved
+    - stores an optional admin review note
     - creates a positive point transaction
     - hides one-off tasks after approval
-    - notifies the user
+    - notifies the user (includes the note if provided)
     - checks badge eligibility
 
     This function does not commit.
@@ -36,6 +37,9 @@ def approve_submitted_task_completion(completion):
     completion.status = "approved"
     completion.reviewed_at = datetime.now(timezone.utc)
     completion.reviewed_by_id = current_user.id
+
+    if review_note:
+        completion.review_note = review_note.strip() or None
 
     awarded_points = completion.task.total_point_value()
 
@@ -53,10 +57,11 @@ def approve_submitted_task_completion(completion):
     if completion.task.completion_behavior == "hide_after_approval":
         completion.task.is_active = False
 
+    note_suffix = f" Note from admin: {review_note.strip()}" if review_note and review_note.strip() else ""
     create_notification(
         user_id=completion.user_id,
         title="Task approved",
-        message=f"Your task '{completion.task.title}' was approved. You earned {format_points(awarded_points)}.",
+        message=f"Your task '{completion.task.title}' was approved. You earned {format_points(awarded_points)}.{note_suffix}",
         notification_type="success"
     )
 

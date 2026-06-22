@@ -112,6 +112,11 @@ def register_dashboard_routes(bp):
             Reward.point_cost <= current_balance
         ).count()
 
+        hot_tasks = Task.query.filter_by(
+            is_active=True,
+            is_hot=True
+        ).order_by(Task.title).all()
+
         notifications = Notification.query.filter_by(
             user_id=current_user.id,
             is_read=False
@@ -136,5 +141,6 @@ def register_dashboard_routes(bp):
             wishlist_item_count=wishlist_item_count,
             funded_wishlist_count=funded_wishlist_count,
             wishlist_points_saved=wishlist_points_saved,
-            recent_activity=recent_activity
+            recent_activity=recent_activity,
+            hot_tasks=hot_tasks
         )

@@ -3035,3 +3035,17 @@ textarea.form-control {
 [data-bs-theme="dark"] .shop-product-placeholder {
     background: var(--hs-surface-muted);
 }
+
+/* =========================================================
+   Hot tasks dashboard widget — dark mode override
+   ========================================================= */
+
+[data-bs-theme="dark"] .hot-task-row {
+    background: #2d1f0e !important;
+    border-color: #5c3a1e !important;
+}
+
+.hot-task-row {
+    background: #fff8f0;
+    border: 1px solid #f5d9bc;
+}

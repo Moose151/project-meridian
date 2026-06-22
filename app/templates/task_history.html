@@ -87,10 +87,17 @@
                             {% endif %}
                         </div>
 
-                        {% if completion.rejection_reason %}
-                            <div class="alert alert-light border">
-                                <strong>Reason:</strong>
+                        {% if completion.rejection_reason and completion.status == "rejected" %}
+                            <div class="alert alert-danger border mb-2">
+                                <strong>Rejection reason:</strong>
                                 {{ completion.rejection_reason }}
+                            </div>
+                        {% endif %}
+
+                        {% if completion.review_note and completion.status == "approved" %}
+                            <div class="alert alert-success border mb-2">
+                                <strong>Note from admin:</strong>
+                                {{ completion.review_note }}
                             </div>
                         {% endif %}
 

@@ -7,7 +7,7 @@ such as main.admin_approvals stay unchanged.
 
 from datetime import datetime, timezone
 
-from flask import flash, redirect, render_template, url_for
+from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
@@ -68,7 +68,8 @@ def register_approval_routes(bp, admin_required):
             flash("Task completion request not found.")
             return redirect(url_for("main.admin_approvals"))
 
-        awarded_points = approve_submitted_task_completion(completion)
+        review_note = request.form.get("review_note", "").strip() or None
+        awarded_points = approve_submitted_task_completion(completion, review_note=review_note)
 
         db.session.commit()
 
@@ -98,6 +99,7 @@ def register_approval_routes(bp, admin_required):
             completion.reviewed_at = datetime.now(timezone.utc)
             completion.reviewed_by_id = current_user.id
             completion.rejection_reason = form.reason.data.strip()
+            completion.review_note = form.reason.data.strip()
 
             create_notification(
                 user_id=completion.user_id,

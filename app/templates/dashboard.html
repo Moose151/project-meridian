@@ -449,6 +449,42 @@
         </div>
     </section>
 
+    {% if hot_tasks %}
+    <section class="card border-0 shadow-sm mb-4" style="border-left: 4px solid #e07b39 !important;">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span style="font-size:1.4rem;">🔥</span>
+                <h2 class="mb-0">Hot Tasks</h2>
+                <span class="badge ms-1" style="background:#e07b39;">Bonus {{ household_settings.points_label }}</span>
+            </div>
+            <p class="text-muted-small mb-3">These tasks have a bonus right now — complete them while they're active.</p>
+            <div class="d-flex flex-column gap-2">
+                {% for task in hot_tasks %}
+                    <div class="d-flex justify-content-between align-items-center gap-3 p-3 rounded-3 hot-task-row">
+                        <div>
+                            <strong>{{ task.title }}</strong>
+                            {% if task.hot_label %}
+                                <span class="badge ms-2" style="background:#e07b39;">{{ task.hot_label }}</span>
+                            {% endif %}
+                            {% if task.category %}
+                                <span class="badge bg-light text-dark border ms-1">{{ task.category }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-end text-nowrap">
+                            <span class="fw-bold">{{ task.total_point_value() }}</span>
+                            <span class="text-muted-small"> {{ household_settings.points_label }}</span>
+                            {% if task.hot_bonus_points %}
+                                <div class="text-muted-small small">+{{ task.hot_bonus_points }} bonus</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <a class="btn btn-outline-primary mt-3 w-100" href="{{ url_for('main.tasks') }}?filter=hot">View Hot Tasks</a>
+        </div>
+    </section>
+    {% endif %}
+
     <section class="row g-4 mb-4">
         <div class="col-12 col-md-6">
             <div class="card h-100 border-0 shadow-sm">
