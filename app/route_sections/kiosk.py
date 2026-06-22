@@ -6,10 +6,9 @@ Uses its own session key (kiosk_user_id) rather than Flask-Login, so the
 kiosk can switch users without affecting sessions on other devices.
 """
 
-import os
 from datetime import date, datetime
 
-from flask import current_app, flash, redirect, render_template, request, session, url_for
+from flask import flash, redirect, render_template, request, session, url_for
 from sqlalchemy import or_
 
 from app import db
@@ -383,22 +382,6 @@ def register_kiosk_routes(bp):
             status="submitted"
         )
         db.session.add(completion)
-        db.session.flush()  # get completion.id before saving photo
-
-        # Optional photo evidence.
-        photo_file = request.files.get("evidence_photo")
-        if photo_file and photo_file.filename:
-            allowed = {"jpg", "jpeg", "png", "gif", "webp"}
-            ext = photo_file.filename.rsplit(".", 1)[-1].lower()
-            if ext in allowed:
-                upload_dir = os.path.join(
-                    current_app.root_path, "static", "uploads", "evidence"
-                )
-                os.makedirs(upload_dir, exist_ok=True)
-                filename = f"{completion.id}_{user.id}.{ext}"
-                photo_file.save(os.path.join(upload_dir, filename))
-                completion.evidence_photo = filename
-
         db.session.commit()
 
         flash(f"'{task.title}' submitted for approval!", "celebrate")

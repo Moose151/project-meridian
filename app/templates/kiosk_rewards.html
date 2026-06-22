@@ -20,6 +20,14 @@
 
                 <div class="kiosk-reward-card {% if not can_afford %}kiosk-reward-unaffordable{% endif %}">
 
+                    {% if reward.images %}
+                        <img
+                            src="{{ url_for('static', filename='uploads/rewards/' ~ reward.id ~ '/' ~ reward.images[0].filename) }}"
+                            class="kiosk-reward-img"
+                            alt="{{ reward.name }}"
+                        >
+                    {% endif %}
+
                     <div class="kiosk-reward-header">
                         <div>
                             <h2 class="kiosk-reward-title">{{ reward.name }}</h2>

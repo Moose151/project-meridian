@@ -892,6 +892,30 @@ Each task card in the admin task board view now has a **"Mark Complete For…"**
 
 New route: `POST /admin/tasks/<id>/complete-for`
 
+### Reward shop online redesign (implemented)
+
+The reward shop (`/shop`) has been redesigned to look and work like an online store.
+
+Key changes:
+
+- **`RewardImage` model** — new table `reward_images` with `reward_id`, `filename`, `sort_order`. Multiple images per reward are supported. `db.create_all()` creates the table automatically on first run.
+- **Admin reward create/edit** — `create_reward.html` and `edit_reward.html` now include image upload fields (`multipart/form-data`). Admins can upload multiple photos when creating a reward and manage (add/delete) images when editing.
+- **Image storage** — uploaded reward images are saved to `static/uploads/rewards/<reward_id>/`. Up to 8 MB per image. Allowed types: jpg, jpeg, png, gif, webp.
+- **Shop carousel** — each product card in `shop.html` shows a Bootstrap carousel for rewards with multiple images. Single-image rewards show without navigation arrows. Rewards with no images show a placeholder.
+- **Add to cart** — users tap "Add to Cart" instead of immediately requesting. Cart state is stored in the Flask session (`shop_cart` key as a list of reward IDs).
+- **Cart view** (`/shop/cart`) — shows cart items with thumbnail images, names, costs, remove buttons, a running total, and balance check. Available in `shop_cart.html`.
+- **Checkout** (`POST /shop/cart/checkout`) — creates `RewardPurchase` records for each cart item if affordable, reserves points, clears the cart.
+- **Kiosk rewards** — `kiosk_rewards.html` shows the first uploaded image at the top of each reward card. Existing tap-to-request flow is unchanged.
+
+New routes in `rewards.py`:
+
+```text
+GET  /shop/cart              — cart view
+POST /shop/cart/add/<id>     — add reward to cart
+POST /shop/cart/remove/<id>  — remove reward from cart
+POST /shop/cart/checkout     — submit all cart items as requests
+```
+
 ### Repository hygiene rules
 
 - Remove personal names, account URLs, secrets, database files, backups, and machine-specific paths from documentation before committing.
@@ -917,10 +941,10 @@ A touch-friendly kiosk interface was added for household hub use (e.g. Raspberry
 
 **User pages:**
 - `/kiosk/dashboard` — balance, best streak, quick-complete routines, stat cards, action grid, mini leaderboard, pending approvals summary
-- `/kiosk/tasks` — task list with optional photo evidence upload (`evidence_photo` file field, saved to `static/uploads/evidence/`)
+- `/kiosk/tasks` — task list with complete button (photo evidence upload removed; see section 13 for potential re-addition)
 - `/kiosk/routines` — routine list with streak badges, quick-complete buttons
-- `/kiosk/rewards` — reward shop with request flow
-- `/kiosk/wishlist` — personal wishlist items, contribute, request new
+- `/kiosk/rewards` — reward shop with request flow; shows first product image if one is uploaded
+- `/kiosk/wishlist` — personal wishlist items and contribute flow (wishlist item request button removed from kiosk; see section 13 for potential re-addition)
 - `/kiosk/goals` — group goals with contribute flow
 - `/kiosk/leaderboard` — four boards: current points, total earned, tasks done, routines done
 - `/kiosk/notifications` — notifications newest-first, marks all read on visit
@@ -956,9 +980,9 @@ A touch-friendly kiosk interface was added for household hub use (e.g. Raspberry
 
 ### Task photo evidence
 
-`TaskCompletion.evidence_photo` — optional filename stored in `static/uploads/evidence/{completion_id}_{user_id}.{ext}`. Uploaded via kiosk tasks form. Visible in `admin_approvals.html` inline image.
+`TaskCompletion.evidence_photo` column still exists in the database and in `admin_approvals.html` (image display). The kiosk task submission form no longer includes photo upload — this was removed to simplify the kiosk UX. The column and admin display code remain intact so photo evidence could be re-enabled without a schema change.
 
-Max upload: 8 MB (`MAX_CONTENT_LENGTH`). Allowed: jpg, jpeg, png, gif, webp.
+Photo evidence upload was removed from `kiosk_tasks.html` and `kiosk_complete_task` in `kiosk.py`. It remains a potential future feature for the standard web task submission form (see section 17).
 
 ### Admin reports with charts
 
@@ -1010,6 +1034,12 @@ After each change, commit with a clear message and push to the repository.
 1. **Smoke test mobile layout** — test all main pages on a phone-sized viewport, especially login, dashboard, tasks, shop, wishlist, and group goals.
 2. **Continue service-layer refactoring** — gradually move inline business logic from route section files into service files. No risky large rewrites.
 3. **Recurrence filter on the regular task board** — `recurrence_days` filtering is applied in the kiosk (`_get_available_tasks`) but NOT in the standard `tasks.py` route. Tasks with `recurrence_days` set appear every day on the regular board, only filtered on the kiosk. Fix `tasks()` in `tasks.py` to apply the same filter as `_get_available_tasks` in `kiosk.py`.
+
+### Potential future additions (deliberately removed features)
+
+**Kiosk wishlist item request** — The "Request a new wishlist item" button was removed from the kiosk wishlist page (`kiosk_wishlist.html`). Users can still view their wishlist items and contribute points from the kiosk, but must use the standard web app to submit a new wishlist request. This was removed because the text-entry flow was clunky on a touchscreen. A future touchscreen-optimised request form (large keyboard, auto-capitalised fields) would be the right way to restore it. The route `/kiosk/wishlist/request` and `kiosk_request_wishlist.html` template remain intact and functional if re-enabled.
+
+**Kiosk task photo evidence** — The optional photo upload (`evidence_photo`) was removed from the kiosk task completion form. The `TaskCompletion.evidence_photo` column and admin approvals display remain in place. To restore photo upload on the kiosk, re-add `enctype="multipart/form-data"` to the kiosk task form and the file input, and re-add the photo-save block in `kiosk_complete_task` in `kiosk.py`. Photo evidence upload on the standard web task board would also be a useful addition (the `evidence_photo` column already exists).
 
 ### More badges and milestone logic
 

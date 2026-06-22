@@ -55,23 +55,9 @@
                         {% else %}
                             <form
                                 method="post"
-                                enctype="multipart/form-data"
                                 action="{{ url_for('main.kiosk_complete_task', task_id=task.id) }}"
                                 onsubmit="return kioskConfirmTask(this);"
                             >
-                                <div class="kiosk-evidence-wrap">
-                                    <label class="kiosk-evidence-label" for="evidence_{{ task.id }}">
-                                        📷 Add photo (optional)
-                                    </label>
-                                    <input
-                                        type="file"
-                                        id="evidence_{{ task.id }}"
-                                        name="evidence_photo"
-                                        accept="image/*"
-                                        capture="environment"
-                                        class="kiosk-evidence-input"
-                                    >
-                                </div>
                                 <button type="submit" class="kiosk-complete-btn">
                                     ✓ Complete
                                 </button>

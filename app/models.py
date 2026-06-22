@@ -320,6 +320,39 @@ class Reward(db.Model):
         back_populates="reward"
     )
 
+    images = db.relationship(
+        "RewardImage",
+        back_populates="reward",
+        order_by="RewardImage.sort_order",
+        cascade="all, delete-orphan"
+    )
+
+
+class RewardImage(db.Model):
+    """
+    Stores uploaded images for a reward listing.
+
+    Multiple images per reward are supported and displayed as a carousel
+    in the shop. sort_order controls display sequence.
+    """
+
+    __tablename__ = "reward_images"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    reward_id = db.Column(
+        db.Integer,
+        db.ForeignKey("rewards.id"),
+        nullable=False,
+        index=True
+    )
+
+    filename = db.Column(db.String(255), nullable=False)
+
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    reward = db.relationship("Reward", back_populates="images")
+
 
 class RewardPurchase(db.Model):
     """

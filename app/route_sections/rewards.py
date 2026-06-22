@@ -4,14 +4,16 @@ Reward routes: shop, reward creation, purchase requests, and management.
 Registered onto the existing main blueprint to preserve all endpoint names.
 """
 
+import json
+import os
 from datetime import datetime, timezone
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 
 from app import db
 from app.forms import RewardForm
-from app.models import PointTransaction, Reward, RewardCategory, RewardPurchase
+from app.models import PointTransaction, Reward, RewardCategory, RewardImage, RewardPurchase
 from app.services.settings_service import get_points_label
 from app.services.reward_service import create_reward_reservation
 
@@ -63,6 +65,33 @@ def _reward_import_choices():
     return choices
 
 
+_ALLOWED_IMAGE_EXTS = {"jpg", "jpeg", "png", "gif", "webp"}
+
+
+def _save_reward_images(reward, files):
+    """Save uploaded image files for a reward and attach RewardImage records."""
+    upload_dir = os.path.join(
+        current_app.root_path, "static", "uploads", "rewards", str(reward.id)
+    )
+    os.makedirs(upload_dir, exist_ok=True)
+    next_order = max((img.sort_order for img in reward.images), default=-1) + 1
+
+    for f in files:
+        if not f or not f.filename:
+            continue
+        ext = f.filename.rsplit(".", 1)[-1].lower()
+        if ext not in _ALLOWED_IMAGE_EXTS:
+            continue
+        filename = f"{reward.id}_{next_order}.{ext}"
+        f.save(os.path.join(upload_dir, filename))
+        db.session.add(RewardImage(
+            reward_id=reward.id,
+            filename=filename,
+            sort_order=next_order
+        ))
+        next_order += 1
+
+
 def register_reward_routes(bp, admin_required):
     """
     Register reward shop, purchase, management, and admin edit routes.
@@ -106,11 +135,24 @@ def register_reward_routes(bp, admin_required):
             ).all()
         ]
 
+        cart_ids = set(session.get("shop_cart", []))
+
+        requested_reward_ids = set()
+        if not current_user.is_admin():
+            requested_reward_ids = {
+                row[0] for row in db.session.query(RewardPurchase.reward_id).filter_by(
+                    user_id=current_user.id,
+                    status="requested"
+                ).all()
+            }
+
         return render_template(
             "shop.html",
             rewards=rewards,
             categories=categories,
-            selected_category=selected_category
+            selected_category=selected_category,
+            cart_ids=cart_ids,
+            requested_reward_ids=requested_reward_ids,
         )
 
     @bp.route("/rewards/create", methods=["GET", "POST"])
@@ -173,6 +215,11 @@ def register_reward_routes(bp, admin_required):
             )
 
             db.session.add(reward)
+            db.session.flush()
+
+            uploaded_files = request.files.getlist("reward_images")
+            _save_reward_images(reward, uploaded_files)
+
             db.session.commit()
 
             flash("Reward created.")
@@ -293,6 +340,126 @@ def register_reward_routes(bp, admin_required):
         return redirect(url_for("main.reward_history"))
 
     # =========================================================
+    # CART
+    # =========================================================
+
+    @bp.route("/shop/cart")
+    @login_required
+    def shop_cart():
+        """
+        Cart view — shows rewards the user has added to their cart.
+        """
+        if not current_user.can_participate():
+            return redirect(url_for("main.shop"))
+
+        cart_ids = session.get("shop_cart", [])
+        cart_rewards = []
+        total_cost = 0
+
+        for rid in cart_ids:
+            r = db.session.get(Reward, rid)
+            if r and r.is_active:
+                cart_rewards.append(r)
+                total_cost += r.point_cost
+
+        balance = current_user.point_balance()
+
+        return render_template(
+            "shop_cart.html",
+            cart_rewards=cart_rewards,
+            total_cost=total_cost,
+            balance=balance,
+        )
+
+    @bp.route("/shop/cart/add/<int:reward_id>", methods=["POST"])
+    @login_required
+    def cart_add(reward_id):
+        """Add a reward to the session cart."""
+        if not current_user.can_participate():
+            return redirect(url_for("main.shop"))
+
+        reward = db.session.get(Reward, reward_id)
+        if not reward or not reward.is_active:
+            flash("Reward not found.")
+            return redirect(url_for("main.shop"))
+
+        cart = session.get("shop_cart", [])
+        if reward_id not in cart:
+            cart.append(reward_id)
+            session["shop_cart"] = cart
+            flash(f"'{reward.name}' added to cart.")
+
+        return redirect(request.referrer or url_for("main.shop"))
+
+    @bp.route("/shop/cart/remove/<int:reward_id>", methods=["POST"])
+    @login_required
+    def cart_remove(reward_id):
+        """Remove a reward from the session cart."""
+        cart = session.get("shop_cart", [])
+        if reward_id in cart:
+            cart.remove(reward_id)
+            session["shop_cart"] = cart
+        return redirect(url_for("main.shop_cart"))
+
+    @bp.route("/shop/cart/checkout", methods=["POST"])
+    @login_required
+    def shop_checkout():
+        """
+        Process all items in the cart as reward purchase requests.
+
+        Points are reserved immediately for each item if affordable.
+        Items the user cannot afford are skipped with a warning.
+        """
+        if not current_user.can_participate():
+            return redirect(url_for("main.shop"))
+
+        cart_ids = session.get("shop_cart", [])
+        if not cart_ids:
+            flash("Your cart is empty.")
+            return redirect(url_for("main.shop"))
+
+        requested = []
+        skipped = []
+
+        for rid in list(cart_ids):
+            reward = db.session.get(Reward, rid)
+            if not reward or not reward.is_active:
+                skipped.append(rid)
+                continue
+
+            # Skip if already pending
+            existing = RewardPurchase.query.filter_by(
+                reward_id=reward.id,
+                user_id=current_user.id,
+                status="requested"
+            ).first()
+            if existing:
+                skipped.append(rid)
+                continue
+
+            if current_user.point_balance() < reward.point_cost:
+                flash(f"Not enough {get_points_label()} for '{reward.name}' — skipped.")
+                skipped.append(rid)
+                continue
+
+            purchase = RewardPurchase(
+                reward_id=reward.id,
+                user_id=current_user.id,
+                status="requested"
+            )
+            db.session.add(purchase)
+            db.session.flush()
+            create_reward_reservation(purchase)
+            requested.append(reward.name)
+
+        db.session.commit()
+        session["shop_cart"] = []
+
+        if requested:
+            flash(f"Requested: {', '.join(requested)}. Points reserved pending approval.")
+        return redirect(url_for("main.reward_history"))
+
+    # =========================================================
     # REWARD MANAGEMENT: EDIT, HIDE, RESTORE, DELETE
     # =========================================================
 
@@ -338,6 +505,27 @@ def register_reward_routes(bp, admin_required):
             reward.description = form.description.data
             reward.category = form.category.data or None
             reward.point_cost = form.point_cost.data
+
+            # Handle image deletions (checkboxes posted as delete_image_<id>).
+            for key in request.form:
+                if key.startswith("delete_image_"):
+                    try:
+                        img_id = int(key.split("_")[-1])
+                    except ValueError:
+                        continue
+                    img = db.session.get(RewardImage, img_id)
+                    if img and img.reward_id == reward.id:
+                        upload_dir = os.path.join(
+                            current_app.root_path, "static", "uploads", "rewards", str(reward.id)
+                        )
+                        try:
+                            os.remove(os.path.join(upload_dir, img.filename))
+                        except OSError:
+                            pass
+                        db.session.delete(img)
+
+            uploaded_files = request.files.getlist("reward_images")
+            _save_reward_images(reward, uploaded_files)
 
             db.session.commit()
 

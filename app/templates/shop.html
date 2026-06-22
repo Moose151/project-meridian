@@ -4,22 +4,31 @@
 
 <section class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
     <div>
-        <p class="text-muted-small mb-1">
-            Reward shop
-        </p>
-
+        <p class="text-muted-small mb-1">Reward shop</p>
         <h1 class="mb-1">Reward Shop</h1>
-
         <p class="text-muted-small mb-0">
-            Browse rewards and request items using your available {{ household_settings.points_label }}.
+            Browse rewards and add them to your cart.
         </p>
     </div>
 
-    {% if current_user.is_admin() %}
-        <a class="btn btn-primary" href="{{ url_for('main.create_reward') }}">
-            New Reward
-        </a>
-    {% endif %}
+    <div class="d-flex gap-2 align-items-start flex-wrap">
+        {% if not current_user.is_admin() %}
+            <a class="btn btn-outline-primary position-relative" href="{{ url_for('main.shop_cart') }}">
+                🛒 Cart
+                {% if cart_ids %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                        {{ cart_ids | length }}
+                    </span>
+                {% endif %}
+            </a>
+        {% endif %}
+
+        {% if current_user.is_admin() %}
+            <a class="btn btn-primary" href="{{ url_for('main.create_reward') }}">
+                New Reward
+            </a>
+        {% endif %}
+    </div>
 </section>
 
 {% if not current_user.is_admin() %}
@@ -28,13 +37,11 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                 <div>
                     <h2>Your Available {{ household_settings.points_label|capitalize }}</h2>
-
                     <p class="text-muted-small mb-0">
                         {{ household_settings.points_label|capitalize }} are reserved immediately when you request a reward.
-                        If the request is cancelled or rejected, the {{ household_settings.points_label }} are refunded.
+                        If a request is cancelled or rejected, they are refunded.
                     </p>
                 </div>
-
                 <p class="display-5 fw-semibold mb-0">
                     {{ current_user.point_balance() }}
                 </p>
@@ -43,40 +50,28 @@
     </section>
 {% endif %}
 
+<!-- Category filter -->
 <section class="card border-0 shadow-sm mb-4">
     <div class="card-body p-4">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-12 col-md-8">
-                <label class="form-label" for="category">
-                    Filter by Category
-                </label>
-
+                <label class="form-label" for="category">Filter by Category</label>
                 <select class="form-control" id="category" name="category">
                     <option value="">All categories</option>
-
                     {% for category in categories %}
-                        <option
-                            value="{{ category }}"
-                            {% if selected_category == category %}selected{% endif %}
-                        >
+                        <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>
                             {{ category }}
                         </option>
                     {% endfor %}
                 </select>
             </div>
-
             <div class="col-12 col-md-4">
-                <button class="btn btn-primary w-100" type="submit">
-                    Apply Filter
-                </button>
+                <button class="btn btn-primary w-100" type="submit">Apply Filter</button>
             </div>
         </form>
-
         {% if selected_category %}
             <div class="mt-3">
-                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('main.shop') }}">
-                    Clear Filter
-                </a>
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('main.shop') }}">Clear Filter</a>
             </div>
         {% endif %}
     </div>
@@ -85,73 +80,107 @@
 {% if rewards %}
     <section class="row g-4">
         {% for reward in rewards %}
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body p-4 d-flex flex-column">
+            {% set in_cart = reward.id in cart_ids %}
+            {% set is_requested = reward.id in requested_reward_ids %}
+            {% set can_afford = current_user.is_admin() or current_user.point_balance() >= reward.point_cost %}
+            {% set carousel_id = "carousel-" ~ reward.id %}
 
-                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+            <div class="col-12 col-sm-6 col-xl-4">
+                <div class="card h-100 border-0 shadow-sm shop-product-card">
+
+                    <!-- Image carousel or placeholder -->
+                    {% if reward.images %}
+                        <div id="{{ carousel_id }}" class="carousel slide" data-bs-ride="false">
+                            <div class="carousel-inner">
+                                {% for img in reward.images %}
+                                    <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                        <img
+                                            src="{{ url_for('static', filename='uploads/rewards/' ~ reward.id ~ '/' ~ img.filename) }}"
+                                            class="d-block w-100 shop-product-img"
+                                            alt="{{ reward.name }}"
+                                        >
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if reward.images | length > 1 %}
+                                <button class="carousel-control-prev" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon"></span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon"></span>
+                                </button>
+                                <div class="carousel-indicators" style="bottom: -20px;">
+                                    {% for img in reward.images %}
+                                        <button
+                                            type="button"
+                                            data-bs-target="#{{ carousel_id }}"
+                                            data-bs-slide-to="{{ loop.index0 }}"
+                                            class="{% if loop.first %}active{% endif %}"
+                                            style="background-color: var(--pm-accent, #b07a4a);"
+                                        ></button>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="shop-product-placeholder d-flex align-items-center justify-content-center">
+                            <span class="shop-product-placeholder-icon">🎁</span>
+                        </div>
+                    {% endif %}
+
+                    <!-- Product details -->
+                    <div class="card-body p-4 d-flex flex-column" {% if reward.images | length > 1 %}style="margin-top: 16px;"{% endif %}>
+
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                             <div>
-                                <h2 class="h4 mb-2">
-                                    {{ reward.name }}
-                                </h2>
-
+                                <h2 class="h5 mb-1">{{ reward.name }}</h2>
                                 {% if reward.category %}
-                                    <span class="badge bg-light text-dark border">
-                                        {{ reward.category }}
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-light text-dark border">
-                                        No category
-                                    </span>
+                                    <span class="badge bg-light text-dark border">{{ reward.category }}</span>
                                 {% endif %}
                             </div>
-
-                            <span class="badge bg-primary">
+                            <span class="badge bg-primary fs-6 text-nowrap">
                                 {{ reward.point_cost }} {{ household_settings.points_label }}
                             </span>
                         </div>
 
                         {% if reward.description %}
-                            <p>
-                                {{ reward.description }}
-                            </p>
+                            <p class="text-muted-small mb-3">{{ reward.description }}</p>
                         {% else %}
-                            <p class="text-muted-small">
-                                No description provided.
-                            </p>
+                            <p class="text-muted-small mb-3">No description provided.</p>
                         {% endif %}
 
-                        <div class="mt-auto pt-3">
+                        <div class="mt-auto d-flex flex-column gap-2">
                             {% if current_user.is_admin() %}
-                                <a
-                                    class="btn btn-outline-primary w-100"
-                                    href="{{ url_for('main.edit_reward', reward_id=reward.id) }}"
-                                >
+                                <a class="btn btn-outline-primary w-100" href="{{ url_for('main.edit_reward', reward_id=reward.id) }}">
                                     Edit Reward
                                 </a>
+                            {% elif is_requested %}
+                                <div class="alert alert-info mb-0 py-2 text-center small">
+                                    ⏳ Request pending approval
+                                </div>
+                            {% elif in_cart %}
+                                <div class="alert alert-success mb-0 py-2 text-center small">
+                                    ✓ In your cart
+                                </div>
+                                <form method="post" action="{{ url_for('main.cart_remove', reward_id=reward.id) }}">
+                                    <button class="btn btn-outline-secondary w-100 btn-sm" type="submit">Remove from cart</button>
+                                </form>
+                            {% elif not can_afford %}
+                                <button class="btn btn-secondary w-100" disabled>
+                                    Not Enough {{ household_settings.points_label|capitalize }}
+                                </button>
+                                <p class="status-note mb-0 text-center">
+                                    Need {{ reward.point_cost - current_user.point_balance() }} more {{ household_settings.points_label }}
+                                </p>
                             {% else %}
-                                {% if current_user.point_balance() >= reward.point_cost %}
-                                    <form
-                                        method="post"
-                                        action="{{ url_for('main.request_reward', reward_id=reward.id) }}"
-                                    >
-                                        <button class="btn btn-primary w-100" type="submit">
-                                            Request Reward
-                                        </button>
-                                    </form>
-
-                                    <p class="status-note mt-2 mb-0">
-                                        {{ reward.point_cost }} {{ household_settings.points_label }} will be reserved immediately.
-                                    </p>
-                                {% else %}
-                                    <button class="btn btn-secondary w-100" disabled>
-                                        Not Enough {{ household_settings.points_label|capitalize }}
+                                <form method="post" action="{{ url_for('main.cart_add', reward_id=reward.id) }}">
+                                    <button class="btn btn-primary w-100" type="submit">
+                                        🛒 Add to Cart
                                     </button>
-
-                                    <p class="status-note mt-2 mb-0">
-                                        You need {{ reward.point_cost - current_user.point_balance() }} more {{ household_settings.points_label }}.
-                                    </p>
-                                {% endif %}
+                                </form>
+                                <p class="status-note mb-0 text-center">
+                                    {{ reward.point_cost }} {{ household_settings.points_label }} reserved on checkout
+                                </p>
                             {% endif %}
                         </div>
 
@@ -160,30 +189,19 @@
             </div>
         {% endfor %}
     </section>
+
 {% else %}
     <section class="card border-0 shadow-sm">
         <div class="card-body p-4">
             {% if selected_category %}
                 <h2>No rewards found</h2>
-
-                <p class="text-muted-small">
-                    No active rewards match the selected category.
-                </p>
-
-                <a class="btn btn-primary" href="{{ url_for('main.shop') }}">
-                    Clear Filter
-                </a>
+                <p class="text-muted-small">No active rewards match the selected category.</p>
+                <a class="btn btn-primary" href="{{ url_for('main.shop') }}">Clear Filter</a>
             {% else %}
                 <h2>No rewards available</h2>
-
-                <p class="text-muted-small">
-                    There are no active rewards in the shop right now.
-                </p>
-
+                <p class="text-muted-small">There are no active rewards in the shop right now.</p>
                 {% if current_user.is_admin() %}
-                    <a class="btn btn-primary" href="{{ url_for('main.create_reward') }}">
-                        Create Reward
-                    </a>
+                    <a class="btn btn-primary" href="{{ url_for('main.create_reward') }}">Create Reward</a>
                 {% endif %}
             {% endif %}
         </div>

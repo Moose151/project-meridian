@@ -72,7 +72,7 @@
     {% else %}
         <div class="kiosk-empty">
             <div class="kiosk-empty-icon">⭐</div>
-            <p>No wishlist items yet. Request one below!</p>
+            <p>No wishlist items yet. Ask an admin to add one for you.</p>
         </div>
     {% endif %}
 
@@ -97,18 +97,6 @@
         </div>
     {% endif %}
 
-    <!-- Request new item -->
-    {% if wishlist_requests_enabled %}
-        <div class="kiosk-wishlist-request-section">
-            <a href="{{ url_for('main.kiosk_request_wishlist') }}" class="kiosk-request-new-btn">
-                ✏️ Request a new wishlist item
-            </a>
-        </div>
-    {% else %}
-        <div class="kiosk-info-banner">
-            Wishlist item requests are currently disabled by an admin.
-        </div>
-    {% endif %}
 
 </div>
 

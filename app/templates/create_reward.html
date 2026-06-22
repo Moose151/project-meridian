@@ -20,7 +20,7 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {{ form.hidden_tag() }}
 
                     <div class="card mb-4 border-0 bg-light">
@@ -82,6 +82,20 @@
                             <div class="form-text">
                                 This amount is reserved when a user requests the reward.
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Product Images</label>
+                        <input
+                            type="file"
+                            name="reward_images"
+                            multiple
+                            accept="image/jpeg,image/png,image/gif,image/webp"
+                            class="form-control"
+                        >
+                        <div class="form-text">
+                            Upload one or more photos. They display as a slideshow in the shop. Max 8 MB each.
                         </div>
                     </div>
 

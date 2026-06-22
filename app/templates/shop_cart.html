@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+    <div>
+        <p class="text-muted-small mb-1">Reward shop · Cart</p>
+        <h1 class="mb-1">Your Cart</h1>
+        <p class="text-muted-small mb-0">
+            Review your items and checkout to request them.
+        </p>
+    </div>
+    <a class="btn btn-outline-primary" href="{{ url_for('main.shop') }}">
+        ← Back to Shop
+    </a>
+</section>
+
+<!-- Balance summary -->
+<section class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <h2>Your Balance</h2>
+                <p class="text-muted-small mb-0">
+                    Points are reserved immediately when you request rewards.
+                </p>
+            </div>
+            <div class="text-md-end">
+                <p class="display-5 fw-semibold mb-0">{{ balance }}</p>
+                <p class="text-muted-small mb-0">{{ household_settings.points_label }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% if cart_rewards %}
+    <!-- Cart items -->
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h2 class="mb-3">Cart Items</h2>
+            <div class="d-flex flex-column gap-3">
+                {% for reward in cart_rewards %}
+                    <div class="d-flex align-items-start gap-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+
+                        <!-- Thumbnail -->
+                        {% if reward.images %}
+                            <img
+                                src="{{ url_for('static', filename='uploads/rewards/' ~ reward.id ~ '/' ~ reward.images[0].filename) }}"
+                                class="rounded"
+                                style="width: 72px; height: 72px; object-fit: cover; flex-shrink: 0;"
+                                alt="{{ reward.name }}"
+                            >
+                        {% else %}
+                            <div class="d-flex align-items-center justify-content-center rounded bg-light"
+                                 style="width: 72px; height: 72px; flex-shrink: 0; font-size: 2rem;">
+                                🎁
+                            </div>
+                        {% endif %}
+
+                        <!-- Info -->
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                <div>
+                                    <h3 class="h5 mb-1">{{ reward.name }}</h3>
+                                    {% if reward.category %}
+                                        <span class="badge bg-light text-dark border">{{ reward.category }}</span>
+                                    {% endif %}
+                                </div>
+                                <span class="badge bg-primary fs-6">
+                                    {{ reward.point_cost }} {{ household_settings.points_label }}
+                                </span>
+                            </div>
+                            {% if reward.description %}
+                                <p class="text-muted-small mt-1 mb-0">{{ reward.description }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Remove -->
+                        <form method="post" action="{{ url_for('main.cart_remove', reward_id=reward.id) }}">
+                            <button
+                                type="submit"
+                                class="btn btn-sm btn-outline-danger"
+                                title="Remove from cart"
+                                style="flex-shrink: 0;"
+                            >✕</button>
+                        </form>
+
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Order summary + checkout -->
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="mb-3">Order Summary</h2>
+
+            <div class="d-flex justify-content-between mb-2">
+                <span>Items ({{ cart_rewards | length }})</span>
+                <span>{{ total_cost }} {{ household_settings.points_label }}</span>
+            </div>
+
+            <div class="d-flex justify-content-between mb-2">
+                <span>Your balance</span>
+                <span>{{ balance }} {{ household_settings.points_label }}</span>
+            </div>
+
+            {% if total_cost <= balance %}
+                <div class="d-flex justify-content-between fw-semibold border-top pt-2 mb-4">
+                    <span>Balance after checkout</span>
+                    <span class="text-success">{{ balance - total_cost }} {{ household_settings.points_label }}</span>
+                </div>
+                <form method="post" action="{{ url_for('main.shop_checkout') }}">
+                    <button class="btn btn-primary w-100 btn-lg" type="submit">
+                        ✓ Checkout — Request All Items
+                    </button>
+                </form>
+                <p class="text-muted-small text-center mt-2 mb-0">
+                    Points will be reserved immediately pending admin approval.
+                </p>
+            {% else %}
+                <div class="d-flex justify-content-between fw-semibold border-top pt-2 mb-4">
+                    <span>Shortfall</span>
+                    <span class="text-danger">{{ total_cost - balance }} {{ household_settings.points_label }}</span>
+                </div>
+                <button class="btn btn-secondary w-100 btn-lg" disabled>
+                    Not Enough {{ household_settings.points_label|capitalize }}
+                </button>
+                <p class="text-muted-small text-center mt-2 mb-0">
+                    Remove some items or earn more {{ household_settings.points_label }} to proceed.
+                </p>
+            {% endif %}
+        </div>
+    </section>
+
+{% else %}
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4 text-center">
+            <p class="display-4 mb-3">🛒</p>
+            <h2>Your cart is empty</h2>
+            <p class="text-muted-small mb-3">Head to the shop and add some rewards.</p>
+            <a class="btn btn-primary" href="{{ url_for('main.shop') }}">Browse Rewards</a>
+        </div>
+    </section>
+{% endif %}
+
+{% endblock %}
