@@ -22,7 +22,7 @@
                     <div class="kiosk-notif-body">
                         <div class="kiosk-notif-title">{{ notif.title }}</div>
                         <div class="kiosk-notif-message">{{ notif.message }}</div>
-                        <div class="kiosk-notif-time">{{ notif.created_at.strftime('%d %b %Y, %H:%M') }}</div>
+                        <div class="kiosk-notif-time">{{ notif.created_at | datetimeformat }}</div>
                     </div>
                 </div>
             {% endfor %}

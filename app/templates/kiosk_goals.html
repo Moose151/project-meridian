@@ -20,6 +20,11 @@
             {% for goal in goals %}
                 <div class="kiosk-goal-card {% if goal.status == 'completed' %}kiosk-goal-funded{% endif %}">
 
+                    {% set goal_img = goal.image_url or (goal.image_filename and url_for('static', filename='uploads/group-goals/' ~ goal.id ~ '/' ~ goal.image_filename)) %}
+                    {% if goal_img %}
+                        <img src="{{ goal_img }}" alt="{{ goal.title }}" class="kiosk-reward-img" style="object-fit:cover;">
+                    {% endif %}
+
                     <div class="kiosk-goal-header">
                         <div class="kiosk-goal-title-row">
                             <h2 class="kiosk-goal-title">{{ goal.title }}</h2>
@@ -35,6 +40,17 @@
 
                     {% if goal.description %}
                         <p class="kiosk-goal-desc">{{ goal.description }}</p>
+                    {% endif %}
+
+                    {% if goal.price_estimate or goal.store_url %}
+                        <div class="kiosk-reward-meta">
+                            {% if goal.price_estimate %}
+                                <span class="kiosk-meta-chip">💰 {{ goal.price_estimate }}</span>
+                            {% endif %}
+                            {% if goal.store_url %}
+                                <a href="{{ goal.store_url }}" target="_blank" rel="noopener noreferrer" class="kiosk-meta-link">View in store →</a>
+                            {% endif %}
+                        </div>
                     {% endif %}
 
                     <!-- Progress bar -->

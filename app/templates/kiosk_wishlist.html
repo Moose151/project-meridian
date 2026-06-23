@@ -15,6 +15,11 @@
             {% for item in wishlist_items %}
                 <div class="kiosk-wishlist-card {% if item.status == 'funded' %}kiosk-wishlist-funded{% endif %}">
 
+                    {% set item_img = item.image_url or (item.image_filename and url_for('static', filename='uploads/wishlist-items/' ~ item.id ~ '/' ~ item.image_filename)) %}
+                    {% if item_img %}
+                        <img src="{{ item_img }}" alt="{{ item.name }}" class="kiosk-reward-img" style="object-fit:cover;">
+                    {% endif %}
+
                     <div class="kiosk-wishlist-header">
                         <div class="kiosk-wishlist-title-row">
                             <h2 class="kiosk-wishlist-title">{{ item.name }}</h2>
@@ -30,6 +35,17 @@
 
                     {% if item.description %}
                         <p class="kiosk-wishlist-desc">{{ item.description }}</p>
+                    {% endif %}
+
+                    {% if item.price_estimate or item.store_url %}
+                        <div class="kiosk-reward-meta">
+                            {% if item.price_estimate %}
+                                <span class="kiosk-meta-chip">💰 {{ item.price_estimate }}</span>
+                            {% endif %}
+                            {% if item.store_url %}
+                                <a href="{{ item.store_url }}" target="_blank" rel="noopener noreferrer" class="kiosk-meta-link">View in store →</a>
+                            {% endif %}
+                        </div>
                     {% endif %}
 
                     <div class="kiosk-progress-wrap">

@@ -26,6 +26,13 @@
                             class="kiosk-reward-img"
                             alt="{{ reward.name }}"
                         >
+                    {% elif reward.image_url %}
+                        <img
+                            src="{{ reward.image_url }}"
+                            class="kiosk-reward-img"
+                            alt="{{ reward.name }}"
+                            style="object-fit:cover;"
+                        >
                     {% endif %}
 
                     <div class="kiosk-reward-header">
@@ -45,6 +52,17 @@
 
                     {% if reward.description %}
                         <p class="kiosk-reward-desc">{{ reward.description }}</p>
+                    {% endif %}
+
+                    {% if reward.price_estimate or reward.store_url %}
+                        <div class="kiosk-reward-meta">
+                            {% if reward.price_estimate %}
+                                <span class="kiosk-meta-chip">💰 {{ reward.price_estimate }}</span>
+                            {% endif %}
+                            {% if reward.store_url %}
+                                <a href="{{ reward.store_url }}" target="_blank" rel="noopener noreferrer" class="kiosk-meta-link">View in store →</a>
+                            {% endif %}
+                        </div>
                     {% endif %}
 
                     <div class="kiosk-reward-footer">
