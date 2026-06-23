@@ -69,7 +69,7 @@
                                 <div class="border rounded-3 p-3 h-100">
                                     <p class="text-muted-small mb-1">Requested</p>
                                     <p class="mb-0">
-                                        {{ purchase.requested_at }}
+                                        {{ purchase.requested_at | datetimeformat }}
                                     </p>
                                 </div>
                             </div>
@@ -79,7 +79,7 @@
                             <p class="text-muted-small mb-1">Review Status</p>
 
                             {% if purchase.reviewed_at %}
-                                <p class="mb-1">Reviewed: {{ purchase.reviewed_at }}</p>
+                                <p class="mb-1">Reviewed: {{ purchase.reviewed_at | datetimeformat }}</p>
                             {% else %}
                                 <p class="mb-1">Not reviewed yet.</p>
                             {% endif %}

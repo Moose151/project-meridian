@@ -42,6 +42,11 @@
             {% for item in wishlist_items %}
                 <div class="col-12 col-lg-6">
                     <div class="card h-100 border-0 shadow-sm">
+                        {% set item_img = item.image_url or (item.image_filename and url_for('static', filename='uploads/wishlist-items/' ~ item.id ~ '/' ~ item.image_filename)) %}
+                        {% if item_img %}
+                            <img src="{{ item_img }}" alt="{{ item.name }}" class="card-img-top" style="height:180px;object-fit:cover;">
+                        {% endif %}
+
                         <div class="card-body p-4 d-flex flex-column">
 
                             <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
@@ -53,6 +58,18 @@
                                     {% if current_user.is_admin() %}
                                         <p class="text-muted-small mb-1">
                                             Owner: {{ item.user.avatar_emoji }} {{ item.user.display_name }}
+                                        </p>
+                                    {% endif %}
+
+                                    {% if item.price_estimate %}
+                                        <p class="text-muted-small mb-1">
+                                            💰 {{ item.price_estimate }}
+                                        </p>
+                                    {% endif %}
+
+                                    {% if item.store_url %}
+                                        <p class="text-muted-small mb-1">
+                                            <a href="{{ item.store_url }}" target="_blank" rel="noopener noreferrer">View in store →</a>
                                         </p>
                                     {% endif %}
 
@@ -118,7 +135,7 @@
                                         {% for contribution in item.contributions %}
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <span class="text-muted-small">
-                                                    {{ contribution.created_at }}
+                                                    {{ contribution.created_at | datetimeformat }}
                                                 </span>
 
                                                 {% if contribution.status == "active" %}
@@ -303,7 +320,7 @@
                             {% endif %}
 
                             <p class="text-muted-small">
-                                Requested: {{ wishlist_request.created_at }}
+                                Requested: {{ wishlist_request.created_at | datetimeformat }}
                             </p>
 
                             <div class="mt-auto pt-3">

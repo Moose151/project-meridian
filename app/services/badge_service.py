@@ -7,6 +7,9 @@ awarding badges, and checking whether users qualify for badges.
 
 from flask import url_for
 
+from datetime import date
+import calendar
+
 from app import db
 from app.models import (
     Badge,
@@ -15,6 +18,9 @@ from app.models import (
     WishlistContribution,
     WishlistItem,
     GroupGoalContribution,
+    Routine,
+    RoutineCompletion,
+    HouseholdSettings,
 )
 
 from app.services.notification_service import create_notification
@@ -71,6 +77,54 @@ def seed_badges():
             "name": "Big Earner",
             "description": "Reached an earning milestone.",
             "icon": "💰"
+        },
+        {
+            "code": "routine_streak_3",
+            "name": "Getting Started",
+            "description": "Completed a routine 3 days in a row (or 3 total with auto-end off).",
+            "icon": "🔥"
+        },
+        {
+            "code": "routine_streak_7",
+            "name": "Week Warrior",
+            "description": "Completed a routine 7 days in a row (or 7 total with auto-end off).",
+            "icon": "⚡"
+        },
+        {
+            "code": "routine_streak_28",
+            "name": "Dedicated",
+            "description": "Completed a routine 28 days in a row (or 28 total with auto-end off).",
+            "icon": "💪"
+        },
+        {
+            "code": "routine_streak_30",
+            "name": "Monthly Champion",
+            "description": "Completed a routine 30 days in a row (or 30 total with auto-end off).",
+            "icon": "🏅"
+        },
+        {
+            "code": "routine_perfect_month",
+            "name": "Perfect Month",
+            "description": "Completed at least one routine every single day of a calendar month.",
+            "icon": "📅"
+        },
+        {
+            "code": "routine_10",
+            "name": "Habit Forming",
+            "description": "Completed routines 10 times total.",
+            "icon": "🌱"
+        },
+        {
+            "code": "routine_50",
+            "name": "Routine Pro",
+            "description": "Completed routines 50 times total.",
+            "icon": "🌟"
+        },
+        {
+            "code": "routine_100",
+            "name": "Routine Master",
+            "description": "Completed routines 100 times total.",
+            "icon": "👑"
         },
     ]
 
@@ -187,3 +241,55 @@ def check_and_award_badges(user):
 
     if total_earned >= 100:
         award_badge(user.id, "hundred_points_earned")
+
+    # ── Routine badges ───────────────────────────────────────────────
+    settings = HouseholdSettings.query.first()
+    auto_end = settings.auto_end_streaks if settings else True
+
+    all_routines = Routine.query.filter_by(is_active=True).all()
+
+    max_streak = 0
+    for routine in all_routines:
+        streak = routine.current_streak_for_user(user.id, auto_end=auto_end)
+        if streak > max_streak:
+            max_streak = streak
+
+    if max_streak >= 3:
+        award_badge(user.id, "routine_streak_3")
+    if max_streak >= 7:
+        award_badge(user.id, "routine_streak_7")
+    if max_streak >= 28:
+        award_badge(user.id, "routine_streak_28")
+    if max_streak >= 30:
+        award_badge(user.id, "routine_streak_30")
+
+    # Total non-voided routine completions
+    total_routine_completions = RoutineCompletion.query.filter_by(
+        user_id=user.id,
+        voided=False
+    ).count()
+
+    if total_routine_completions >= 10:
+        award_badge(user.id, "routine_10")
+    if total_routine_completions >= 50:
+        award_badge(user.id, "routine_50")
+    if total_routine_completions >= 100:
+        award_badge(user.id, "routine_100")
+
+    # Perfect month: at least one completion every day of any calendar month
+    all_completion_dates = {
+        c.completed_date
+        for c in RoutineCompletion.query.filter_by(user_id=user.id, voided=False).all()
+    }
+
+    if all_completion_dates:
+        months_seen = {(d.year, d.month) for d in all_completion_dates}
+        for year, month in months_seen:
+            days_in_month = calendar.monthrange(year, month)[1]
+            days_completed = sum(
+                1 for d in all_completion_dates
+                if d.year == year and d.month == month
+            )
+            if days_completed >= days_in_month:
+                award_badge(user.id, "routine_perfect_month")
+                break

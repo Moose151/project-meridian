@@ -194,7 +194,7 @@
                                     <div>
                                         <h3 class="h5 mb-1">{{ user_badge.badge.name }}</h3>
                                         <p class="text-muted-small mb-1">{{ user_badge.badge.description }}</p>
-                                        <p class="text-muted-small mb-0">Earned: {{ user_badge.earned_at }}</p>
+                                        <p class="text-muted-small mb-0">Earned: {{ user_badge.earned_at | datetimeformat }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -219,7 +219,7 @@
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ completion.task.title }}</strong>
-                                <div class="text-muted-small">{{ completion.submitted_at }}</div>
+                                <div class="text-muted-small">{{ completion.submitted_at | datetimeformat }}</div>
 
                                 {% if completion.rejection_reason %}
                                     <div class="text-muted-small">Reason: {{ completion.rejection_reason }}</div>
@@ -256,7 +256,7 @@
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ purchase.reward.name }}</strong>
-                                <div class="text-muted-small">{{ purchase.requested_at }}</div>
+                                <div class="text-muted-small">{{ purchase.requested_at | datetimeformat }}</div>
 
                                 {% if purchase.rejection_reason %}
                                     <div class="text-muted-small">Reason: {{ purchase.rejection_reason }}</div>
@@ -295,7 +295,7 @@
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ item.name }}</strong>
-                                <div class="text-muted-small">{{ item.created_at }}</div>
+                                <div class="text-muted-small">{{ item.created_at | datetimeformat }}</div>
                                 <div class="text-muted-small">
                                     {{ item.total_saved() }} / {{ item.point_cost }} {{ household_settings.points_label }} saved
                                 </div>
@@ -333,7 +333,7 @@
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ wishlist_request.requested_name }}</strong>
-                                <div class="text-muted-small">{{ wishlist_request.created_at }}</div>
+                                <div class="text-muted-small">{{ wishlist_request.created_at | datetimeformat }}</div>
 
                                 {% if wishlist_request.rejection_reason %}
                                     <div class="text-muted-small">Reason: {{ wishlist_request.rejection_reason }}</div>
@@ -372,7 +372,7 @@
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ contribution.item.name }}</strong>
-                                <div class="text-muted-small">{{ contribution.created_at }}</div>
+                                <div class="text-muted-small">{{ contribution.created_at | datetimeformat }}</div>
                                 <div class="text-muted-small">Status: {{ contribution.status }}</div>
                             </div>
 
@@ -404,7 +404,7 @@
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ transaction.reason }}</strong>
-                                <div class="text-muted-small">{{ transaction.created_at }}</div>
+                                <div class="text-muted-small">{{ transaction.created_at | datetimeformat }}</div>
                             </div>
 
                             <div>
@@ -435,7 +435,7 @@
                         <div class="profile-activity-row">
                             <div>
                                 <strong>{{ contribution.goal.title }}</strong>
-                                <div class="text-muted-small">{{ contribution.created_at }}</div>
+                                <div class="text-muted-small">{{ contribution.created_at | datetimeformat }}</div>
                                 <div class="text-muted-small">Status: {{ contribution.status }}</div>
                             </div>
 

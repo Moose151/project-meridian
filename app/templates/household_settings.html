@@ -54,11 +54,29 @@
                                 </div>
                             </div>
 
-                            <div class="form-check">
+                            <div class="form-check mb-3">
                                 {{ form.group_goals_enabled(class="form-check-input") }}
                                 {{ form.group_goals_enabled.label(class="form-check-label") }}
                                 <div class="form-text">
                                     If disabled, users cannot contribute to group goals.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 bg-light mb-4">
+                        <div class="card-body">
+                            <h2>Routine Streaks</h2>
+                            <p class="text-muted-small">
+                                Controls how routine streaks are tracked across the household.
+                            </p>
+
+                            <div class="form-check">
+                                {{ form.auto_end_streaks(class="form-check-input") }}
+                                {{ form.auto_end_streaks.label(class="form-check-label") }}
+                                <div class="form-text">
+                                    When off, streaks only reset when an admin manually ends them.
+                                    Recommended for households where children are not present every day.
                                 </div>
                             </div>
                         </div>
@@ -95,9 +113,16 @@
 
                 <p class="text-muted-small mb-1">Group goals</p>
                 {% if settings.group_goals_enabled %}
-                    <p class="mb-0"><span class="badge bg-success">Enabled</span></p>
+                    <p><span class="badge bg-success">Enabled</span></p>
                 {% else %}
-                    <p class="mb-0"><span class="badge bg-secondary">Disabled</span></p>
+                    <p><span class="badge bg-secondary">Disabled</span></p>
+                {% endif %}
+
+                <p class="text-muted-small mb-1">Streak auto-end</p>
+                {% if settings.auto_end_streaks %}
+                    <p class="mb-0"><span class="badge bg-warning text-dark">Auto-end on</span></p>
+                {% else %}
+                    <p class="mb-0"><span class="badge bg-success">Manual only</span></p>
                 {% endif %}
             </div>
         </div>

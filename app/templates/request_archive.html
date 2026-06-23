@@ -77,12 +77,12 @@
                         <!-- Task request details -->
                         <div class="mb-3">
                             <p class="text-muted-small mb-1">
-                                Submitted: {{ completion.submitted_at }}
+                                Submitted: {{ completion.submitted_at | datetimeformat }}
                             </p>
 
                             {% if completion.reviewed_at %}
                                 <p class="text-muted-small mb-1">
-                                    Reviewed: {{ completion.reviewed_at }}
+                                    Reviewed: {{ completion.reviewed_at | datetimeformat }}
                                 </p>
                             {% endif %}
 
@@ -198,12 +198,12 @@
                         <!-- Reward request details -->
                         <div class="mb-3">
                             <p class="text-muted-small mb-1">
-                                Requested: {{ purchase.requested_at }}
+                                Requested: {{ purchase.requested_at | datetimeformat }}
                             </p>
 
                             {% if purchase.reviewed_at %}
                                 <p class="text-muted-small mb-1">
-                                    Reviewed: {{ purchase.reviewed_at }}
+                                    Reviewed: {{ purchase.reviewed_at | datetimeformat }}
                                 </p>
                             {% endif %}
 
@@ -315,12 +315,12 @@
                         <!-- Wishlist request details -->
                         <div class="mb-3">
                             <p class="text-muted-small mb-1">
-                                Requested: {{ wishlist_request.created_at }}
+                                Requested: {{ wishlist_request.created_at | datetimeformat }}
                             </p>
 
                             {% if wishlist_request.reviewed_at %}
                                 <p class="text-muted-small mb-1">
-                                    Reviewed: {{ wishlist_request.reviewed_at }}
+                                    Reviewed: {{ wishlist_request.reviewed_at | datetimeformat }}
                                 </p>
                             {% endif %}
 

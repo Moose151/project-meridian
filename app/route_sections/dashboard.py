@@ -80,7 +80,8 @@ def register_dashboard_routes(bp):
         ).all()
 
         available_task_count = Task.query.filter_by(
-            is_active=True
+            is_active=True,
+            is_archived=False
         ).count()
 
         current_balance = current_user.point_balance()
@@ -109,11 +110,13 @@ def register_dashboard_routes(bp):
 
         affordable_reward_count = Reward.query.filter(
             Reward.is_active == True,
+            Reward.is_archived == False,
             Reward.point_cost <= current_balance
         ).count()
 
         hot_tasks = Task.query.filter_by(
             is_active=True,
+            is_archived=False,
             is_hot=True
         ).order_by(Task.title).all()
 

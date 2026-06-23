@@ -264,18 +264,33 @@ def register_user_routes(bp, admin_required):
         form = PointAdjustmentForm()
 
         if form.validate_on_submit():
+            amount = form.amount.data
+            is_penalty = amount < 0
+
             transaction = PointTransaction(
                 user_id=user.id,
-                amount=form.amount.data,
-                transaction_type="manual_adjustment",
+                amount=amount,
+                transaction_type="penalty" if is_penalty else "manual_adjustment",
                 reason=form.reason.data,
                 created_by_id=current_user.id
             )
 
             db.session.add(transaction)
+
+            if is_penalty:
+                create_notification(
+                    user_id=user.id,
+                    title="Points penalty applied",
+                    message=f"An admin removed {abs(amount)} point(s): {form.reason.data}",
+                    notification_type="warning",
+                    action_url=url_for("main.my_profile"),
+                    action_label="View Profile"
+                )
+
             db.session.commit()
 
-            flash(f"{get_points_label().capitalize()} adjustment applied.")
+            label = get_points_label().capitalize()
+            flash(f"{'Penalty' if is_penalty else label + ' adjustment'} applied.")
             return redirect(url_for("main.users"))
 
         return render_template("adjust_points.html", form=form, user=user)

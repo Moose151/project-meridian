@@ -39,6 +39,7 @@ def register_settings_routes(bp, admin_required):
             settings.points_label = form.points_label.data
             settings.wishlist_requests_enabled = form.wishlist_requests_enabled.data
             settings.group_goals_enabled = form.group_goals_enabled.data
+            settings.auto_end_streaks = form.auto_end_streaks.data
             settings.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()

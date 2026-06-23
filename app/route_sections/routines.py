@@ -13,8 +13,11 @@ from sqlalchemy import or_
 
 from app import db
 from app.forms import RoutineForm
-from app.models import PointTransaction, Routine, RoutineCompletion, User
+from app.models import HouseholdSettings, PointTransaction, Routine, RoutineCompletion, User
+from app.services.badge_service import check_and_award_badges
+from app.services.notification_service import create_notification
 from app.services.points_service import format_points
+from app.services.settings_service import get_household_settings
 
 
 def _routine_user_choices():
@@ -64,6 +67,8 @@ def register_routine_routes(bp, admin_required):
             return redirect(url_for("main.dashboard"))
 
         today = date.today()
+        settings = get_household_settings()
+        auto_end = settings.auto_end_streaks
 
         active_routines = Routine.query.filter_by(
             is_active=True
@@ -81,7 +86,7 @@ def register_routine_routes(bp, admin_required):
             routine_data.append({
                 "routine": routine,
                 "completed_today": routine.completed_today_by_user(current_user.id),
-                "streak": routine.current_streak_for_user(current_user.id)
+                "streak": routine.current_streak_for_user(current_user.id, auto_end=auto_end)
             })
 
         return render_template(
@@ -119,7 +124,8 @@ def register_routine_routes(bp, admin_required):
         existing = RoutineCompletion.query.filter_by(
             routine_id=routine.id,
             user_id=current_user.id,
-            completed_date=today
+            completed_date=today,
+            voided=False
         ).first()
 
         if existing:
@@ -145,9 +151,11 @@ def register_routine_routes(bp, admin_required):
             )
             db.session.add(transaction)
 
+        check_and_award_badges(current_user)
         db.session.commit()
 
-        streak = routine.current_streak_for_user(current_user.id)
+        settings = get_household_settings()
+        streak = routine.current_streak_for_user(current_user.id, auto_end=settings.auto_end_streaks)
 
         msg = f"'{routine.title}' completed!"
         if routine.point_value > 0:
@@ -177,6 +185,9 @@ def register_routine_routes(bp, admin_required):
             RoutineCompletion.created_at.desc()
         ).limit(90).all()
 
+        settings = get_household_settings()
+        auto_end = settings.auto_end_streaks
+
         # Build per-routine streak summaries for routines the user has done
         routine_ids = list({c.routine_id for c in completions})
         routines_with_streaks = []
@@ -186,9 +197,9 @@ def register_routine_routes(bp, admin_required):
             if routine:
                 routines_with_streaks.append({
                     "routine": routine,
-                    "streak": routine.current_streak_for_user(current_user.id),
+                    "streak": routine.current_streak_for_user(current_user.id, auto_end=auto_end),
                     "total_completions": sum(
-                        1 for c in completions if c.routine_id == routine_id
+                        1 for c in completions if c.routine_id == routine_id and not c.voided
                     )
                 })
 
@@ -366,3 +377,151 @@ def register_routine_routes(bp, admin_required):
 
         flash("Routine deleted.")
         return redirect(url_for("main.manage_routines"))
+
+    # =========================================================
+    # ADMIN: ROUTINE COMPLETION HISTORY
+    # =========================================================
+
+    @bp.route("/admin/routines/completions")
+    @login_required
+    def admin_routine_completions():
+        """
+        Admin-only view of all routine completions across all users.
+
+        Admins can reject a completion (reverse points, notify user) or
+        end a user's streak (void all their completions for that routine).
+        """
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        user_filter = request.args.get("user_id", type=int)
+        routine_filter = request.args.get("routine_id", type=int)
+        show_voided = request.args.get("show_voided") == "1"
+
+        query = RoutineCompletion.query
+
+        if not show_voided:
+            query = query.filter_by(voided=False)
+
+        if user_filter:
+            query = query.filter_by(user_id=user_filter)
+
+        if routine_filter:
+            query = query.filter_by(routine_id=routine_filter)
+
+        completions = query.order_by(
+            RoutineCompletion.completed_date.desc(),
+            RoutineCompletion.created_at.desc()
+        ).all()
+
+        all_users = User.query.filter_by(
+            is_active_account=True, role="user"
+        ).order_by(User.display_name).all()
+
+        all_routines = Routine.query.order_by(Routine.title).all()
+
+        return render_template(
+            "admin_routine_completions.html",
+            completions=completions,
+            all_users=all_users,
+            all_routines=all_routines,
+            user_filter=user_filter,
+            routine_filter=routine_filter,
+            show_voided=show_voided,
+        )
+
+    @bp.route("/admin/routines/completions/<int:completion_id>/reject", methods=["POST"])
+    @login_required
+    def admin_reject_completion(completion_id):
+        """
+        Void a routine completion and reverse the points earned.
+
+        Creates a negative PointTransaction and a Notification for the user.
+        """
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        completion = db.session.get(RoutineCompletion, completion_id)
+
+        if not completion or completion.voided:
+            flash("Completion not found or already voided.")
+            return redirect(url_for("main.admin_routine_completions"))
+
+        routine = db.session.get(Routine, completion.routine_id)
+        user = db.session.get(User, completion.user_id)
+
+        completion.voided = True
+
+        if routine and routine.point_value > 0:
+            reversal = PointTransaction(
+                user_id=completion.user_id,
+                amount=-routine.point_value,
+                transaction_type="routine_rejected",
+                reason=f"Routine completion rejected by admin: {routine.title} ({completion.completed_date})",
+                created_by_id=current_user.id
+            )
+            db.session.add(reversal)
+
+            if user:
+                create_notification(
+                    user_id=user.id,
+                    title="Routine completion rejected",
+                    message=(
+                        f"Your '{routine.title}' completion on "
+                        f"{completion.completed_date.strftime('%-d %b')} was rejected "
+                        f"and {routine.point_value} point(s) have been reversed."
+                    ),
+                    notification_type="warning",
+                    action_url=url_for("main.routine_history"),
+                    action_label="View History"
+                )
+
+        db.session.commit()
+
+        flash(f"Completion rejected and points reversed for {user.display_name if user else 'user'}.")
+        return redirect(url_for("main.admin_routine_completions"))
+
+    @bp.route("/admin/routines/<int:routine_id>/users/<int:user_id>/end-streak", methods=["POST"])
+    @login_required
+    def admin_end_streak(routine_id, user_id):
+        """
+        Void all non-voided completions for a user on a specific routine.
+
+        This resets their streak to 0. Used by admins when auto_end_streaks
+        is disabled and a manual reset is needed.
+        """
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        routine = db.session.get(Routine, routine_id)
+        user = db.session.get(User, user_id)
+
+        if not routine or not user:
+            flash("Routine or user not found.")
+            return redirect(url_for("main.admin_routine_completions"))
+
+        active_completions = RoutineCompletion.query.filter_by(
+            routine_id=routine_id,
+            user_id=user_id,
+            voided=False
+        ).all()
+
+        for c in active_completions:
+            c.voided = True
+
+        create_notification(
+            user_id=user_id,
+            title="Streak ended",
+            message=f"Your streak for '{routine.title}' has been reset by an admin.",
+            notification_type="info",
+            action_url=url_for("main.routines"),
+            action_label="View Routines"
+        )
+
+        db.session.commit()
+
+        flash(f"Streak ended for {user.display_name} on '{routine.title}'.")
+        return redirect(url_for("main.admin_routine_completions"))

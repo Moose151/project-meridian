@@ -1,5 +1,6 @@
 # Import os so the app can read environment variables from .env.
 import os
+from datetime import timezone
 
 # Load environment variables from the .env file.
 from dotenv import load_dotenv
@@ -79,6 +80,16 @@ def create_app():
         """
 
         return db.session.get(User, int(user_id))
+
+    @app.template_filter("datetimeformat")
+    def datetimeformat(value):
+        """Format a UTC datetime as 'Mon, 13 Jan, 21:42' in local time."""
+        if value is None:
+            return ""
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        local = value.astimezone()
+        return local.strftime("%-d %b %Y, %H:%M")
 
     # Import and register routes.
     from app.routes import bp

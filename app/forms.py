@@ -218,6 +218,10 @@ class TaskForm(FlaskForm):
         validators=[Optional()]
     )
 
+    is_active = BooleanField(
+        "Visible to users (uncheck to keep hidden until ready)"
+    )
+
     submit = SubmitField("Save Task")
 
 
@@ -267,6 +271,43 @@ class RewardForm(FlaskForm):
             DataRequired(),
             NumberRange(min=0)
         ]
+    )
+
+    is_active = BooleanField(
+        "Visible in shop (uncheck to keep hidden until ready)"
+    )
+
+    price_estimate = StringField(
+        "Real-world price (optional)",
+        validators=[Optional(), Length(max=60)]
+    )
+
+    store_url = StringField(
+        "Store / listing URL (optional)",
+        validators=[Optional(), Length(max=500)]
+    )
+
+    image_url = StringField(
+        "Image URL (optional — paste a link to an image)",
+        validators=[Optional(), Length(max=500)]
+    )
+
+    quantity = IntegerField(
+        "Total stock (leave blank for unlimited)",
+        validators=[Optional(), NumberRange(min=0)]
+    )
+
+    allow_multiple_in_cart = BooleanField(
+        "Allow users to add multiple of this item to their cart"
+    )
+
+    disappear_when_empty = BooleanField(
+        "Hide from shop when stock runs out"
+    )
+
+    daily_limit_per_user = IntegerField(
+        "Daily limit per user (leave blank for no limit)",
+        validators=[Optional(), NumberRange(min=1)]
     )
 
     submit = SubmitField("Save Reward")
@@ -553,7 +594,22 @@ class GroupGoalForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField("Create Group Goal")
+    price_estimate = StringField(
+        "Real-world price (optional)",
+        validators=[Optional(), Length(max=60)]
+    )
+
+    store_url = StringField(
+        "Store / listing URL (optional)",
+        validators=[Optional(), Length(max=500)]
+    )
+
+    image_url = StringField(
+        "Image URL (optional — paste a link to an image)",
+        validators=[Optional(), Length(max=500)]
+    )
+
+    submit = SubmitField("Save Group Goal")
 
 
 class GroupGoalContributionForm(FlaskForm):
@@ -628,6 +684,21 @@ class WishlistApproveForm(FlaskForm):
         ]
     )
 
+    price_estimate = StringField(
+        "Real-world price (optional)",
+        validators=[Optional(), Length(max=60)]
+    )
+
+    store_url = StringField(
+        "Store / listing URL (optional)",
+        validators=[Optional(), Length(max=500)]
+    )
+
+    image_url = StringField(
+        "Image URL (optional — paste a link to an image)",
+        validators=[Optional(), Length(max=500)]
+    )
+
     submit = SubmitField("Approve and Add to Wishlist")
 
 
@@ -665,6 +736,21 @@ class WishlistAdminItemForm(FlaskForm):
             DataRequired(),
             NumberRange(min=1)
         ]
+    )
+
+    price_estimate = StringField(
+        "Real-world price (optional)",
+        validators=[Optional(), Length(max=60)]
+    )
+
+    store_url = StringField(
+        "Store / listing URL (optional)",
+        validators=[Optional(), Length(max=500)]
+    )
+
+    image_url = StringField(
+        "Image URL (optional — paste a link to an image)",
+        validators=[Optional(), Length(max=500)]
     )
 
     submit = SubmitField("Add Wishlist Item")
@@ -718,6 +804,21 @@ class WishlistEditItemForm(FlaskForm):
             DataRequired(),
             NumberRange(min=1)
         ]
+    )
+
+    price_estimate = StringField(
+        "Real-world price (optional)",
+        validators=[Optional(), Length(max=60)]
+    )
+
+    store_url = StringField(
+        "Store / listing URL (optional)",
+        validators=[Optional(), Length(max=500)]
+    )
+
+    image_url = StringField(
+        "Image URL (optional — paste a link to an image)",
+        validators=[Optional(), Length(max=500)]
     )
 
     submit = SubmitField("Save Wishlist Item")
@@ -794,6 +895,10 @@ class HouseholdSettingsForm(FlaskForm):
 
     group_goals_enabled = BooleanField(
         "Allow users to contribute to group goals"
+    )
+
+    auto_end_streaks = BooleanField(
+        "Automatically end streaks when a day is missed"
     )
 
     submit = SubmitField("Save Settings")

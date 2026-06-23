@@ -102,6 +102,84 @@
                         </div>
                     </div>
 
+                    <div class="card mb-4 border-0 bg-light">
+                        <div class="card-body">
+                            <h2 class="mb-1">Extra Info</h2>
+                            <p class="text-muted-small mb-3">
+                                Optional details shown to users so they know what they're saving for.
+                            </p>
+
+                            <div class="mb-3">
+                                {{ form.price_estimate.label(class="form-label") }}
+                                {{ form.price_estimate(class="form-control", placeholder="e.g. $29.99") }}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.store_url.label(class="form-label") }}
+                                {{ form.store_url(class="form-control", placeholder="https://...") }}
+                            </div>
+
+                            <div class="mb-0">
+                                {{ form.image_url.label(class="form-label") }}
+                                {{ form.image_url(class="form-control", placeholder="https://...") }}
+                                <div class="form-text">Used as a fallback if no images are uploaded above.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4 border-0 bg-light">
+                        <div class="card-body">
+                            <h2 class="mb-1">Visibility</h2>
+                            <p class="text-muted-small mb-3">
+                                Toggle whether this reward appears in the shop for users.
+                            </p>
+                            <div class="form-check form-switch">
+                                {{ form.is_active(class="form-check-input", role="switch") }}
+                                {{ form.is_active.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4 border-0 bg-light">
+                        <div class="card-body">
+                            <h2 class="mb-1">Stock &amp; Quantity</h2>
+                            <p class="text-muted-small mb-3">
+                                Leave stock blank for unlimited. Changing quantity updates the available stock immediately.
+                            </p>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.quantity.label(class="form-label") }}
+                                    {{ form.quantity(class="form-control", placeholder="Leave blank for unlimited") }}
+                                    <div class="form-text">
+                                        Total stock.
+                                        {% if reward.quantity is not none %}
+                                            Currently {{ reward.remaining_stock() }} remaining.
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    {{ form.daily_limit_per_user.label(class="form-label") }}
+                                    {{ form.daily_limit_per_user(class="form-control", placeholder="Leave blank for no limit") }}
+                                    <div class="form-text">Resets at midnight each day.</div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 d-flex flex-column gap-2">
+                                <div class="form-check form-switch">
+                                    {{ form.allow_multiple_in_cart(class="form-check-input", role="switch") }}
+                                    {{ form.allow_multiple_in_cart.label(class="form-check-label") }}
+                                </div>
+
+                                <div class="form-check form-switch">
+                                    {{ form.disappear_when_empty(class="form-check-input", role="switch") }}
+                                    {{ form.disappear_when_empty.label(class="form-check-label") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-primary") }}
                         <a class="btn btn-secondary" href="{{ url_for('main.manage_rewards') }}">
@@ -119,10 +197,19 @@
                 <h2>Current Status</h2>
 
                 <p class="text-muted-small mb-1">Visibility</p>
-                {% if reward.is_active %}
-                    <span class="badge bg-success">Active</span>
+                {% if reward.is_archived %}
+                    <span class="badge bg-dark">Archived</span>
+                {% elif reward.is_active %}
+                    <span class="badge bg-success">Visible</span>
                 {% else %}
                     <span class="badge bg-secondary">Hidden</span>
+                {% endif %}
+
+                {% if reward.quantity is not none %}
+                    <p class="text-muted-small mt-3 mb-1">Stock remaining</p>
+                    <p class="display-6 mb-0 {% if reward.remaining_stock() == 0 %}text-danger{% endif %}">
+                        {{ reward.remaining_stock() }} / {{ reward.quantity }}
+                    </p>
                 {% endif %}
 
                 <p class="text-muted-small mt-3 mb-1">Current cost</p>

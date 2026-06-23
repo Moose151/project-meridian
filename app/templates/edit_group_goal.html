@@ -4,15 +4,15 @@
 
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
     <div>
-        <p class="text-muted-small mb-1">Admin Wishlist</p>
-        <h1 class="mb-1">Edit Wishlist Item</h1>
+        <p class="text-muted-small mb-1">Group Goals</p>
+        <h1 class="mb-1">Edit Group Goal</h1>
         <p class="text-muted-small mb-0">
-            Update the item owner, name, description, or {{ household_settings.points_label }} cost.
+            Update goal details, price information, or the image.
         </p>
     </div>
 
-    <a class="btn btn-outline-primary" href="{{ url_for('main.wishlist') }}">
-        Back to Wishlist
+    <a class="btn btn-outline-primary" href="{{ url_for('main.group_goals') }}">
+        Back to Group Goals
     </a>
 </div>
 
@@ -20,26 +20,12 @@
     <div class="col-lg-8">
         <div class="card h-100">
             <div class="card-body">
-                <h2 class="mb-1">Item Settings</h2>
-                <p class="text-muted-small">
-                    Use caution when changing costs after users have already contributed.
-                </p>
-
                 <form method="post" enctype="multipart/form-data">
                     {{ form.hidden_tag() }}
 
                     <div class="mb-3">
-                        {{ form.user_id.label(class="form-label") }}
-                        {{ form.user_id(class="form-control") }}
-
-                        <div class="form-text">
-                            Avoid changing the owner after {{ household_settings.points_label }} have already been contributed.
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        {{ form.name.label(class="form-label") }}
-                        {{ form.name(class="form-control") }}
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control") }}
                     </div>
 
                     <div class="mb-3">
@@ -48,11 +34,10 @@
                     </div>
 
                     <div class="mb-4">
-                        {{ form.point_cost.label(class="form-label") }}
-                        {{ form.point_cost(class="form-control") }}
-
+                        {{ form.target_points.label(class="form-label") }}
+                        {{ form.target_points(class="form-control") }}
                         <div class="form-text">
-                            If saved {{ household_settings.points_label }} already meet the new cost, the item will be marked as funded.
+                            Changing the target does not affect existing contributions.
                         </div>
                     </div>
 
@@ -70,17 +55,15 @@
                                 {{ form.store_url(class="form-control", placeholder="https://...") }}
                             </div>
 
-                            {% set current_img = item.image_url or (item.image_filename and url_for('static', filename='uploads/wishlist-items/' ~ item.id ~ '/' ~ item.image_filename)) %}
+                            {% set current_img = goal.image_url or (goal.image_filename and url_for('static', filename='uploads/group-goals/' ~ goal.id ~ '/' ~ goal.image_filename)) %}
                             {% if current_img %}
                                 <div class="mb-3">
                                     <label class="form-label">Current image</label>
                                     <div class="d-flex align-items-start gap-3">
                                         <img src="{{ current_img }}" alt="Current image" class="rounded" style="height:80px;object-fit:cover;">
-                                        <div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="clear_image" id="clearImg" value="1">
-                                                <label class="form-check-label text-danger" for="clearImg">Remove current image</label>
-                                            </div>
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" name="clear_image" id="clearImg" value="1">
+                                            <label class="form-check-label text-danger" for="clearImg">Remove current image</label>
                                         </div>
                                     </div>
                                 </div>
@@ -101,10 +84,7 @@
 
                     <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-primary") }}
-
-                        <a class="btn btn-outline-secondary" href="{{ url_for('main.wishlist') }}">
-                            Cancel
-                        </a>
+                        <a class="btn btn-outline-secondary" href="{{ url_for('main.group_goals') }}">Cancel</a>
                     </div>
                 </form>
             </div>
@@ -112,43 +92,23 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="card mb-4">
-            <div class="card-body">
-                <h2>Current Progress</h2>
-
-                <p class="text-muted-small mb-1">
-                    Saved
-                </p>
-
-                <p class="display-6 mb-0">
-                    {{ item.total_saved() }} / {{ item.point_cost }}
-                </p>
-
-                <p class="text-muted-small mb-0">
-                    {{ item.progress_percentage() }}% funded.
-                </p>
-            </div>
-        </div>
-
         <div class="card">
             <div class="card-body">
-                <h2>Status</h2>
+                <h2>Current Progress</h2>
+                <p class="text-muted-small mb-1">Contributed</p>
+                <p class="display-6 mb-0">{{ goal.total_contributed() }} / {{ goal.target_points }}</p>
+                <p class="text-muted-small mb-3">{{ goal.progress_percentage() }}% funded</p>
 
-                {% if item.status == "active" %}
+                <p class="text-muted-small mb-1">Status</p>
+                {% if goal.status == "active" %}
                     <span class="badge bg-primary">Active</span>
-                {% elif item.status == "funded" %}
-                    <span class="badge bg-success">Funded</span>
-                {% elif item.status == "fulfilled" %}
+                {% elif goal.status == "completed" %}
+                    <span class="badge bg-success">Completed</span>
+                {% elif goal.status == "fulfilled" %}
                     <span class="badge bg-success">Fulfilled</span>
-                {% elif item.status == "removed" %}
-                    <span class="badge bg-secondary">Removed</span>
                 {% else %}
-                    <span class="badge bg-secondary">{{ item.status }}</span>
+                    <span class="badge bg-secondary">{{ goal.status }}</span>
                 {% endif %}
-
-                <p class="status-note mt-3 mb-0">
-                    Editing the item does not remove contribution history.
-                </p>
             </div>
         </div>
     </div>

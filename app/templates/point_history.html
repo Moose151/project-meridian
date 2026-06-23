@@ -12,7 +12,10 @@
     "group_goal_refund": "Group goal refund",
     "wishlist_contribution": "Wishlist contribution",
     "wishlist_refund": "Wishlist refund",
-    "manual_adjustment": "Manual adjustment"
+    "manual_adjustment": "Manual adjustment",
+    "penalty": "Penalty",
+    "routine_completed": "Routine completed",
+    "routine_rejected": "Routine rejected"
 } %}
 
 <section class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
@@ -63,7 +66,7 @@
                         {% for transaction in transactions %}
                             <tr>
                                 <td class="text-nowrap">
-                                    {{ transaction.created_at }}
+                                    {{ transaction.created_at | datetimeformat }}
                                 </td>
 
                                 <td>

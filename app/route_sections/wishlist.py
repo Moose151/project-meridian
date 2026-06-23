@@ -5,9 +5,10 @@ These routes are registered onto the existing main blueprint so endpoint names
 such as main.wishlist and main.contribute_wishlist_item stay unchanged.
 """
 
+import os
 from datetime import datetime, timezone
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
@@ -30,6 +31,25 @@ from app.services.badge_service import check_and_award_badges
 from app.services.notification_service import create_notification, notify_admins
 from app.services.points_service import format_points
 from app.services.settings_service import get_household_settings, get_points_label
+
+
+_ALLOWED_IMAGE_EXTS = {"jpg", "jpeg", "png", "gif", "webp"}
+
+
+def _save_item_image(item_id, file):
+    """Save a single uploaded image for a wishlist item. Returns filename or None."""
+    if not file or not file.filename:
+        return None
+    ext = file.filename.rsplit(".", 1)[-1].lower()
+    if ext not in _ALLOWED_IMAGE_EXTS:
+        return None
+    upload_dir = os.path.join(
+        current_app.root_path, "static", "uploads", "wishlist-items", str(item_id)
+    )
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"image.{ext}"
+    file.save(os.path.join(upload_dir, filename))
+    return filename
 
 
 def register_wishlist_routes(bp, admin_required):
@@ -198,12 +218,21 @@ def register_wishlist_routes(bp, admin_required):
                 name=form.name.data,
                 description=form.description.data,
                 point_cost=form.point_cost.data,
+                price_estimate=form.price_estimate.data or None,
+                store_url=form.store_url.data or None,
+                image_url=form.image_url.data or None,
                 status="active",
                 is_active=True,
                 created_by_id=current_user.id
             )
 
             db.session.add(item)
+            db.session.flush()
+
+            uploaded = request.files.get("image_file")
+            filename = _save_item_image(item.id, uploaded)
+            if filename:
+                item.image_filename = filename
 
             create_notification(
                 user_id=user.id,
@@ -250,12 +279,21 @@ def register_wishlist_routes(bp, admin_required):
                 name=form.name.data,
                 description=form.description.data,
                 point_cost=form.point_cost.data,
+                price_estimate=form.price_estimate.data or None,
+                store_url=form.store_url.data or None,
+                image_url=form.image_url.data or None,
                 status="active",
                 is_active=True,
                 created_by_id=current_user.id
             )
 
             db.session.add(item)
+            db.session.flush()
+
+            uploaded = request.files.get("image_file")
+            filename = _save_item_image(item.id, uploaded)
+            if filename:
+                item.image_filename = filename
 
             wishlist_request.status = "approved"
             wishlist_request.reviewed_at = datetime.now(timezone.utc)
@@ -530,6 +568,9 @@ def register_wishlist_routes(bp, admin_required):
             form.name.data = item.name
             form.description.data = item.description
             form.point_cost.data = item.point_cost
+            form.price_estimate.data = item.price_estimate
+            form.store_url.data = item.store_url
+            form.image_url.data = item.image_url
 
         if form.validate_on_submit():
             old_user_id = item.user_id
@@ -545,6 +586,18 @@ def register_wishlist_routes(bp, admin_required):
             item.name = form.name.data
             item.description = form.description.data
             item.point_cost = form.point_cost.data
+            item.price_estimate = form.price_estimate.data or None
+            item.store_url = form.store_url.data or None
+            item.image_url = form.image_url.data or None
+
+            uploaded = request.files.get("image_file")
+            filename = _save_item_image(item.id, uploaded)
+            if filename:
+                item.image_filename = filename
+
+            if request.form.get("clear_image"):
+                item.image_filename = None
+                item.image_url = None
 
             if item.is_funded():
                 item.status = "funded"

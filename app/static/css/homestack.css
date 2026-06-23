@@ -3049,3 +3049,8 @@ textarea.form-control {
     background: #fff8f0;
     border: 1px solid #f5d9bc;
 }
+
+/* Utility: reduced opacity for hidden/inactive items shown in admin views */
+.opacity-60 {
+    opacity: 0.6;
+}

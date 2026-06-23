@@ -11,13 +11,42 @@
         <h1>Manage Rewards</h1>
 
         <p class="text-muted-small">
-            Edit, hide, restore, or delete unused rewards. Hidden rewards keep their history but no longer appear in the shop.
+            New rewards are <strong>hidden</strong> by default — toggle the visibility switch to make them live.
+            Archive rewards to remove them from all views permanently.
         </p>
     </div>
 
     <a class="btn btn-primary" href="{{ url_for('main.create_reward') }}">
         Create New Reward
     </a>
+</div>
+
+
+<!-- =========================================================
+     FILTER TABS
+     ========================================================= -->
+
+<div class="mb-4">
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <a class="nav-link {% if show != 'hidden' and show != 'archived' %}active{% endif %}"
+               href="{{ url_for('main.manage_rewards') }}">
+                All (active + hidden)
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if show == 'hidden' %}active{% endif %}"
+               href="{{ url_for('main.manage_rewards', show='hidden') }}">
+                Hidden only
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if show == 'archived' %}active{% endif %}"
+               href="{{ url_for('main.manage_rewards', show='archived') }}">
+                Archived
+            </a>
+        </li>
+    </ul>
 </div>
 
 
@@ -31,31 +60,30 @@
 
         {% for reward in rewards %}
 
+            {% set remaining = reward.remaining_stock() %}
+
             <div class="col-md-6 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
+                <div class="card h-100 border-0 shadow-sm {% if not reward.is_active %}opacity-60{% endif %}">
                     <div class="card-body p-4 d-flex flex-column">
 
-                        <!-- Reward title and status badges -->
+                        <!-- Title row with status badges -->
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
-                                <h5 class="card-title mb-1">
-                                    {{ reward.name }}
-                                </h5>
-
-                                <p class="text-muted-small mb-0">
-                                    Reward shop item
-                                </p>
+                                <h5 class="card-title mb-1">{{ reward.name }}</h5>
+                                {% if reward.category %}
+                                    <p class="text-muted-small mb-0">{{ reward.category }}</p>
+                                {% else %}
+                                    <p class="text-muted-small mb-0">No category</p>
+                                {% endif %}
                             </div>
 
-                            <div class="text-end">
-                                {% if reward.is_active %}
-                                    <span class="badge bg-success">
-                                        Active
-                                    </span>
+                            <div class="text-end d-flex flex-column align-items-end gap-1">
+                                {% if reward.is_archived %}
+                                    <span class="badge bg-dark">Archived</span>
+                                {% elif reward.is_active %}
+                                    <span class="badge bg-success">Visible</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        Hidden
-                                    </span>
+                                    <span class="badge bg-secondary">Hidden</span>
                                 {% endif %}
 
                                 <span class="badge bg-primary">
@@ -64,97 +92,131 @@
                             </div>
                         </div>
 
-                        <!-- Reward description -->
+                        <!-- Description -->
                         {% if reward.description %}
-                            <p>
-                                {{ reward.description }}
-                            </p>
+                            <p>{{ reward.description }}</p>
                         {% else %}
-                            <p class="text-muted-small">
-                                No description provided.
-                            </p>
+                            <p class="text-muted-small">No description provided.</p>
                         {% endif %}
 
-                        <!-- Reward details -->
+                        <!-- Stats -->
                         <div class="row mb-3">
                             <div class="col">
-                                <p class="text-muted-small mb-1">
-                                    Cost
-                                </p>
-
-                                <p class="display-6 mb-0">
-                                    {{ reward.point_cost }}
-                                </p>
+                                <p class="text-muted-small mb-1">Cost</p>
+                                <p class="display-6 mb-0">{{ reward.point_cost }}</p>
                             </div>
 
                             <div class="col">
-                                <p class="text-muted-small mb-1">
-                                    Requests
-                                </p>
-
-                                <p class="display-6 mb-0">
-                                    {{ reward.purchases|length }}
-                                </p>
+                                <p class="text-muted-small mb-1">Requests</p>
+                                <p class="display-6 mb-0">{{ reward.purchases|length }}</p>
                             </div>
+
+                            {% if reward.quantity is not none %}
+                                <div class="col">
+                                    <p class="text-muted-small mb-1">Stock</p>
+                                    <p class="display-6 mb-0 {% if remaining == 0 %}text-danger{% endif %}">
+                                        {{ remaining if remaining is not none else '∞' }}
+                                        <small class="text-muted-small fs-6">/ {{ reward.quantity }}</small>
+                                    </p>
+                                </div>
+                            {% endif %}
                         </div>
 
-                        <!-- Safety note -->
-                        <p class="status-note">
-                            Rewards with purchase history are hidden instead of deleted.
-                        </p>
+                        <!-- Quantity / limit notes -->
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            {% if reward.quantity is none %}
+                                <span class="badge bg-light text-dark border">∞ Unlimited stock</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark border">Stock: {{ remaining }}/{{ reward.quantity }}</span>
+                                {% if reward.disappear_when_empty %}
+                                    <span class="badge bg-light text-dark border">Hides when empty</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border">Stays when empty</span>
+                                {% endif %}
+                            {% endif %}
+
+                            {% if reward.allow_multiple_in_cart %}
+                                <span class="badge bg-info text-dark">Multi-add</span>
+                            {% endif %}
+
+                            {% if reward.daily_limit_per_user %}
+                                <span class="badge bg-light text-dark border">{{ reward.daily_limit_per_user }}/day per user</span>
+                            {% endif %}
+                        </div>
 
                         <!-- Action buttons -->
-                        <div class="mt-auto d-flex flex-wrap gap-2">
+                        <div class="mt-auto d-flex flex-wrap gap-2 align-items-center">
 
-                            <!-- Edit reward -->
-                            <a
-                                class="btn btn-sm btn-primary"
-                                href="{{ url_for('main.edit_reward', reward_id=reward.id) }}"
-                            >
-                                Edit
-                            </a>
+                            {% if not reward.is_archived %}
 
-                            {% if reward.is_active %}
-
-                                <!-- Hide reward -->
+                                <!-- Visibility toggle -->
                                 <form
                                     method="post"
-                                    action="{{ url_for('main.hide_reward', reward_id=reward.id) }}"
+                                    action="{{ url_for('main.toggle_reward_visible', reward_id=reward.id) }}"
+                                    class="d-flex align-items-center gap-2"
+                                >
+                                    <div class="form-check form-switch mb-0">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            role="switch"
+                                            id="visible_{{ reward.id }}"
+                                            {% if reward.is_active %}checked{% endif %}
+                                            onchange="this.form.submit()"
+                                            title="Toggle visibility"
+                                        >
+                                        <label class="form-check-label text-muted-small" for="visible_{{ reward.id }}">
+                                            Visible
+                                        </label>
+                                    </div>
+                                </form>
+
+                                <!-- Edit -->
+                                <a
+                                    class="btn btn-sm btn-primary"
+                                    href="{{ url_for('main.edit_reward', reward_id=reward.id) }}"
+                                >
+                                    Edit
+                                </a>
+
+                                <!-- Archive -->
+                                <form
+                                    method="post"
+                                    action="{{ url_for('main.archive_reward', reward_id=reward.id) }}"
                                     style="display:inline;"
+                                    onsubmit="return confirm('Archive this reward? It will be hidden from all views. You can unarchive it later.');"
                                 >
                                     <button class="btn btn-sm btn-warning" type="submit">
-                                        Hide
+                                        Archive
+                                    </button>
+                                </form>
+
+                                <!-- Delete -->
+                                <form
+                                    method="post"
+                                    action="{{ url_for('main.delete_reward', reward_id=reward.id) }}"
+                                    style="display:inline;"
+                                    onsubmit="return confirm('Delete this reward? Rewards with history will be archived instead.');"
+                                >
+                                    <button class="btn btn-sm btn-danger" type="submit">
+                                        Delete
                                     </button>
                                 </form>
 
                             {% else %}
 
-                                <!-- Restore reward -->
+                                <!-- Unarchive -->
                                 <form
                                     method="post"
-                                    action="{{ url_for('main.restore_reward', reward_id=reward.id) }}"
+                                    action="{{ url_for('main.unarchive_reward', reward_id=reward.id) }}"
                                     style="display:inline;"
                                 >
                                     <button class="btn btn-sm btn-success" type="submit">
-                                        Restore
+                                        Unarchive
                                     </button>
                                 </form>
 
                             {% endif %}
-
-                            <!-- Delete reward.
-                                 The route only deletes if the reward has no history.
-                                 Otherwise, the reward is hidden instead. -->
-                            <form
-                                method="post"
-                                action="{{ url_for('main.delete_reward', reward_id=reward.id) }}"
-                                style="display:inline;"
-                                onsubmit="return confirm('Delete this reward? If it has history, it will be hidden instead.');"
-                            >
-                                <button class="btn btn-sm btn-danger" type="submit">
-                                    Delete
-                                </button>
-                            </form>
 
                         </div>
 
@@ -170,15 +232,17 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
-            <h2>No rewards found</h2>
-
-            <p class="text-muted-small">
-                No rewards have been created yet.
-            </p>
-
-            <a class="btn btn-primary" href="{{ url_for('main.create_reward') }}">
-                Create Reward
-            </a>
+            {% if show == 'archived' %}
+                <h2>No archived rewards</h2>
+                <p class="text-muted-small">No rewards have been archived.</p>
+            {% elif show == 'hidden' %}
+                <h2>No hidden rewards</h2>
+                <p class="text-muted-small">All rewards are currently visible.</p>
+            {% else %}
+                <h2>No rewards found</h2>
+                <p class="text-muted-small">No rewards have been created yet.</p>
+                <a class="btn btn-primary" href="{{ url_for('main.create_reward') }}">Create Reward</a>
+            {% endif %}
         </div>
     </div>
 

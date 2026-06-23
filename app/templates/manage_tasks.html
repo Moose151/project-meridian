@@ -11,13 +11,42 @@
         <h1>Manage Tasks</h1>
 
         <p class="text-muted-small">
-            Edit, hide, restore, or delete unused tasks. Hidden tasks keep their history but no longer appear on the task board.
+            New tasks are <strong>hidden</strong> by default — toggle the visibility checkbox to make them live.
+            Archive tasks to remove them from all views permanently.
         </p>
     </div>
 
     <a class="btn btn-primary" href="{{ url_for('main.create_task') }}">
         Create New Task
     </a>
+</div>
+
+
+<!-- =========================================================
+     FILTER TABS
+     ========================================================= -->
+
+<div class="mb-4">
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <a class="nav-link {% if show != 'hidden' and show != 'archived' %}active{% endif %}"
+               href="{{ url_for('main.manage_tasks') }}">
+                All (active + hidden)
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if show == 'hidden' %}active{% endif %}"
+               href="{{ url_for('main.manage_tasks', show='hidden') }}">
+                Hidden only
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if show == 'archived' %}active{% endif %}"
+               href="{{ url_for('main.manage_tasks', show='archived') }}">
+                Archived
+            </a>
+        </li>
+    </ul>
 </div>
 
 
@@ -32,10 +61,10 @@
         {% for task in tasks %}
 
             <div class="col-md-6 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
+                <div class="card h-100 border-0 shadow-sm {% if not task.is_active %}opacity-60{% endif %}">
                     <div class="card-body p-4 d-flex flex-column">
 
-                        <!-- Task title and status badges -->
+                        <!-- Title row with status badges -->
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
                                 <h5 class="card-title mb-1">
@@ -43,70 +72,46 @@
                                 </h5>
 
                                 {% if task.category %}
-                                    <p class="text-muted-small mb-0">
-                                        {{ task.category }}
-                                    </p>
+                                    <p class="text-muted-small mb-0">{{ task.category }}</p>
                                 {% else %}
-                                    <p class="text-muted-small mb-0">
-                                        No category
-                                    </p>
+                                    <p class="text-muted-small mb-0">No category</p>
                                 {% endif %}
                             </div>
 
-                            <div class="text-end">
-                                {% if task.is_active %}
-                                    <span class="badge bg-success">
-                                        Active
-                                    </span>
+                            <div class="text-end d-flex flex-column align-items-end gap-1">
+                                {% if task.is_archived %}
+                                    <span class="badge bg-dark">Archived</span>
+                                {% elif task.is_active %}
+                                    <span class="badge bg-success">Visible</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        Hidden
-                                    </span>
+                                    <span class="badge bg-secondary">Hidden</span>
                                 {% endif %}
 
                                 {% if task.completion_behavior == "hide_after_approval" %}
-                                    <span class="badge bg-dark">
-                                        One-off
-                                    </span>
+                                    <span class="badge bg-dark">One-off</span>
                                 {% else %}
-                                    <span class="badge bg-primary">
-                                        Repeatable
-                                    </span>
+                                    <span class="badge bg-primary">Repeatable</span>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <!-- Task description -->
+                        <!-- Description -->
                         {% if task.description %}
-                            <p>
-                                {{ task.description }}
-                            </p>
+                            <p>{{ task.description }}</p>
                         {% else %}
-                            <p class="text-muted-small">
-                                No description provided.
-                            </p>
+                            <p class="text-muted-small">No description provided.</p>
                         {% endif %}
 
-                        <!-- Task details -->
+                        <!-- Stats -->
                         <div class="row mb-3">
                             <div class="col">
-                                <p class="text-muted-small mb-1">
-                                    {{ household_settings.points_label|capitalize }}
-                                </p>
-
-                                <p class="display-6 mb-0">
-                                    {{ task.point_value }}
-                                </p>
+                                <p class="text-muted-small mb-1">{{ household_settings.points_label|capitalize }}</p>
+                                <p class="display-6 mb-0">{{ task.point_value }}</p>
                             </div>
 
                             <div class="col">
-                                <p class="text-muted-small mb-1">
-                                    Submissions
-                                </p>
-
-                                <p class="display-6 mb-0">
-                                    {{ task.completions|length }}
-                                </p>
+                                <p class="text-muted-small mb-1">Submissions</p>
+                                <p class="display-6 mb-0">{{ task.completions|length }}</p>
                             </div>
                         </div>
 
@@ -120,57 +125,78 @@
                         </p>
 
                         <!-- Action buttons -->
-                        <div class="mt-auto d-flex flex-wrap gap-2">
+                        <div class="mt-auto d-flex flex-wrap gap-2 align-items-center">
 
-                            <!-- Edit task -->
-                            <a
-                                class="btn btn-sm btn-primary"
-                                href="{{ url_for('main.edit_task', task_id=task.id) }}"
-                            >
-                                Edit
-                            </a>
+                            {% if not task.is_archived %}
 
-                            {% if task.is_active %}
-
-                                <!-- Hide task -->
+                                <!-- Visibility toggle checkbox -->
                                 <form
                                     method="post"
-                                    action="{{ url_for('main.hide_task', task_id=task.id) }}"
+                                    action="{{ url_for('main.toggle_task_visible', task_id=task.id) }}"
+                                    class="d-flex align-items-center gap-2"
+                                >
+                                    <div class="form-check form-switch mb-0">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            role="switch"
+                                            id="visible_{{ task.id }}"
+                                            {% if task.is_active %}checked{% endif %}
+                                            onchange="this.form.submit()"
+                                            title="Toggle visibility"
+                                        >
+                                        <label class="form-check-label text-muted-small" for="visible_{{ task.id }}">
+                                            Visible
+                                        </label>
+                                    </div>
+                                </form>
+
+                                <!-- Edit -->
+                                <a
+                                    class="btn btn-sm btn-primary"
+                                    href="{{ url_for('main.edit_task', task_id=task.id) }}"
+                                >
+                                    Edit
+                                </a>
+
+                                <!-- Archive -->
+                                <form
+                                    method="post"
+                                    action="{{ url_for('main.archive_task', task_id=task.id) }}"
                                     style="display:inline;"
+                                    onsubmit="return confirm('Archive this task? It will be hidden from all views. You can unarchive it later.');"
                                 >
                                     <button class="btn btn-sm btn-warning" type="submit">
-                                        Hide
+                                        Archive
+                                    </button>
+                                </form>
+
+                                <!-- Delete -->
+                                <form
+                                    method="post"
+                                    action="{{ url_for('main.delete_task', task_id=task.id) }}"
+                                    style="display:inline;"
+                                    onsubmit="return confirm('Delete this task? Tasks with history will be archived instead.');"
+                                >
+                                    <button class="btn btn-sm btn-danger" type="submit">
+                                        Delete
                                     </button>
                                 </form>
 
                             {% else %}
 
-                                <!-- Restore task -->
+                                <!-- Unarchive -->
                                 <form
                                     method="post"
-                                    action="{{ url_for('main.restore_task', task_id=task.id) }}"
+                                    action="{{ url_for('main.unarchive_task', task_id=task.id) }}"
                                     style="display:inline;"
                                 >
                                     <button class="btn btn-sm btn-success" type="submit">
-                                        Restore
+                                        Unarchive
                                     </button>
                                 </form>
 
                             {% endif %}
-
-                            <!-- Delete task.
-                                 The route only deletes if the task has no history.
-                                 Otherwise, the task is hidden instead. -->
-                            <form
-                                method="post"
-                                action="{{ url_for('main.delete_task', task_id=task.id) }}"
-                                style="display:inline;"
-                                onsubmit="return confirm('Delete this task? If it has history, it will be hidden instead.');"
-                            >
-                                <button class="btn btn-sm btn-danger" type="submit">
-                                    Delete
-                                </button>
-                            </form>
 
                         </div>
 
@@ -186,15 +212,17 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
-            <h2>No tasks found</h2>
-
-            <p class="text-muted-small">
-                No tasks have been created yet.
-            </p>
-
-            <a class="btn btn-primary" href="{{ url_for('main.create_task') }}">
-                Create Task
-            </a>
+            {% if show == 'archived' %}
+                <h2>No archived tasks</h2>
+                <p class="text-muted-small">No tasks have been archived.</p>
+            {% elif show == 'hidden' %}
+                <h2>No hidden tasks</h2>
+                <p class="text-muted-small">All tasks are currently visible.</p>
+            {% else %}
+                <h2>No tasks found</h2>
+                <p class="text-muted-small">No tasks have been created yet.</p>
+                <a class="btn btn-primary" href="{{ url_for('main.create_task') }}">Create Task</a>
+            {% endif %}
         </div>
     </div>
 

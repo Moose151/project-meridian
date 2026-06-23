@@ -191,6 +191,19 @@
                         </div>
                     </div>
 
+                    <div class="card mb-4 border-0 bg-light">
+                        <div class="card-body">
+                            <h2 class="mb-1">Visibility</h2>
+                            <p class="text-muted-small mb-3">
+                                New tasks are hidden by default. Tick this to make it visible on the task board immediately.
+                            </p>
+                            <div class="form-check form-switch">
+                                {{ form.is_active(class="form-check-input", role="switch") }}
+                                {{ form.is_active.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="d-flex flex-column flex-sm-row gap-2">
                         {{ form.submit(class="btn btn-primary") }}
                         <a class="btn btn-secondary" href="{{ url_for('main.manage_tasks') }}">

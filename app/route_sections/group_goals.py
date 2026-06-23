@@ -5,7 +5,9 @@ These routes are registered onto the existing main blueprint so endpoint names
 such as main.group_goals and main.contribute_group_goal stay unchanged.
 """
 
-from flask import flash, redirect, render_template, url_for
+import os
+
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
@@ -15,6 +17,25 @@ from app.services.badge_service import check_and_award_badges
 from app.services.notification_service import create_notification, notify_admins
 from app.services.points_service import format_points
 from app.services.settings_service import get_household_settings, get_points_label
+
+
+_ALLOWED_IMAGE_EXTS = {"jpg", "jpeg", "png", "gif", "webp"}
+
+
+def _save_goal_image(goal_id, file):
+    """Save a single uploaded image for a group goal. Returns filename or None."""
+    if not file or not file.filename:
+        return None
+    ext = file.filename.rsplit(".", 1)[-1].lower()
+    if ext not in _ALLOWED_IMAGE_EXTS:
+        return None
+    upload_dir = os.path.join(
+        current_app.root_path, "static", "uploads", "group-goals", str(goal_id)
+    )
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"image.{ext}"
+    file.save(os.path.join(upload_dir, filename))
+    return filename
 
 
 def register_group_goal_routes(bp, admin_required):
@@ -57,11 +78,21 @@ def register_group_goal_routes(bp, admin_required):
                 title=form.title.data,
                 description=form.description.data,
                 target_points=form.target_points.data,
+                price_estimate=form.price_estimate.data or None,
+                store_url=form.store_url.data or None,
+                image_url=form.image_url.data or None,
                 status="active",
                 is_active=True
             )
 
             db.session.add(goal)
+            db.session.flush()
+
+            uploaded = request.files.get("image_file")
+            filename = _save_goal_image(goal.id, uploaded)
+            if filename:
+                goal.image_filename = filename
+
             db.session.commit()
 
             flash("Group goal created.")
@@ -70,6 +101,60 @@ def register_group_goal_routes(bp, admin_required):
         return render_template(
             "create_group_goal.html",
             form=form
+        )
+
+    @bp.route("/group-goals/<int:goal_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def edit_group_goal(goal_id):
+        """
+        Admin-only page for editing a group goal's details.
+        """
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        goal = db.session.get(GroupGoal, goal_id)
+
+        if not goal or not goal.is_active:
+            flash("Group goal not found.")
+            return redirect(url_for("main.group_goals"))
+
+        form = GroupGoalForm(obj=goal)
+
+        if request.method == "GET":
+            form.title.data = goal.title
+            form.description.data = goal.description
+            form.target_points.data = goal.target_points
+            form.price_estimate.data = goal.price_estimate
+            form.store_url.data = goal.store_url
+            form.image_url.data = goal.image_url
+
+        if form.validate_on_submit():
+            goal.title = form.title.data
+            goal.description = form.description.data
+            goal.target_points = form.target_points.data
+            goal.price_estimate = form.price_estimate.data or None
+            goal.store_url = form.store_url.data or None
+            goal.image_url = form.image_url.data or None
+
+            uploaded = request.files.get("image_file")
+            filename = _save_goal_image(goal.id, uploaded)
+            if filename:
+                goal.image_filename = filename
+
+            if request.form.get("clear_image"):
+                goal.image_filename = None
+                goal.image_url = None
+
+            db.session.commit()
+
+            flash("Group goal updated.")
+            return redirect(url_for("main.group_goals"))
+
+        return render_template(
+            "edit_group_goal.html",
+            form=form,
+            goal=goal
         )
 
     @bp.route("/group-goals/<int:goal_id>/contribute", methods=["GET", "POST"])

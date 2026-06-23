@@ -27,47 +27,40 @@
         <form method="get" class="row g-3 align-items-end">
 
             <div class="col-12 col-md-4">
-                <label class="form-label" for="filter">
-                    Task Filter
-                </label>
-
+                <label class="form-label" for="filter">Task Filter</label>
                 <select class="form-control" id="filter" name="filter">
-                    <option value="all" {% if selected_filter == "all" or not selected_filter %}selected{% endif %}>
-                        All Tasks
-                    </option>
-
-                    <option value="hot" {% if selected_filter == "hot" %}selected{% endif %}>
-                        Hot Tasks
-                    </option>
+                    <option value="all" {% if selected_filter == "all" or not selected_filter %}selected{% endif %}>All Tasks</option>
+                    <option value="hot" {% if selected_filter == "hot" %}selected{% endif %}>Hot Tasks</option>
                 </select>
             </div>
 
             <div class="col-12 col-md-4">
-                <label class="form-label" for="category">
-                    Category
-                </label>
-
+                <label class="form-label" for="category">Category</label>
                 <select class="form-control" id="category" name="category">
-                    <option value="">
-                        All Categories
-                    </option>
-
+                    <option value="">All Categories</option>
                     {% for category in categories %}
-                        <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>
-                            {{ category }}
-                        </option>
+                        <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
                     {% endfor %}
                 </select>
             </div>
 
+            {% if current_user.is_admin() %}
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="visibility">Visibility (Admin)</label>
+                    <select class="form-control" id="visibility" name="visibility">
+                        <option value="active" {% if selected_visibility == "active" %}selected{% endif %}>Active only</option>
+                        <option value="all" {% if selected_visibility == "all" %}selected{% endif %}>Active + Hidden</option>
+                        <option value="hidden" {% if selected_visibility == "hidden" %}selected{% endif %}>Hidden only</option>
+                    </select>
+                </div>
+            {% endif %}
+
             <div class="col-12 col-md-4">
-                <button class="btn btn-primary w-100" type="submit">
-                    Apply Filters
-                </button>
+                <button class="btn btn-primary w-100" type="submit">Apply Filters</button>
             </div>
         </form>
 
-        {% if selected_filter == "hot" or selected_category %}
+        {% if selected_filter == "hot" or selected_category or (current_user.is_admin() and selected_visibility != "active") %}
             <div class="mt-3">
                 <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.tasks') }}">
                     Clear Filters
@@ -89,8 +82,10 @@
     <section class="row g-4">
         {% for task in tasks %}
             {% set currently_available = task_in_window.get(task.id, true) %}
+            {% set is_hidden_task = not task.is_active %}
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 border-0 shadow-sm {% if task.is_hot and currently_available %}border-danger{% endif %}" {% if not currently_available and not current_user.is_admin() %}style="opacity: 0.65;"{% endif %}>
+                <div class="card h-100 border-0 shadow-sm {% if task.is_hot and currently_available and not is_hidden_task %}border-danger{% endif %}"
+                     style="{% if not currently_available or is_hidden_task %}opacity: 0.65;{% endif %}">
                     <div class="card-body p-4 d-flex flex-column">
 
                         <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
@@ -100,6 +95,10 @@
                                 </h2>
 
                                 <div class="d-flex flex-wrap gap-2">
+                                    {% if is_hidden_task and current_user.is_admin() %}
+                                        <span class="badge bg-secondary">Hidden</span>
+                                    {% endif %}
+
                                     {% if task.is_hot %}
                                         <span class="badge bg-danger">
                                             Hot
@@ -198,24 +197,22 @@
                                         Assigned to {{ task.assigned_user.display_name }}
                                     </button>
                                 {% else %}
-                                    <form
-                                        method="post"
-                                        action="{{ url_for('main.submit_task', task_id=task.id) }}"
-                                    >
+                                    <form method="post" action="{{ url_for('main.submit_task', task_id=task.id) }}">
                                         <button class="btn btn-success w-100" type="submit">
                                             Submit as Complete
                                         </button>
                                     </form>
                                 {% endif %}
                             {% else %}
-                                <a
-                                    class="btn btn-outline-primary w-100 mb-2"
-                                    href="{{ url_for('main.edit_task', task_id=task.id) }}"
-                                >
+                                <a class="btn btn-outline-primary w-100 mb-2" href="{{ url_for('main.edit_task', task_id=task.id) }}">
                                     Edit Task
                                 </a>
 
-                                {% if participating_users %}
+                                {% if is_hidden_task %}
+                                    <form method="post" action="{{ url_for('main.toggle_task_visible', task_id=task.id) }}">
+                                        <button class="btn btn-success w-100" type="submit">Make Visible</button>
+                                    </form>
+                                {% elif participating_users %}
                                     <div class="dropdown">
                                         <button
                                             class="btn btn-outline-secondary w-100 dropdown-toggle"
@@ -236,12 +233,9 @@
                                                         </button>
                                                     </form>
                                                 </li>
-                                                {% set other_users = participating_users | selectattr("id", "ne", current_user.id) | list %}
-                                                {% if other_users %}
+                                                {% if participating_users | selectattr("id", "ne", current_user.id) | list %}
                                                     <li><hr class="dropdown-divider"></li>
                                                 {% endif %}
-                                            {% else %}
-                                                {% set other_users = participating_users %}
                                             {% endif %}
 
                                             {% for u in participating_users %}

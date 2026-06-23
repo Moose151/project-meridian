@@ -88,7 +88,7 @@ def _get_available_tasks(user):
     today_weekday = today.weekday()
     week_start = today - timedelta(days=today_weekday)  # Monday of current week
 
-    tasks = Task.query.filter_by(is_active=True).order_by(
+    tasks = Task.query.filter_by(is_active=True, is_archived=False).order_by(
         Task.is_hot.desc(),
         Task.category,
         Task.title
@@ -251,6 +251,7 @@ def register_kiosk_routes(bp):
 
         affordable_count = Reward.query.filter(
             Reward.is_active == True,
+            Reward.is_archived == False,
             Reward.point_cost <= current_balance
         ).count()
 
@@ -400,7 +401,7 @@ def register_kiosk_routes(bp):
         if not user:
             return redirect(url_for("main.kiosk_landing"))
 
-        rewards = Reward.query.filter_by(is_active=True).order_by(
+        rewards = Reward.query.filter_by(is_active=True, is_archived=False).order_by(
             Reward.point_cost,
             Reward.name
         ).all()
@@ -434,7 +435,7 @@ def register_kiosk_routes(bp):
 
         reward = db.session.get(Reward, reward_id)
 
-        if not reward or not reward.is_active:
+        if not reward or not reward.is_active or reward.is_archived:
             flash("Reward not found.")
             return redirect(url_for("main.kiosk_rewards"))
 

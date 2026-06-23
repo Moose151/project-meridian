@@ -11,7 +11,10 @@
     "group_goal_refund": "Group goal refund",
     "wishlist_contribution": "Wishlist contribution",
     "wishlist_refund": "Wishlist refund",
-    "manual_adjustment": "Manual adjustment"
+    "manual_adjustment": "Manual adjustment",
+    "penalty": "Penalty",
+    "routine_completed": "Routine completed",
+    "routine_rejected": "Routine rejected"
 } %}
 
 <section class="card border-0 shadow-sm mb-4">
@@ -79,7 +82,7 @@
                                     </p>
 
                                     <p class="text-muted-small mb-0">
-                                        {{ notification.created_at }}
+                                        {{ notification.created_at | datetimeformat }}
                                     </p>
                                 </div>
 
@@ -201,7 +204,7 @@
                                     {% else %}
                                         Unknown user
                                     {% endif %}
-                                    · {{ transaction.created_at }}
+                                    · {{ transaction.created_at | datetimeformat }}
                                 </div>
 
                                 <div class="text-muted-small">
@@ -312,7 +315,7 @@
                                     </p>
 
                                     <p class="text-muted-small mb-0">
-                                        {{ notification.created_at }}
+                                        {{ notification.created_at | datetimeformat }}
                                     </p>
                                 </div>
 
@@ -545,7 +548,7 @@
                                 </strong>
 
                                 <div class="text-muted-small">
-                                    {{ transaction.created_at }}
+                                    {{ transaction.created_at | datetimeformat }}
                                 </div>
 
                                 <div class="text-muted-small">

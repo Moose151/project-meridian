@@ -6,7 +6,7 @@ Registered onto the existing main blueprint to preserve all endpoint names.
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from flask import current_app, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
@@ -59,7 +59,7 @@ def _reward_import_choices():
     choices = [(0, "Do not import")]
 
     for reward in rewards:
-        status_label = "Active" if reward.is_active else "Archived"
+        status_label = "Active" if reward.is_active else "Hidden/Archived"
         choices.append((reward.id, f"{reward.name} ({status_label})"))
 
     return choices
@@ -92,6 +92,39 @@ def _save_reward_images(reward, files):
         next_order += 1
 
 
+def _get_cart():
+    """Return cart as {reward_id (int): quantity (int)}, migrating old list format."""
+    raw = session.get("shop_cart", {})
+    if isinstance(raw, list):
+        # Migrate old list-of-ids format
+        migrated = {}
+        for rid in raw:
+            migrated[str(rid)] = migrated.get(str(rid), 0) + 1
+        session["shop_cart"] = migrated
+        return migrated
+    return raw
+
+
+def _save_cart(cart):
+    session["shop_cart"] = cart
+
+
+def _cart_total_qty(cart):
+    return sum(cart.values())
+
+
+def _today_midnight_utc():
+    """Return today's local midnight as a UTC-aware datetime for daily limit queries."""
+    today = date.today()
+    midnight_naive = datetime(today.year, today.month, today.day, 0, 0, 0)
+    # Convert naive local time to UTC using the system offset
+    local_now = datetime.now()
+    utc_now = datetime.now(timezone.utc).replace(tzinfo=None)
+    offset = utc_now - local_now
+    midnight_utc = midnight_naive + offset
+    return midnight_utc.replace(tzinfo=timezone.utc)
+
+
 def register_reward_routes(bp, admin_required):
     """
     Register reward shop, purchase, management, and admin edit routes.
@@ -107,15 +140,27 @@ def register_reward_routes(bp, admin_required):
         """
         Reward shop page.
 
-        Shows active rewards only.
+        Regular users see only active, non-archived rewards.
+        Admins see all non-archived rewards; hidden ones are greyed out.
 
-        Optional filter:
+        Optional filters:
         - category
+        - visibility (admin only: all / active / hidden)
         """
 
         selected_category = request.args.get("category", "")
+        selected_visibility = request.args.get("visibility", "active")
 
-        reward_query = Reward.query.filter_by(is_active=True)
+        reward_query = Reward.query.filter_by(is_archived=False)
+
+        if current_user.is_admin():
+            if selected_visibility == "active":
+                reward_query = reward_query.filter_by(is_active=True)
+            elif selected_visibility == "hidden":
+                reward_query = reward_query.filter_by(is_active=False)
+            # "all" shows both
+        else:
+            reward_query = reward_query.filter_by(is_active=True)
 
         if selected_category:
             reward_query = reward_query.filter_by(category=selected_category)
@@ -126,6 +171,15 @@ def register_reward_routes(bp, admin_required):
             Reward.name
         ).all()
 
+        # For users: filter out out-of-stock rewards that should disappear.
+        if not current_user.is_admin():
+            def _is_available(r):
+                stock = r.remaining_stock()
+                if stock is not None and stock <= 0 and r.disappear_when_empty:
+                    return False
+                return True
+            rewards = [r for r in rewards if _is_available(r)]
+
         categories = [
             category.name
             for category in RewardCategory.query.filter_by(
@@ -135,7 +189,17 @@ def register_reward_routes(bp, admin_required):
             ).all()
         ]
 
-        cart_ids = set(session.get("shop_cart", []))
+        cart = _get_cart()
+
+        # Build per-reward info for the template.
+        reward_info = {}
+        if not current_user.is_admin():
+            for r in rewards:
+                reward_info[r.id] = {
+                    "remaining_stock": r.remaining_stock(),
+                    "daily_remaining": r.daily_remaining_for_user(current_user.id),
+                    "cart_qty": int(cart.get(str(r.id), 0)),
+                }
 
         requested_reward_ids = set()
         if not current_user.is_admin():
@@ -151,7 +215,9 @@ def register_reward_routes(bp, admin_required):
             rewards=rewards,
             categories=categories,
             selected_category=selected_category,
-            cart_ids=cart_ids,
+            selected_visibility=selected_visibility,
+            cart=cart,
+            reward_info=reward_info,
             requested_reward_ids=requested_reward_ids,
         )
 
@@ -160,9 +226,6 @@ def register_reward_routes(bp, admin_required):
     def create_reward():
         """
         Admin-only page for creating a new reward.
-
-        Admins can either create a reward manually or import details from a
-        previous reward and then edit before saving.
         """
 
         if not admin_required():
@@ -172,7 +235,6 @@ def register_reward_routes(bp, admin_required):
         form.category.choices = _reward_category_choices()
         form.import_reward_id.choices = _reward_import_choices()
 
-        # Allow importing from a URL such as /rewards/create?import_reward_id=5
         if request.method == "GET":
             import_reward_id = request.args.get("import_reward_id", type=int)
 
@@ -185,10 +247,13 @@ def register_reward_routes(bp, admin_required):
                     form.description.data = imported_reward.description
                     form.point_cost.data = imported_reward.point_cost
                     form.category.data = imported_reward.category
+                    form.quantity.data = imported_reward.quantity
+                    form.allow_multiple_in_cart.data = imported_reward.allow_multiple_in_cart
+                    form.disappear_when_empty.data = imported_reward.disappear_when_empty
+                    form.daily_limit_per_user.data = imported_reward.daily_limit_per_user
 
                     flash("Reward imported. Review the details, then save when ready.")
 
-        # If admin clicked the Import button, pre-fill form and re-render.
         if request.method == "POST" and request.form.get("import_action") == "1":
             imported_reward = db.session.get(Reward, form.import_reward_id.data)
 
@@ -200,6 +265,10 @@ def register_reward_routes(bp, admin_required):
             form.description.data = imported_reward.description
             form.point_cost.data = imported_reward.point_cost
             form.category.data = imported_reward.category
+            form.quantity.data = imported_reward.quantity
+            form.allow_multiple_in_cart.data = imported_reward.allow_multiple_in_cart
+            form.disappear_when_empty.data = imported_reward.disappear_when_empty
+            form.daily_limit_per_user.data = imported_reward.daily_limit_per_user
 
             flash("Reward imported. Review the details, then save when ready.")
 
@@ -211,7 +280,14 @@ def register_reward_routes(bp, admin_required):
                 description=form.description.data,
                 point_cost=form.point_cost.data,
                 category=form.category.data or None,
-                is_active=True
+                is_active=form.is_active.data,
+                price_estimate=form.price_estimate.data or None,
+                store_url=form.store_url.data or None,
+                image_url=form.image_url.data or None,
+                quantity=form.quantity.data if form.quantity.data is not None else None,
+                allow_multiple_in_cart=form.allow_multiple_in_cart.data,
+                disappear_when_empty=form.disappear_when_empty.data,
+                daily_limit_per_user=form.daily_limit_per_user.data if form.daily_limit_per_user.data else None,
             )
 
             db.session.add(reward)
@@ -223,7 +299,7 @@ def register_reward_routes(bp, admin_required):
             db.session.commit()
 
             flash("Reward created.")
-            return redirect(url_for("main.shop"))
+            return redirect(url_for("main.manage_rewards"))
 
         return render_template("create_reward.html", form=form)
 
@@ -231,11 +307,9 @@ def register_reward_routes(bp, admin_required):
     @login_required
     def request_reward(reward_id):
         """
-        Standard user route for requesting a reward.
+        Standard user route for requesting a single reward (legacy direct-request flow).
 
         Points are reserved immediately when the reward is requested.
-        If the request is cancelled or rejected, the points are refunded.
-        If the request is approved, no further deduction is needed.
         """
 
         if not current_user.can_participate():
@@ -244,7 +318,7 @@ def register_reward_routes(bp, admin_required):
 
         reward = db.session.get(Reward, reward_id)
 
-        if not reward or not reward.is_active:
+        if not reward or not reward.is_active or reward.is_archived:
             flash("Reward not found.")
             return redirect(url_for("main.shop"))
 
@@ -269,12 +343,8 @@ def register_reward_routes(bp, admin_required):
         )
 
         db.session.add(purchase)
-
-        # Flush to get purchase.id before creating the linked point transaction.
         db.session.flush()
-
         create_reward_reservation(purchase)
-
         db.session.commit()
 
         flash(f"Reward requested. {get_points_label().capitalize()} have been reserved pending approval.")
@@ -312,7 +382,6 @@ def register_reward_routes(bp, admin_required):
             transaction_type="reward_requested"
         ).first()
 
-        # Prevent accidental double refunds.
         existing_refund = PointTransaction.query.filter_by(
             related_reward_purchase_id=purchase.id,
             transaction_type="reward_cancelled_refund"
@@ -352,21 +421,27 @@ def register_reward_routes(bp, admin_required):
         if not current_user.can_participate():
             return redirect(url_for("main.shop"))
 
-        cart_ids = session.get("shop_cart", [])
-        cart_rewards = []
+        cart = _get_cart()
+        cart_items = []
         total_cost = 0
 
-        for rid in cart_ids:
+        for rid_str, qty in list(cart.items()):
+            rid = int(rid_str)
             r = db.session.get(Reward, rid)
-            if r and r.is_active:
-                cart_rewards.append(r)
-                total_cost += r.point_cost
+            if r and r.is_active and not r.is_archived:
+                cart_items.append((r, qty))
+                total_cost += r.point_cost * qty
+            else:
+                # Remove stale cart entries
+                cart.pop(rid_str, None)
+
+        _save_cart(cart)
 
         balance = current_user.point_balance()
 
         return render_template(
             "shop_cart.html",
-            cart_rewards=cart_rewards,
+            cart_items=cart_items,
             total_cost=total_cost,
             balance=balance,
         )
@@ -374,19 +449,60 @@ def register_reward_routes(bp, admin_required):
     @bp.route("/shop/cart/add/<int:reward_id>", methods=["POST"])
     @login_required
     def cart_add(reward_id):
-        """Add a reward to the session cart."""
+        """Add a reward to the session cart, respecting daily limit and stock."""
         if not current_user.can_participate():
             return redirect(url_for("main.shop"))
 
         reward = db.session.get(Reward, reward_id)
-        if not reward or not reward.is_active:
+        if not reward or not reward.is_active or reward.is_archived:
             flash("Reward not found.")
             return redirect(url_for("main.shop"))
 
-        cart = session.get("shop_cart", [])
-        if reward_id not in cart:
-            cart.append(reward_id)
-            session["shop_cart"] = cart
+        qty_requested = request.form.get("quantity", 1, type=int)
+        if qty_requested < 1:
+            qty_requested = 1
+
+        if not reward.allow_multiple_in_cart:
+            qty_requested = 1
+
+        cart = _get_cart()
+        current_in_cart = int(cart.get(str(reward_id), 0))
+
+        # Check daily limit
+        daily_rem = reward.daily_remaining_for_user(current_user.id)
+        if daily_rem is not None:
+            already_today = reward.daily_used_by_user(current_user.id)
+            already_in_cart = current_in_cart
+            total_today = already_today + already_in_cart + qty_requested
+            if total_today > reward.daily_limit_per_user:
+                allowed = reward.daily_limit_per_user - already_today - already_in_cart
+                if allowed <= 0:
+                    flash(f"You've reached your daily limit for '{reward.name}'.")
+                    return redirect(request.referrer or url_for("main.shop"))
+                qty_requested = allowed
+
+        # Check stock
+        stock = reward.remaining_stock()
+        if stock is not None:
+            in_cart_already = current_in_cart
+            if in_cart_already + qty_requested > stock:
+                allowed = stock - in_cart_already
+                if allowed <= 0:
+                    flash(f"'{reward.name}' is out of stock.")
+                    return redirect(request.referrer or url_for("main.shop"))
+                qty_requested = allowed
+
+        new_qty = current_in_cart + qty_requested
+        if new_qty <= 0:
+            cart.pop(str(reward_id), None)
+        else:
+            cart[str(reward_id)] = new_qty
+
+        _save_cart(cart)
+
+        if qty_requested > 1:
+            flash(f"Added {qty_requested}× '{reward.name}' to cart.")
+        else:
             flash(f"'{reward.name}' added to cart.")
 
         return redirect(request.referrer or url_for("main.shop"))
@@ -395,10 +511,9 @@ def register_reward_routes(bp, admin_required):
     @login_required
     def cart_remove(reward_id):
         """Remove a reward from the session cart."""
-        cart = session.get("shop_cart", [])
-        if reward_id in cart:
-            cart.remove(reward_id)
-            session["shop_cart"] = cart
+        cart = _get_cart()
+        cart.pop(str(reward_id), None)
+        _save_cart(cart)
         return redirect(url_for("main.shop_cart"))
 
     @bp.route("/shop/cart/checkout", methods=["POST"])
@@ -407,60 +522,90 @@ def register_reward_routes(bp, admin_required):
         """
         Process all items in the cart as reward purchase requests.
 
-        Points are reserved immediately for each item if affordable.
-        Items the user cannot afford are skipped with a warning.
+        For each item, creates one RewardPurchase per unit so each can be
+        individually approved or rejected. Daily limits are enforced at
+        checkout (pending + approved count toward the limit).
         """
         if not current_user.can_participate():
             return redirect(url_for("main.shop"))
 
-        cart_ids = session.get("shop_cart", [])
-        if not cart_ids:
+        cart = _get_cart()
+        if not cart:
             flash("Your cart is empty.")
             return redirect(url_for("main.shop"))
 
+        midnight_utc = _today_midnight_utc()
         requested = []
         skipped = []
 
-        for rid in list(cart_ids):
+        for rid_str, qty in list(cart.items()):
+            rid = int(rid_str)
             reward = db.session.get(Reward, rid)
-            if not reward or not reward.is_active:
-                skipped.append(rid)
+
+            if not reward or not reward.is_active or reward.is_archived:
+                skipped.append(rid_str)
                 continue
 
-            # Skip if already pending
-            existing = RewardPurchase.query.filter_by(
-                reward_id=reward.id,
-                user_id=current_user.id,
-                status="requested"
-            ).first()
-            if existing:
-                skipped.append(rid)
-                continue
+            # Enforce daily limit per unit
+            if reward.daily_limit_per_user is not None:
+                used_today = RewardPurchase.query.filter(
+                    RewardPurchase.reward_id == rid,
+                    RewardPurchase.user_id == current_user.id,
+                    RewardPurchase.status.in_(["requested", "approved", "fulfilled"]),
+                    RewardPurchase.requested_at >= midnight_utc
+                ).count()
+                allowed = reward.daily_limit_per_user - used_today
+                if allowed <= 0:
+                    flash(f"Daily limit reached for '{reward.name}' — skipped.")
+                    skipped.append(rid_str)
+                    continue
+                qty = min(qty, allowed)
 
-            if current_user.point_balance() < reward.point_cost:
-                flash(f"Not enough {get_points_label()} for '{reward.name}' — skipped.")
-                skipped.append(rid)
-                continue
+            # Check stock (count all non-cancelled/rejected purchases)
+            if reward.quantity is not None:
+                used_total = RewardPurchase.query.filter(
+                    RewardPurchase.reward_id == rid,
+                    RewardPurchase.status.in_(["requested", "approved", "fulfilled"])
+                ).count()
+                remaining = reward.quantity - used_total
+                if remaining <= 0:
+                    flash(f"'{reward.name}' is out of stock — skipped.")
+                    skipped.append(rid_str)
+                    continue
+                qty = min(qty, remaining)
 
-            purchase = RewardPurchase(
-                reward_id=reward.id,
-                user_id=current_user.id,
-                status="requested"
-            )
-            db.session.add(purchase)
-            db.session.flush()
-            create_reward_reservation(purchase)
-            requested.append(reward.name)
+            # Create one purchase record per unit
+            unit_names = []
+            for _ in range(qty):
+                if current_user.point_balance() < reward.point_cost:
+                    flash(f"Not enough {get_points_label()} for '{reward.name}' — some units skipped.")
+                    break
+
+                purchase = RewardPurchase(
+                    reward_id=reward.id,
+                    user_id=current_user.id,
+                    status="requested"
+                )
+                db.session.add(purchase)
+                db.session.flush()
+                create_reward_reservation(purchase)
+                unit_names.append(reward.name)
+
+            if unit_names:
+                if len(unit_names) > 1:
+                    requested.append(f"{reward.name} ×{len(unit_names)}")
+                else:
+                    requested.append(reward.name)
 
         db.session.commit()
-        session["shop_cart"] = []
+        _save_cart({})
 
         if requested:
-            flash(f"Requested: {', '.join(requested)}. Points reserved pending approval.")
+            flash(f"Requested: {', '.join(requested)}. {get_points_label().capitalize()} reserved pending approval.")
         return redirect(url_for("main.reward_history"))
 
     # =========================================================
-    # REWARD MANAGEMENT: EDIT, HIDE, RESTORE, DELETE
+    # REWARD MANAGEMENT: EDIT, HIDE, RESTORE, ARCHIVE, DELETE
     # =========================================================
 
     @bp.route("/admin/rewards/manage")
@@ -469,15 +614,23 @@ def register_reward_routes(bp, admin_required):
         """
         Admin-only reward management page.
 
-        Shows active and hidden rewards.
+        Shows active and hidden rewards by default.
+        Archived rewards only shown when show=archived.
         """
 
         if not admin_required():
             return redirect(url_for("main.dashboard"))
 
-        all_rewards = Reward.query.order_by(Reward.created_at.desc()).all()
+        show = request.args.get("show", "active")
 
-        return render_template("manage_rewards.html", rewards=all_rewards)
+        if show == "archived":
+            rewards = Reward.query.filter_by(is_archived=True).order_by(Reward.created_at.desc()).all()
+        elif show == "hidden":
+            rewards = Reward.query.filter_by(is_active=False, is_archived=False).order_by(Reward.created_at.desc()).all()
+        else:
+            rewards = Reward.query.filter_by(is_archived=False).order_by(Reward.created_at.desc()).all()
+
+        return render_template("manage_rewards.html", rewards=rewards, show=show)
 
     @bp.route("/admin/rewards/<int:reward_id>/edit", methods=["GET", "POST"])
     @login_required
@@ -496,8 +649,6 @@ def register_reward_routes(bp, admin_required):
             return redirect(url_for("main.manage_rewards"))
 
         form = RewardForm(obj=reward)
-
-        # Include the reward's current category in case it has been removed.
         form.category.choices = _reward_category_choices(reward.category)
 
         if form.validate_on_submit():
@@ -505,6 +656,14 @@ def register_reward_routes(bp, admin_required):
             reward.description = form.description.data
             reward.category = form.category.data or None
             reward.point_cost = form.point_cost.data
+            reward.is_active = form.is_active.data
+            reward.price_estimate = form.price_estimate.data or None
+            reward.store_url = form.store_url.data or None
+            reward.image_url = form.image_url.data or None
+            reward.quantity = form.quantity.data if form.quantity.data is not None else None
+            reward.allow_multiple_in_cart = form.allow_multiple_in_cart.data
+            reward.disappear_when_empty = form.disappear_when_empty.data
+            reward.daily_limit_per_user = form.daily_limit_per_user.data if form.daily_limit_per_user.data else None
 
             # Handle image deletions (checkboxes posted as delete_image_<id>).
             for key in request.form:
@@ -537,9 +696,7 @@ def register_reward_routes(bp, admin_required):
     @bp.route("/admin/rewards/<int:reward_id>/hide", methods=["POST"])
     @login_required
     def hide_reward(reward_id):
-        """
-        Hide an active reward.
-        """
+        """Hide an active reward."""
 
         if not admin_required():
             return redirect(url_for("main.dashboard"))
@@ -554,14 +711,12 @@ def register_reward_routes(bp, admin_required):
         db.session.commit()
 
         flash("Reward hidden.")
-        return redirect(url_for("main.manage_rewards"))
+        return redirect(request.referrer or url_for("main.manage_rewards"))
 
     @bp.route("/admin/rewards/<int:reward_id>/restore", methods=["POST"])
     @login_required
     def restore_reward(reward_id):
-        """
-        Restore a hidden reward.
-        """
+        """Restore a hidden reward."""
 
         if not admin_required():
             return redirect(url_for("main.dashboard"))
@@ -576,7 +731,68 @@ def register_reward_routes(bp, admin_required):
         db.session.commit()
 
         flash("Reward restored.")
+        return redirect(request.referrer or url_for("main.manage_rewards"))
+
+    @bp.route("/admin/rewards/<int:reward_id>/toggle-visible", methods=["POST"])
+    @login_required
+    def toggle_reward_visible(reward_id):
+        """Quick toggle of a reward's user-facing visibility."""
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        reward = db.session.get(Reward, reward_id)
+
+        if not reward:
+            flash("Reward not found.")
+            return redirect(url_for("main.manage_rewards"))
+
+        reward.is_active = not reward.is_active
+        db.session.commit()
+
+        flash(f"Reward {'made visible' if reward.is_active else 'hidden'}.")
+        return redirect(request.referrer or url_for("main.manage_rewards"))
+
+    @bp.route("/admin/rewards/<int:reward_id>/archive", methods=["POST"])
+    @login_required
+    def archive_reward(reward_id):
+        """Archive a reward — removes it from all views until unarchived."""
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        reward = db.session.get(Reward, reward_id)
+
+        if not reward:
+            flash("Reward not found.")
+            return redirect(url_for("main.manage_rewards"))
+
+        reward.is_archived = True
+        reward.is_active = False
+        db.session.commit()
+
+        flash("Reward archived.")
         return redirect(url_for("main.manage_rewards"))
+
+    @bp.route("/admin/rewards/<int:reward_id>/unarchive", methods=["POST"])
+    @login_required
+    def unarchive_reward(reward_id):
+        """Restore an archived reward (stays hidden until made active)."""
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        reward = db.session.get(Reward, reward_id)
+
+        if not reward:
+            flash("Reward not found.")
+            return redirect(url_for("main.manage_rewards", show="archived"))
+
+        reward.is_archived = False
+        db.session.commit()
+
+        flash("Reward unarchived. It is currently hidden — make it visible to show it in the shop.")
+        return redirect(url_for("main.manage_rewards", show="archived"))
 
     @bp.route("/admin/rewards/<int:reward_id>/delete", methods=["POST"])
     @login_required
@@ -584,7 +800,7 @@ def register_reward_routes(bp, admin_required):
         """
         Delete a reward only if it has no purchase history.
 
-        If it has history, hide it instead.
+        If it has history, archive it instead.
         """
 
         if not admin_required():
@@ -598,10 +814,21 @@ def register_reward_routes(bp, admin_required):
 
         if reward.purchases:
             reward.is_active = False
+            reward.is_archived = True
             db.session.commit()
 
-            flash("This reward has history, so it cannot be deleted. It has been hidden instead.")
+            flash("This reward has history, so it cannot be deleted. It has been archived instead.")
             return redirect(url_for("main.manage_rewards"))
+
+        # Delete associated images from disk
+        upload_dir = os.path.join(
+            current_app.root_path, "static", "uploads", "rewards", str(reward.id)
+        )
+        for img in list(reward.images):
+            try:
+                os.remove(os.path.join(upload_dir, img.filename))
+            except OSError:
+                pass
 
         db.session.delete(reward)
         db.session.commit()

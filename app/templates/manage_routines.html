@@ -11,9 +11,14 @@
         </p>
     </div>
 
-    <a class="btn btn-primary" href="{{ url_for('main.create_routine') }}">
-        New Routine
-    </a>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.admin_routine_completions') }}">
+            Completion History
+        </a>
+        <a class="btn btn-primary" href="{{ url_for('main.create_routine') }}">
+            New Routine
+        </a>
+    </div>
 </div>
 
 {% if routines %}

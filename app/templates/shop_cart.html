@@ -33,13 +33,13 @@
     </div>
 </section>
 
-{% if cart_rewards %}
+{% if cart_items %}
     <!-- Cart items -->
     <section class="card border-0 shadow-sm mb-4">
         <div class="card-body p-4">
             <h2 class="mb-3">Cart Items</h2>
             <div class="d-flex flex-column gap-3">
-                {% for reward in cart_rewards %}
+                {% for reward, qty in cart_items %}
                     <div class="d-flex align-items-start gap-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
 
                         <!-- Thumbnail -->
@@ -65,13 +65,28 @@
                                     {% if reward.category %}
                                         <span class="badge bg-light text-dark border">{{ reward.category }}</span>
                                     {% endif %}
+                                    {% if qty > 1 %}
+                                        <span class="badge bg-secondary">×{{ qty }}</span>
+                                    {% endif %}
                                 </div>
-                                <span class="badge bg-primary fs-6">
-                                    {{ reward.point_cost }} {{ household_settings.points_label }}
-                                </span>
+                                <div class="text-end">
+                                    <span class="badge bg-primary fs-6">
+                                        {{ reward.point_cost * qty }} {{ household_settings.points_label }}
+                                    </span>
+                                    {% if qty > 1 %}
+                                        <p class="text-muted-small mb-0">{{ reward.point_cost }} each</p>
+                                    {% endif %}
+                                </div>
                             </div>
                             {% if reward.description %}
                                 <p class="text-muted-small mt-1 mb-0">{{ reward.description }}</p>
+                            {% endif %}
+
+                            <!-- Daily limit reminder -->
+                            {% if reward.daily_limit_per_user %}
+                                <p class="status-note mt-1 mb-0">
+                                    Daily limit: {{ reward.daily_limit_per_user }} per day
+                                </p>
                             {% endif %}
                         </div>
 
@@ -96,8 +111,10 @@
         <div class="card-body p-4">
             <h2 class="mb-3">Order Summary</h2>
 
+            {% set total_items = cart_items | map(attribute=1) | sum %}
+
             <div class="d-flex justify-content-between mb-2">
-                <span>Items ({{ cart_rewards | length }})</span>
+                <span>Items ({{ total_items }} unit{% if total_items != 1 %}s{% endif %})</span>
                 <span>{{ total_cost }} {{ household_settings.points_label }}</span>
             </div>
 

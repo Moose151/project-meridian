@@ -167,7 +167,9 @@ class Task(db.Model):
         default="stay_active"
     )
 
-    is_active = db.Column(db.Boolean, default=True, index=True)
+    is_active = db.Column(db.Boolean, default=False, index=True)
+
+    is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
 
     is_hot = db.Column(db.Boolean, default=False, index=True)
 
@@ -310,13 +312,64 @@ class Reward(db.Model):
 
     point_cost = db.Column(db.Integer, nullable=False, default=0)
 
-    is_active = db.Column(db.Boolean, default=True, index=True)
+    is_active = db.Column(db.Boolean, default=False, index=True)
+
+    is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
+
+    # Optional real-world price label (e.g. "$29.99"). Display only.
+    price_estimate = db.Column(db.String(60))
+
+    # Optional link to a store or listing.
+    store_url = db.Column(db.String(500))
+
+    # Optional URL-based image (used when no file uploads exist).
+    image_url = db.Column(db.String(500))
+
+    # Optional total stock. None = unlimited.
+    quantity = db.Column(db.Integer, nullable=True)
+
+    # When True, users can add more than one of this item to their cart.
+    allow_multiple_in_cart = db.Column(db.Boolean, default=False, nullable=False)
+
+    # When True, hide from users once remaining stock reaches 0.
+    disappear_when_empty = db.Column(db.Boolean, default=True, nullable=False)
+
+    # Optional cap on how many times a user can redeem this per day. None = no cap.
+    daily_limit_per_user = db.Column(db.Integer, nullable=True)
 
     created_at = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc),
         index=True
     )
+
+    def remaining_stock(self):
+        """Return remaining stock count, or None if unlimited."""
+        if self.quantity is None:
+            return None
+        used = sum(
+            1 for p in self.purchases
+            if p.status in ("requested", "approved", "fulfilled")
+        )
+        return max(0, self.quantity - used)
+
+    def daily_used_by_user(self, user_id):
+        """Return how many of this reward the user has requested/approved today."""
+        from datetime import date
+        today = date.today()
+        return sum(
+            1 for p in self.purchases
+            if p.user_id == user_id
+            and p.status in ("requested", "approved", "fulfilled")
+            and p.requested_at.astimezone().date() == today
+        )
+
+    def daily_remaining_for_user(self, user_id):
+        """Return how many more the user can get today. None = unlimited."""
+        if self.daily_limit_per_user is None:
+            return None
+        used = self.daily_used_by_user(user_id)
+        return max(0, self.daily_limit_per_user - used)
 
     purchases = db.relationship(
         "RewardPurchase",
@@ -600,6 +653,14 @@ class GroupGoal(db.Model):
 
     target_points = db.Column(db.Integer, nullable=False)
 
+    price_estimate = db.Column(db.String(60))
+
+    store_url = db.Column(db.String(500))
+
+    image_url = db.Column(db.String(500))
+
+    image_filename = db.Column(db.String(255))
+
     status = db.Column(
         db.String(30),
         nullable=False,
@@ -801,6 +862,14 @@ class WishlistItem(db.Model):
     )
 
     is_active = db.Column(db.Boolean, default=True, index=True)
+
+    price_estimate = db.Column(db.String(60))
+
+    store_url = db.Column(db.String(500))
+
+    image_url = db.Column(db.String(500))
+
+    image_filename = db.Column(db.String(255))
 
     created_by_id = db.Column(
         db.Integer,
@@ -1014,6 +1083,15 @@ class HouseholdSettings(db.Model):
         default=True
     )
 
+    # When False, routine streaks never break automatically on missed days.
+    # Admins must manually end a streak. Intended for split-household use
+    # where children are not present every day.
+    auto_end_streaks = db.Column(
+        db.Boolean,
+        default=False,
+        nullable=False
+    )
+
     updated_at = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc)
@@ -1066,22 +1144,34 @@ class Routine(db.Model):
     )
 
     def completed_today_by_user(self, user_id):
-        """Return True if the user has already completed this routine today."""
+        """Return True if the user has a non-voided completion for this routine today."""
         today = date.today()
         return any(
-            c.user_id == user_id and c.completed_date == today
+            c.user_id == user_id and c.completed_date == today and not c.voided
             for c in self.completions
         )
 
-    def current_streak_for_user(self, user_id):
-        """Return the current consecutive-day streak count for a user."""
+    def current_streak_for_user(self, user_id, auto_end=True):
+        """Return the current streak count for a user.
+
+        When auto_end=False, the streak is the total number of non-voided
+        completion days and never resets automatically — only admin action
+        (void all) can reset it.
+        """
         completion_dates = sorted(
-            {c.completed_date for c in self.completions if c.user_id == user_id},
+            {
+                c.completed_date
+                for c in self.completions
+                if c.user_id == user_id and not c.voided
+            },
             reverse=True
         )
 
         if not completion_dates:
             return 0
+
+        if not auto_end:
+            return len(completion_dates)
 
         today = date.today()
 
@@ -1125,6 +1215,10 @@ class RoutineCompletion(db.Model):
     )
 
     completed_date = db.Column(db.Date, nullable=False, index=True)
+
+    # When True, this completion has been voided by an admin (streak reset or rejection).
+    # Voided completions are excluded from streak counts and today-check.
+    voided = db.Column(db.Boolean, default=False, nullable=False, index=True)
 
     created_at = db.Column(
         db.DateTime,

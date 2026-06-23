@@ -132,17 +132,29 @@ def register_task_routes(bp, admin_required):
         """
         Task board page.
 
-        Shows active tasks only.
+        Regular users see only active (visible) non-archived tasks.
+        Admins see all non-archived tasks; hidden ones appear greyed out.
 
         Optional filters:
         - category
         - hot
+        - visibility (admin only: all / active / hidden)
         """
 
         selected_category = request.args.get("category", "")
         selected_filter = request.args.get("filter", "all")
+        selected_visibility = request.args.get("visibility", "active")
 
-        task_query = Task.query.filter_by(is_active=True)
+        task_query = Task.query.filter_by(is_archived=False)
+
+        if current_user.is_admin():
+            if selected_visibility == "active":
+                task_query = task_query.filter_by(is_active=True)
+            elif selected_visibility == "hidden":
+                task_query = task_query.filter_by(is_active=False)
+            # "all" shows both
+        else:
+            task_query = task_query.filter_by(is_active=True)
 
         if selected_category:
             task_query = task_query.filter_by(category=selected_category)
@@ -254,7 +266,8 @@ def register_task_routes(bp, admin_required):
             participating_users=participating_users,
             categories=categories,
             selected_category=selected_category,
-            selected_filter=selected_filter
+            selected_filter=selected_filter,
+            selected_visibility=selected_visibility
         )
 
     @bp.route("/tasks/create", methods=["GET", "POST"])
@@ -343,7 +356,7 @@ def register_task_routes(bp, admin_required):
                 availability_window=form.availability_window.data or "always",
                 completion_scope=form.completion_scope.data or "per_user",
                 recurrence_days=form.recurrence_days.data or "",
-                is_active=True
+                is_active=form.is_active.data
             )
 
             db.session.add(task)
@@ -380,7 +393,7 @@ def register_task_routes(bp, admin_required):
 
         task = db.session.get(Task, task_id)
 
-        if not task or not task.is_active:
+        if not task or not task.is_active or task.is_archived:
             flash("Task not found.")
             return redirect(url_for("main.tasks"))
 
@@ -435,7 +448,7 @@ def register_task_routes(bp, admin_required):
 
         task = db.session.get(Task, task_id)
 
-        if not task or not task.is_active:
+        if not task or not task.is_active or task.is_archived:
             flash("Task not found or no longer active.")
             return redirect(url_for("main.tasks"))
 
@@ -537,15 +550,23 @@ def register_task_routes(bp, admin_required):
         """
         Admin-only task management page.
 
-        Shows active and hidden tasks.
+        Shows active and hidden tasks. Archived tasks are shown only when
+        the 'show' filter is set to 'archived'.
         """
 
         if not admin_required():
             return redirect(url_for("main.dashboard"))
 
-        all_tasks = Task.query.order_by(Task.created_at.desc()).all()
+        show = request.args.get("show", "active")
 
-        return render_template("manage_tasks.html", tasks=all_tasks)
+        if show == "archived":
+            tasks = Task.query.filter_by(is_archived=True).order_by(Task.created_at.desc()).all()
+        elif show == "hidden":
+            tasks = Task.query.filter_by(is_active=False, is_archived=False).order_by(Task.created_at.desc()).all()
+        else:
+            tasks = Task.query.filter_by(is_archived=False).order_by(Task.created_at.desc()).all()
+
+        return render_template("manage_tasks.html", tasks=tasks, show=show)
 
     @bp.route("/admin/tasks/<int:task_id>/edit", methods=["GET", "POST"])
     @login_required
@@ -594,6 +615,7 @@ def register_task_routes(bp, admin_required):
             task.availability_window = form.availability_window.data or "always"
             task.completion_scope = form.completion_scope.data or "per_user"
             task.recurrence_days = form.recurrence_days.data or ""
+            task.is_active = form.is_active.data
 
             # Notify users only when a task becomes hot.
             if not was_hot and task.is_hot:
@@ -656,6 +678,67 @@ def register_task_routes(bp, admin_required):
         flash("Task restored.")
         return redirect(url_for("main.manage_tasks"))
 
+    @bp.route("/admin/tasks/<int:task_id>/toggle-visible", methods=["POST"])
+    @login_required
+    def toggle_task_visible(task_id):
+        """Quick toggle of a task's user-facing visibility from the manage page."""
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        task = db.session.get(Task, task_id)
+
+        if not task:
+            flash("Task not found.")
+            return redirect(url_for("main.manage_tasks"))
+
+        task.is_active = not task.is_active
+        db.session.commit()
+
+        flash(f"Task {'made visible' if task.is_active else 'hidden'}.")
+        return redirect(request.referrer or url_for("main.manage_tasks"))
+
+    @bp.route("/admin/tasks/<int:task_id>/archive", methods=["POST"])
+    @login_required
+    def archive_task(task_id):
+        """Archive a task — removes it from all views until unarchived."""
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        task = db.session.get(Task, task_id)
+
+        if not task:
+            flash("Task not found.")
+            return redirect(url_for("main.manage_tasks"))
+
+        task.is_archived = True
+        task.is_active = False
+        db.session.commit()
+
+        flash("Task archived.")
+        return redirect(url_for("main.manage_tasks"))
+
+    @bp.route("/admin/tasks/<int:task_id>/unarchive", methods=["POST"])
+    @login_required
+    def unarchive_task(task_id):
+        """Restore an archived task (stays hidden until manually made active)."""
+
+        if not admin_required():
+            return redirect(url_for("main.dashboard"))
+
+        task = db.session.get(Task, task_id)
+
+        if not task:
+            flash("Task not found.")
+            return redirect(url_for("main.manage_tasks", show="archived"))
+
+        task.is_archived = False
+        db.session.commit()
+
+        flash("Task unarchived. It is currently hidden — make it visible to show it on the task board.")
+        return redirect(url_for("main.manage_tasks", show="archived"))
+
     @bp.route("/admin/tasks/<int:task_id>/delete", methods=["POST"])
     @login_required
     def delete_task(task_id):
@@ -676,9 +759,10 @@ def register_task_routes(bp, admin_required):
 
         if task.completions:
             task.is_active = False
+            task.is_archived = True
             db.session.commit()
 
-            flash("This task has history, so it cannot be deleted. It has been hidden instead.")
+            flash("This task has history, so it cannot be deleted. It has been archived instead.")
             return redirect(url_for("main.manage_tasks"))
 
         db.session.delete(task)
@@ -718,7 +802,8 @@ def register_task_routes(bp, admin_required):
         ).all()
 
         active_tasks = Task.query.filter_by(
-            is_active=True
+            is_active=True,
+            is_archived=False
         ).order_by(
             Task.title
         ).all()
