@@ -66,7 +66,7 @@
 
         <a href="{{ url_for('main.kiosk_rewards') }}" class="kiosk-stat-card kiosk-stat-rewards">
             <div class="kiosk-stat-number">{{ affordable_count }}</div>
-            <div class="kiosk-stat-label">Affordable Rewards</div>
+            <div class="kiosk-stat-label">Affordable in Shop</div>
         </a>
 
         {% set total_pending = (pending_task_completions | length) + (pending_reward_requests | length) %}
@@ -92,8 +92,8 @@
         </a>
 
         <a href="{{ url_for('main.kiosk_rewards') }}" class="kiosk-action-btn kiosk-action-rewards">
-            <span class="kiosk-action-icon">🎁</span>
-            <span class="kiosk-action-text">Rewards</span>
+            <span class="kiosk-action-icon">🛒</span>
+            <span class="kiosk-action-text">Shop</span>
         </a>
 
         <a href="{{ url_for('main.kiosk_wishlist') }}" class="kiosk-action-btn kiosk-action-wishlist">
