@@ -18,9 +18,11 @@ def get_earning_transaction_types():
 
     return [
         "task_approved",
+        "routine_completed",
         "manual_adjustment",
         "admin_adjustment",
-        "point_adjustment"
+        "point_adjustment",
+        "allowance",
     ]
 
 
