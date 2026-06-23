@@ -5,18 +5,32 @@
 <div class="kiosk-page">
 
     <div class="kiosk-page-header">
-        <h1 class="kiosk-page-title">Reward Shop</h1>
-        <p class="kiosk-page-subtitle">
-            You have <strong>{{ current_balance }}</strong> {{ household_settings.points_label }}.
-            Tap Request to spend them.
-        </p>
+        <div class="kiosk-shop-header-row">
+            <div>
+                <h1 class="kiosk-page-title">Shop</h1>
+                <p class="kiosk-page-subtitle">
+                    You have <strong>{{ current_balance }}</strong> {{ household_settings.points_label }}.
+                </p>
+            </div>
+            <a href="{{ url_for('main.kiosk_cart') }}" class="kiosk-cart-btn">
+                🛒
+                {% if kiosk_cart_total > 0 %}
+                    <span class="kiosk-cart-count">{{ kiosk_cart_total }}</span>
+                {% endif %}
+            </a>
+        </div>
     </div>
 
     {% if rewards %}
         <div class="kiosk-card-list">
             {% for reward in rewards %}
-                {% set is_requested = reward.id in requested_reward_ids %}
+                {% set info = reward_info.get(reward.id, {}) %}
+                {% set remaining_stock = info.get('remaining_stock') %}
+                {% set daily_remaining = info.get('daily_remaining') %}
+                {% set cart_qty = info.get('cart_qty', 0) %}
                 {% set can_afford = current_balance >= reward.point_cost %}
+                {% set out_of_stock = (remaining_stock is not none and remaining_stock <= 0) %}
+                {% set daily_maxed = (daily_remaining is not none and daily_remaining <= 0) %}
 
                 <div class="kiosk-reward-card {% if not can_afford %}kiosk-reward-unaffordable{% endif %}">
 
@@ -38,12 +52,10 @@
                     <div class="kiosk-reward-header">
                         <div>
                             <h2 class="kiosk-reward-title">{{ reward.name }}</h2>
-
                             {% if reward.category %}
                                 <span class="kiosk-tag">{{ reward.category }}</span>
                             {% endif %}
                         </div>
-
                         <div class="kiosk-reward-cost">
                             <span class="kiosk-points-big">{{ reward.point_cost }}</span>
                             <span class="kiosk-points-label">{{ household_settings.points_label }}</span>
@@ -65,28 +77,84 @@
                         </div>
                     {% endif %}
 
+                    {% if remaining_stock is not none or daily_remaining is not none %}
+                        <div class="kiosk-reward-stock-row">
+                            {% if remaining_stock is not none %}
+                                <span class="kiosk-stock-badge {% if remaining_stock <= 0 %}kiosk-stock-out{% elif remaining_stock <= 3 %}kiosk-stock-low{% endif %}">
+                                    {{ remaining_stock }} left in stock
+                                </span>
+                            {% endif %}
+                            {% if daily_remaining is not none %}
+                                <span class="kiosk-stock-badge {% if daily_remaining <= 0 %}kiosk-stock-out{% endif %}">
+                                    {{ daily_remaining }} left today
+                                </span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
                     <div class="kiosk-reward-footer">
 
-                        {% if is_requested %}
-                            <div class="kiosk-submitted-notice">
-                                <span class="kiosk-submitted-icon">⏳</span>
-                                Requested — waiting for approval
-                            </div>
+                        {% if out_of_stock %}
+                            <div class="kiosk-cannot-afford">Out of Stock</div>
+
+                        {% elif daily_maxed %}
+                            <div class="kiosk-cannot-afford">Daily Limit Reached — resets at midnight</div>
 
                         {% elif not can_afford %}
                             <div class="kiosk-cannot-afford">
-                                Need {{ reward.point_cost - current_balance }} more
-                                {{ household_settings.points_label }}
+                                Need {{ reward.point_cost - current_balance }} more {{ household_settings.points_label }}
                             </div>
 
+                        {% elif reward.allow_multiple_in_cart %}
+                            {% set max_addable = daily_remaining if daily_remaining is not none else 99 %}
+                            {% if remaining_stock is not none %}
+                                {% set max_addable = [max_addable, remaining_stock - cart_qty] | min %}
+                            {% endif %}
+                            {% set max_addable = [max_addable, 0] | max %}
+
+                            {% if cart_qty > 0 %}
+                                <div class="kiosk-submitted-notice">
+                                    <span class="kiosk-submitted-icon">🛒</span>
+                                    {{ cart_qty }} in cart
+                                </div>
+                            {% endif %}
+
+                            {% if max_addable > 0 %}
+                                <form method="post" action="{{ url_for('main.kiosk_cart_add', reward_id=reward.id) }}" class="kiosk-qty-form">
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        value="1"
+                                        min="1"
+                                        max="{{ max_addable }}"
+                                        class="kiosk-qty-input"
+                                        inputmode="numeric"
+                                    >
+                                    <button type="submit" class="kiosk-add-cart-btn">🛒 Add</button>
+                                </form>
+                            {% else %}
+                                <div class="kiosk-cannot-afford">Limit Reached</div>
+                            {% endif %}
+
+                            {% if cart_qty > 0 %}
+                                <form method="post" action="{{ url_for('main.kiosk_cart_remove', reward_id=reward.id) }}">
+                                    <button type="submit" class="kiosk-remove-btn">Remove from cart</button>
+                                </form>
+                            {% endif %}
+
+                        {% elif cart_qty > 0 %}
+                            <div class="kiosk-submitted-notice">
+                                <span class="kiosk-submitted-icon">✓</span>
+                                In your cart
+                            </div>
+                            <form method="post" action="{{ url_for('main.kiosk_cart_remove', reward_id=reward.id) }}">
+                                <button type="submit" class="kiosk-remove-btn">Remove from cart</button>
+                            </form>
+
                         {% else %}
-                            <form
-                                method="post"
-                                action="{{ url_for('main.kiosk_request_reward', reward_id=reward.id) }}"
-                                onsubmit="return kioskConfirmReward(this);"
-                            >
+                            <form method="post" action="{{ url_for('main.kiosk_cart_add', reward_id=reward.id) }}" onsubmit="return kioskDisableBtn(this);">
                                 <button type="submit" class="kiosk-request-btn">
-                                    🎁 Request
+                                    🛒 Add to Cart
                                 </button>
                             </form>
                         {% endif %}
@@ -110,11 +178,11 @@
 
 {% block extra_scripts %}
 <script>
-    function kioskConfirmReward(form) {
+    function kioskDisableBtn(form) {
         const btn = form.querySelector("button[type=submit]");
         if (btn.disabled) return false;
         btn.disabled = true;
-        btn.textContent = "Requesting…";
+        btn.textContent = "Adding…";
         return true;
     }
 </script>

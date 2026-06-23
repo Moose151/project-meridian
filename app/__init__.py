@@ -104,8 +104,10 @@ def create_app():
             count = Notification.query.filter_by(
                 user_id=user_id, is_read=False
             ).count()
-            return {"kiosk_unread_count": count}
-        return {"kiosk_unread_count": 0}
+            raw_cart = session.get(f"kiosk_cart_{user_id}", {})
+            cart_total = sum(raw_cart.values()) if isinstance(raw_cart, dict) else 0
+            return {"kiosk_unread_count": count, "kiosk_cart_total": cart_total}
+        return {"kiosk_unread_count": 0, "kiosk_cart_total": 0}
 
     app.register_blueprint(bp)
 

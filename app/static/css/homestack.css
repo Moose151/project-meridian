@@ -1734,6 +1734,269 @@ textarea.form-control {
     text-align: center;
 }
 
+/* ── Shop header ────────────────────────────────────────── */
+
+.kiosk-shop-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.kiosk-cart-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    background: var(--hs-accent);
+    color: #fff;
+    border-radius: var(--hs-radius);
+    font-size: 1.5rem;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.kiosk-cart-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--hs-danger);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    line-height: 1.2rem;
+    text-align: center;
+    padding: 0 0.25rem;
+}
+
+/* ── Stock badges ───────────────────────────────────────── */
+
+.kiosk-reward-stock-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.kiosk-stock-badge {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: var(--hs-bg-soft);
+    color: var(--hs-muted-strong);
+    border: 1px solid var(--hs-border);
+}
+
+.kiosk-stock-low {
+    background: #fff3cd;
+    color: #856404;
+    border-color: #ffc107;
+}
+
+.kiosk-stock-out {
+    background: var(--hs-danger-soft);
+    color: var(--hs-danger);
+    border-color: var(--hs-danger);
+}
+
+/* ── Quantity + add form ────────────────────────────────── */
+
+.kiosk-qty-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.kiosk-qty-input {
+    width: 5rem;
+    border: 1.5px solid var(--hs-border);
+    border-radius: var(--hs-radius-sm);
+    padding: 0.6rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: center;
+    background: var(--hs-bg);
+    color: var(--hs-text);
+    flex-shrink: 0;
+}
+
+.kiosk-add-cart-btn {
+    flex: 1;
+    background: var(--hs-success);
+    color: #fff;
+    border: none;
+    border-radius: var(--hs-radius);
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: opacity 0.15s;
+}
+
+.kiosk-add-cart-btn:hover,
+.kiosk-add-cart-btn:focus {
+    opacity: 0.88;
+}
+
+/* ── Remove button ──────────────────────────────────────── */
+
+.kiosk-remove-btn {
+    width: 100%;
+    background: none;
+    border: 1.5px solid var(--hs-danger);
+    color: var(--hs-danger);
+    border-radius: var(--hs-radius);
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    touch-action: manipulation;
+    transition: background 0.15s, color 0.15s;
+}
+
+.kiosk-remove-btn:hover,
+.kiosk-remove-btn:focus {
+    background: var(--hs-danger-soft);
+}
+
+.kiosk-remove-btn-sm {
+    width: auto;
+    margin-top: 0.25rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+/* ── Cart page ──────────────────────────────────────────── */
+
+.kiosk-cart-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--hs-card);
+    border: 1px solid var(--hs-border);
+    border-radius: var(--hs-radius);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.kiosk-cart-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--hs-border);
+}
+
+.kiosk-cart-item:last-child {
+    border-bottom: none;
+}
+
+.kiosk-cart-thumb {
+    width: 4rem;
+    height: 4rem;
+    object-fit: cover;
+    border-radius: var(--hs-radius-sm);
+    flex-shrink: 0;
+}
+
+.kiosk-cart-thumb-placeholder {
+    background: var(--hs-bg-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+}
+
+.kiosk-cart-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.kiosk-cart-name {
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.kiosk-cart-qty {
+    font-size: 0.85rem;
+    color: var(--hs-muted);
+    margin-top: 0.15rem;
+}
+
+.kiosk-cart-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.kiosk-cart-cost {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--hs-accent);
+    white-space: nowrap;
+}
+
+.kiosk-cart-cost-label {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--hs-muted);
+}
+
+/* ── Checkout summary box ───────────────────────────────── */
+
+.kiosk-checkout-box {
+    background: var(--hs-card);
+    border: 1px solid var(--hs-border);
+    border-radius: var(--hs-radius);
+    padding: 1.25rem 1.5rem;
+}
+
+.kiosk-checkout-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--hs-border);
+}
+
+.kiosk-checkout-row:last-of-type {
+    border-bottom: none;
+}
+
+.kiosk-checkout-after {
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.kiosk-checkout-after-val {
+    color: var(--hs-success);
+}
+
+.kiosk-checkout-short {
+    font-weight: 700;
+    color: var(--hs-danger);
+}
+
+.kiosk-checkout-note {
+    font-size: 0.82rem;
+    color: var(--hs-muted);
+    text-align: center;
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+}
+
 /* ── Numpad toggle button ───────────────────────────────── */
 
 .kiosk-numpad-toggle {

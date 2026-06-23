@@ -61,7 +61,7 @@
                                         </p>
                                     {% endif %}
 
-                                    {% if item.price_estimate %}
+                                    {% if current_user.is_admin() and item.price_estimate %}
                                         <p class="text-muted-small mb-1">
                                             💰 {{ item.price_estimate }}
                                         </p>

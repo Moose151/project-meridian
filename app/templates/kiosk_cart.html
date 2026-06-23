@@ -1,0 +1,125 @@
+{% extends "kiosk_base.html" %}
+
+{% block content %}
+
+<div class="kiosk-page">
+
+    <a href="{{ url_for('main.kiosk_rewards') }}" class="kiosk-back-link">← Back to Shop</a>
+
+    <div class="kiosk-page-header">
+        <h1 class="kiosk-page-title">Your Cart</h1>
+        <p class="kiosk-page-subtitle">
+            Balance: <strong>{{ current_balance }}</strong> {{ household_settings.points_label }}
+        </p>
+    </div>
+
+    {% if cart_items %}
+
+        <div class="kiosk-cart-list">
+            {% for reward, qty in cart_items %}
+                <div class="kiosk-cart-item">
+
+                    {% if reward.images %}
+                        <img
+                            src="{{ url_for('static', filename='uploads/rewards/' ~ reward.id ~ '/' ~ reward.images[0].filename) }}"
+                            class="kiosk-cart-thumb"
+                            alt="{{ reward.name }}"
+                        >
+                    {% elif reward.image_url %}
+                        <img
+                            src="{{ reward.image_url }}"
+                            class="kiosk-cart-thumb"
+                            alt="{{ reward.name }}"
+                        >
+                    {% else %}
+                        <div class="kiosk-cart-thumb kiosk-cart-thumb-placeholder">🎁</div>
+                    {% endif %}
+
+                    <div class="kiosk-cart-info">
+                        <div class="kiosk-cart-name">{{ reward.name }}</div>
+                        {% if qty > 1 %}
+                            <div class="kiosk-cart-qty">×{{ qty }} · {{ reward.point_cost }} each</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="kiosk-cart-right">
+                        <div class="kiosk-cart-cost">
+                            {{ reward.point_cost * qty }}
+                            <span class="kiosk-cart-cost-label">{{ household_settings.points_label }}</span>
+                        </div>
+                        <form method="post" action="{{ url_for('main.kiosk_cart_remove', reward_id=reward.id) }}">
+                            <button type="submit" class="kiosk-remove-btn kiosk-remove-btn-sm">✕ Remove</button>
+                        </form>
+                    </div>
+
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="kiosk-checkout-box">
+
+            {% set total_units = cart_items | map(attribute=1) | sum %}
+
+            <div class="kiosk-checkout-row">
+                <span>Items ({{ total_units }} unit{% if total_units != 1 %}s{% endif %})</span>
+                <span><strong>{{ total_cost }}</strong> {{ household_settings.points_label }}</span>
+            </div>
+            <div class="kiosk-checkout-row">
+                <span>Your balance</span>
+                <span>{{ current_balance }} {{ household_settings.points_label }}</span>
+            </div>
+
+            {% if total_cost <= current_balance %}
+                <div class="kiosk-checkout-row kiosk-checkout-after">
+                    <span>Balance after checkout</span>
+                    <span class="kiosk-checkout-after-val">{{ current_balance - total_cost }} {{ household_settings.points_label }}</span>
+                </div>
+
+                <form method="post" action="{{ url_for('main.kiosk_checkout') }}" onsubmit="return kioskCheckout(this);">
+                    <button type="submit" class="kiosk-request-btn" style="width:100%;margin-top:1.25rem;font-size:1.2rem;">
+                        ✓ Checkout — Request All Items
+                    </button>
+                </form>
+                <p class="kiosk-checkout-note">
+                    {{ household_settings.points_label|capitalize }} are reserved immediately pending admin approval.
+                </p>
+
+            {% else %}
+                <div class="kiosk-checkout-row kiosk-checkout-short">
+                    <span>Shortfall</span>
+                    <span>{{ total_cost - current_balance }} {{ household_settings.points_label }} short</span>
+                </div>
+                <div class="kiosk-cannot-afford" style="margin-top:1rem;">
+                    Not enough {{ household_settings.points_label }} — remove some items or earn more first.
+                </div>
+            {% endif %}
+
+        </div>
+
+    {% else %}
+
+        <div class="kiosk-empty">
+            <div class="kiosk-empty-icon">🛒</div>
+            <p>Your cart is empty.</p>
+            <a href="{{ url_for('main.kiosk_rewards') }}" class="kiosk-request-btn" style="display:inline-block;text-align:center;text-decoration:none;">
+                Browse Shop
+            </a>
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function kioskCheckout(form) {
+        const btn = form.querySelector("button[type=submit]");
+        if (btn.disabled) return false;
+        btn.disabled = true;
+        btn.textContent = "Processing…";
+        return true;
+    }
+</script>
+{% endblock %}

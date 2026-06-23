@@ -37,9 +37,9 @@
                         <p class="kiosk-wishlist-desc">{{ item.description }}</p>
                     {% endif %}
 
-                    {% if item.price_estimate or item.store_url %}
+                    {% if (user.is_admin() and item.price_estimate) or item.store_url %}
                         <div class="kiosk-reward-meta">
-                            {% if item.price_estimate %}
+                            {% if user.is_admin() and item.price_estimate %}
                                 <span class="kiosk-meta-chip">💰 {{ item.price_estimate }}</span>
                             {% endif %}
                             {% if item.store_url %}

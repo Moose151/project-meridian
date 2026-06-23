@@ -107,10 +107,14 @@
 
     <a
         href="{{ url_for('main.kiosk_rewards') }}"
-        class="kiosk-nav-item {% if request.endpoint in ['main.kiosk_rewards', 'main.kiosk_request_reward'] %}active{% endif %}"
+        class="kiosk-nav-item {% if request.endpoint in ['main.kiosk_rewards', 'main.kiosk_cart', 'main.kiosk_cart_add', 'main.kiosk_cart_remove', 'main.kiosk_checkout'] %}active{% endif %}"
+        style="position:relative;"
     >
-        <span class="kiosk-nav-icon">🎁</span>
-        <span class="kiosk-nav-label">Rewards</span>
+        <span class="kiosk-nav-icon">🛒</span>
+        {% if kiosk_cart_total > 0 %}
+            <span class="kiosk-unread-dot">{{ kiosk_cart_total }}</span>
+        {% endif %}
+        <span class="kiosk-nav-label">Shop</span>
     </a>
 
     <a

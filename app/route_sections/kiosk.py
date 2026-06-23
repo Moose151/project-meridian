@@ -6,7 +6,7 @@ Uses its own session key (kiosk_user_id) rather than Flask-Login, so the
 kiosk can switch users without affecting sessions on other devices.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from flask import flash, redirect, render_template, request, session, url_for
 from sqlalchemy import or_
@@ -39,6 +39,25 @@ def _kiosk_user():
         session.pop("kiosk_user_id", None)
         return None
     return user
+
+
+def _get_kiosk_cart(user_id):
+    """Return kiosk cart for the given user as {str(reward_id): int}."""
+    return session.get(f"kiosk_cart_{user_id}", {})
+
+
+def _save_kiosk_cart(user_id, cart):
+    session[f"kiosk_cart_{user_id}"] = cart
+
+
+def _kiosk_today_midnight_utc():
+    """Return today's local midnight as UTC-aware datetime for daily limit queries."""
+    today = date.today()
+    midnight_naive = datetime(today.year, today.month, today.day, 0, 0, 0)
+    local_now = datetime.now()
+    utc_now = datetime.now(timezone.utc).replace(tzinfo=None)
+    offset = utc_now - local_now
+    return (midnight_naive + offset).replace(tzinfo=timezone.utc)
 
 
 def _task_in_window(task):
@@ -389,94 +408,234 @@ def register_kiosk_routes(bp):
         return redirect(url_for("main.kiosk_tasks"))
 
     # =========================================================
-    # REWARDS
+    # SHOP (REWARDS + CART)
     # =========================================================
 
     @bp.route("/kiosk/rewards")
     def kiosk_rewards():
-        """
-        Kiosk reward shop.
-        """
+        """Kiosk shop — browse rewards and add them to the cart."""
         user = _kiosk_user()
         if not user:
             return redirect(url_for("main.kiosk_landing"))
 
         rewards = Reward.query.filter_by(is_active=True, is_archived=False).order_by(
-            Reward.point_cost,
-            Reward.name
+            Reward.point_cost, Reward.name
         ).all()
 
-        requested_reward_ids = {
-            row[0] for row in db.session.query(RewardPurchase.reward_id).filter_by(
-                user_id=user.id,
-                status="requested"
-            ).all()
-        }
+        # Hide rewards that are out of stock and set to disappear.
+        rewards = [
+            r for r in rewards
+            if not (r.remaining_stock() is not None and r.remaining_stock() <= 0 and r.disappear_when_empty)
+        ]
 
+        cart = _get_kiosk_cart(user.id)
         current_balance = user.point_balance()
+
+        reward_info = {}
+        for r in rewards:
+            reward_info[r.id] = {
+                "remaining_stock": r.remaining_stock(),
+                "daily_remaining": r.daily_remaining_for_user(user.id),
+                "cart_qty": int(cart.get(str(r.id), 0)),
+            }
 
         return render_template(
             "kiosk_rewards.html",
             user=user,
             kiosk_user=user,
             rewards=rewards,
-            requested_reward_ids=requested_reward_ids,
-            current_balance=current_balance
+            reward_info=reward_info,
+            current_balance=current_balance,
         )
 
-    @bp.route("/kiosk/rewards/<int:reward_id>/request", methods=["POST"])
-    def kiosk_request_reward(reward_id):
-        """
-        Request a reward from the kiosk.
-        """
+    @bp.route("/kiosk/shop/cart")
+    def kiosk_cart():
+        """Kiosk cart — review items before checkout."""
+        user = _kiosk_user()
+        if not user:
+            return redirect(url_for("main.kiosk_landing"))
+
+        cart = _get_kiosk_cart(user.id)
+        cart_items = []
+        total_cost = 0
+
+        for rid_str, qty in list(cart.items()):
+            rid = int(rid_str)
+            r = db.session.get(Reward, rid)
+            if r and r.is_active and not r.is_archived:
+                cart_items.append((r, qty))
+                total_cost += r.point_cost * qty
+            else:
+                cart.pop(rid_str, None)
+
+        _save_kiosk_cart(user.id, cart)
+        current_balance = user.point_balance()
+
+        return render_template(
+            "kiosk_cart.html",
+            user=user,
+            kiosk_user=user,
+            cart_items=cart_items,
+            total_cost=total_cost,
+            current_balance=current_balance,
+        )
+
+    @bp.route("/kiosk/shop/cart/add/<int:reward_id>", methods=["POST"])
+    def kiosk_cart_add(reward_id):
+        """Add a reward to the kiosk cart, respecting stock and daily limits."""
         user = _kiosk_user()
         if not user:
             return redirect(url_for("main.kiosk_landing"))
 
         reward = db.session.get(Reward, reward_id)
-
         if not reward or not reward.is_active or reward.is_archived:
             flash("Reward not found.")
             return redirect(url_for("main.kiosk_rewards"))
 
-        existing = RewardPurchase.query.filter_by(
-            reward_id=reward.id,
-            user_id=user.id,
-            status="requested"
-        ).first()
+        qty_requested = request.form.get("quantity", 1, type=int)
+        if qty_requested < 1:
+            qty_requested = 1
+        if not reward.allow_multiple_in_cart:
+            qty_requested = 1
 
-        if existing:
-            flash("You already have a pending request for this reward.")
+        cart = _get_kiosk_cart(user.id)
+        current_in_cart = int(cart.get(str(reward_id), 0))
+
+        # Enforce daily limit.
+        daily_rem = reward.daily_remaining_for_user(user.id)
+        if daily_rem is not None:
+            already_today = reward.daily_used_by_user(user.id)
+            total_today = already_today + current_in_cart + qty_requested
+            if total_today > reward.daily_limit_per_user:
+                allowed = reward.daily_limit_per_user - already_today - current_in_cart
+                if allowed <= 0:
+                    flash(f"You've reached your daily limit for '{reward.name}'.")
+                    return redirect(url_for("main.kiosk_rewards"))
+                qty_requested = allowed
+
+        # Enforce stock.
+        stock = reward.remaining_stock()
+        if stock is not None:
+            if current_in_cart + qty_requested > stock:
+                allowed = stock - current_in_cart
+                if allowed <= 0:
+                    flash(f"'{reward.name}' is out of stock.")
+                    return redirect(url_for("main.kiosk_rewards"))
+                qty_requested = allowed
+
+        new_qty = current_in_cart + qty_requested
+        if new_qty <= 0:
+            cart.pop(str(reward_id), None)
+        else:
+            cart[str(reward_id)] = new_qty
+
+        _save_kiosk_cart(user.id, cart)
+
+        if qty_requested > 1:
+            flash(f"Added {qty_requested}× '{reward.name}' to cart.")
+        else:
+            flash(f"'{reward.name}' added to cart.")
+        return redirect(url_for("main.kiosk_rewards"))
+
+    @bp.route("/kiosk/shop/cart/remove/<int:reward_id>", methods=["POST"])
+    def kiosk_cart_remove(reward_id):
+        """Remove a reward from the kiosk cart."""
+        user = _kiosk_user()
+        if not user:
+            return redirect(url_for("main.kiosk_landing"))
+
+        cart = _get_kiosk_cart(user.id)
+        cart.pop(str(reward_id), None)
+        _save_kiosk_cart(user.id, cart)
+        return redirect(url_for("main.kiosk_cart"))
+
+    @bp.route("/kiosk/shop/checkout", methods=["POST"])
+    def kiosk_checkout():
+        """
+        Checkout the kiosk cart — creates one RewardPurchase per unit and reserves points.
+        """
+        user = _kiosk_user()
+        if not user:
+            return redirect(url_for("main.kiosk_landing"))
+
+        cart = _get_kiosk_cart(user.id)
+        if not cart:
+            flash("Your cart is empty.")
             return redirect(url_for("main.kiosk_rewards"))
 
-        if user.point_balance() < reward.point_cost:
-            flash(f"Not enough {get_points_label()} for this reward.")
-            return redirect(url_for("main.kiosk_rewards"))
+        midnight_utc = _kiosk_today_midnight_utc()
+        requested = []
 
-        purchase = RewardPurchase(
-            reward_id=reward.id,
-            user_id=user.id,
-            status="requested"
-        )
+        for rid_str, qty in list(cart.items()):
+            rid = int(rid_str)
+            reward = db.session.get(Reward, rid)
 
-        db.session.add(purchase)
-        db.session.flush()
+            if not reward or not reward.is_active or reward.is_archived:
+                continue
 
-        # Reserve points (inline — services use current_user which is not set in kiosk mode).
-        reservation = PointTransaction(
-            user_id=user.id,
-            amount=-reward.point_cost,
-            transaction_type="reward_requested",
-            reason=f"Requested reward: {reward.name}",
-            related_reward_purchase_id=purchase.id,
-            created_by_id=user.id
-        )
-        db.session.add(reservation)
+            # Enforce daily limit.
+            if reward.daily_limit_per_user is not None:
+                used_today = RewardPurchase.query.filter(
+                    RewardPurchase.reward_id == rid,
+                    RewardPurchase.user_id == user.id,
+                    RewardPurchase.status.in_(["requested", "approved", "fulfilled"]),
+                    RewardPurchase.requested_at >= midnight_utc
+                ).count()
+                allowed = reward.daily_limit_per_user - used_today
+                if allowed <= 0:
+                    flash(f"Daily limit reached for '{reward.name}' — skipped.")
+                    continue
+                qty = min(qty, allowed)
+
+            # Enforce stock.
+            if reward.quantity is not None:
+                used_total = RewardPurchase.query.filter(
+                    RewardPurchase.reward_id == rid,
+                    RewardPurchase.status.in_(["requested", "approved", "fulfilled"])
+                ).count()
+                remaining = reward.quantity - used_total
+                if remaining <= 0:
+                    flash(f"'{reward.name}' is out of stock — skipped.")
+                    continue
+                qty = min(qty, remaining)
+
+            unit_count = 0
+            for _ in range(qty):
+                if user.point_balance() < reward.point_cost:
+                    flash(f"Not enough {get_points_label()} for '{reward.name}' — some units skipped.")
+                    break
+
+                purchase = RewardPurchase(
+                    reward_id=reward.id,
+                    user_id=user.id,
+                    status="requested"
+                )
+                db.session.add(purchase)
+                db.session.flush()
+
+                reservation = PointTransaction(
+                    user_id=user.id,
+                    amount=-reward.point_cost,
+                    transaction_type="reward_requested",
+                    reason=f"Requested reward: {reward.name}",
+                    related_reward_purchase_id=purchase.id,
+                    created_by_id=user.id
+                )
+                db.session.add(reservation)
+                unit_count += 1
+
+            if unit_count:
+                requested.append(f"{reward.name}" if unit_count == 1 else f"{reward.name} ×{unit_count}")
 
         db.session.commit()
+        _save_kiosk_cart(user.id, {})
 
-        flash(f"'{reward.name}' requested! {get_points_label().capitalize()} reserved pending approval.")
-        return redirect(url_for("main.kiosk_rewards"))
+        if requested:
+            flash(
+                f"Requested: {', '.join(requested)}. {get_points_label().capitalize()} reserved pending approval.",
+                "celebrate"
+            )
+        return redirect(url_for("main.kiosk_dashboard"))
 
     # =========================================================
     # LEADERBOARD
